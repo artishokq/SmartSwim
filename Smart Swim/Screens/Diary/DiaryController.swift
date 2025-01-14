@@ -7,10 +7,12 @@
 
 import UIKit
 
-final class DiaryController: BaseController {
+final class DiaryController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        view.backgroundColor = Resources.Colors.background
         
         title = "Дневник"
         navigationController?.tabBarItem.title = Resources.Strings.TabBar.diary

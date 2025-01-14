@@ -28,10 +28,10 @@ final class TabBarController: UITabBarController {
     private func configure() {
         tabBar.tintColor = Resources.Colors.active
         tabBar.barTintColor = Resources.Colors.inactive
-        tabBar.backgroundColor = Resources.Colors.TabAndNavBar
+        tabBar.backgroundColor = Resources.Colors.tabAndNavBar
         tabBar.layer.masksToBounds = true
         
-        let workoutController = WorkoutController()
+        let workoutController = WorkoutViewController()
         let startController = StartController()
         let diaryController = DiaryController()
         

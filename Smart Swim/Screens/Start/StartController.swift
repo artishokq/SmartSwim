@@ -7,10 +7,12 @@
 
 import UIKit
 
-final class StartController: BaseController {
+final class StartController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        view.backgroundColor = Resources.Colors.background
         
         title = "Контрольный старт"
         navigationController?.tabBarItem.title = Resources.Strings.TabBar.start
