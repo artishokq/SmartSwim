@@ -8,20 +8,20 @@
 import UIKit
 
 protocol WorkoutPresentationLogic {
-    func presentCreateWorkout(response: Workout.Create.Response)
-    func presentInfo(response: Workout.Info.Response)
+    func presentCreateWorkout(response: WorkoutHomeModels.Create.Response)
+    func presentInfo(response: WorkoutHomeModels.Info.Response)
 }
 
 final class WorkoutPresenter: WorkoutPresentationLogic {
     weak var viewController: WorkoutDisplayLogic?
     
-    func presentCreateWorkout(response: Workout.Create.Response) {
-        let viewModel = Workout.Create.ViewModel()
+    func presentCreateWorkout(response: WorkoutHomeModels.Create.Response) {
+        let viewModel = WorkoutHomeModels.Create.ViewModel()
         viewController?.displayCreateWorkout(viewModel: viewModel)
     }
     
-    func presentInfo(response: Workout.Info.Response) {
-        let viewModel = Workout.Info.ViewModel()
+    func presentInfo(response: WorkoutHomeModels.Info.Response) {
+        let viewModel = WorkoutHomeModels.Info.ViewModel()
         viewController?.displayInfo(viewModel: viewModel)
     }
 }

@@ -8,8 +8,8 @@
 import UIKit
 
 protocol WorkoutBusinessLogic {
-    func createWorkout(request: Workout.Create.Request)
-    func showInfo(request: Workout.Info.Request)
+    func createWorkout(request: WorkoutHomeModels.Create.Request)
+    func showInfo(request: WorkoutHomeModels.Info.Request)
 }
 
 protocol WorkoutDataStore {
@@ -19,13 +19,13 @@ protocol WorkoutDataStore {
 final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
     var presenter: WorkoutPresentationLogic?
     
-    func createWorkout(request: Workout.Create.Request) {
-        let response = Workout.Create.Response()
+    func createWorkout(request: WorkoutHomeModels.Create.Request) {
+        let response = WorkoutHomeModels.Create.Response()
         presenter?.presentCreateWorkout(response: response)
     }
     
-    func showInfo(request: Workout.Info.Request) {
-        let response = Workout.Info.Response()
+    func showInfo(request: WorkoutHomeModels.Info.Request) {
+        let response = WorkoutHomeModels.Info.Response()
         presenter?.presentInfo(response: response)
     }
 }
