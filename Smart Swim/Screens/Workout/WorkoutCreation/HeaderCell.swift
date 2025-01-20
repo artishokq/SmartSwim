@@ -15,8 +15,9 @@ protocol HeaderCellDelegate: AnyObject {
 final class HeaderCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
-        static let cellCornerRadius: CGFloat = 12
+        static let cellCornerRadius: CGFloat = 18
         static let fieldCrnerRadius: CGFloat = 6
+        static let borderWidth: CGFloat = 6
         
         static let nameTextFieldTopPadding: CGFloat = 12
         static let nameTextFieldRightPadding: CGFloat = 12
@@ -55,6 +56,9 @@ final class HeaderCell: UITableViewCell {
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
         
+        layer.borderWidth = Constants.borderWidth
+        layer.borderColor = Resources.Colors.createBackgroundColor?.cgColor
+        
         contentView.addSubview(nameTextField)
         contentView.addSubview(poolSizeSegmentControl)
         
@@ -65,7 +69,7 @@ final class HeaderCell: UITableViewCell {
     private func nameTextFieldConfiguration() {
         let placeholderAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: Resources.Colors.titleWhite.withAlphaComponent(Constants.textPlaceholderTransparency),
-            .font: Resources.Fonts.workoutNamePlaceholder
+            .font: Resources.Fonts.fieldsAndPlaceholdersFont
         ]
         
         nameTextField.attributedPlaceholder = NSAttributedString(
@@ -73,7 +77,7 @@ final class HeaderCell: UITableViewCell {
             attributes: placeholderAttributes
         )
         
-        nameTextField.font = Resources.Fonts.workoutNamePlaceholder
+        nameTextField.font = Resources.Fonts.fieldsAndPlaceholdersFont
         nameTextField.textColor = Resources.Colors.titleWhite
         nameTextField.tintColor = Resources.Colors.titleWhite
         nameTextField.layer.cornerRadius = Constants.fieldCrnerRadius
@@ -105,16 +109,16 @@ final class HeaderCell: UITableViewCell {
         poolSizeSegmentControl.layer.cornerRadius = Constants.fieldCrnerRadius
         
         poolSizeSegmentControl.backgroundColor = Resources.Colors.fieldsBackgroundColor
-        poolSizeSegmentControl.selectedSegmentTintColor = Resources.Colors.blueColor // TODO: ЦВЕТ?
+        poolSizeSegmentControl.selectedSegmentTintColor = Resources.Colors.blueColor
         
         let normalTextAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.workoutNamePlaceholder
+            .font: Resources.Fonts.fieldsAndPlaceholdersFont
         ]
         
         let selectedTextAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.workoutNamePlaceholder
+            .font: Resources.Fonts.fieldsAndPlaceholdersFont
         ]
         
         poolSizeSegmentControl.setTitleTextAttributes(normalTextAttributes, for: .normal)

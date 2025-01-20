@@ -80,6 +80,7 @@ enum Resources {
         static let NavBarTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
         static let constructorTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
         static let infoTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
-        static let workoutNamePlaceholder = UIFont.systemFont(ofSize: 18, weight: .light)
+        static let fieldsAndPlaceholdersFont = UIFont.systemFont(ofSize: 18, weight: .light)
+        static let fieldsAndPlaceholdersSmallerFont = UIFont.systemFont(ofSize: 16, weight: .light)
     }
 }

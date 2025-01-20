@@ -59,8 +59,8 @@ final class CreateWorkoutViewController: UIViewController {
         
         tableView.pinTop(to: view.safeAreaLayoutGuide.topAnchor)
         tableView.pinBottom(to: view.bottomAnchor)
-        tableView.pinLeft(to: view.leadingAnchor, 15)
-        tableView.pinRight(to: view.trailingAnchor, 15)
+        tableView.pinLeft(to: view.leadingAnchor, 9)
+        tableView.pinRight(to: view.trailingAnchor, 9)
     }
     
     private func configureAddButton() {
@@ -131,9 +131,9 @@ extension CreateWorkoutViewController: UITableViewDataSource, UITableViewDelegat
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if section == 0 {
-            return 1 // Header cell
+            return 1
         }
-        return exercises.count // Exercise cells
+        return exercises.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
