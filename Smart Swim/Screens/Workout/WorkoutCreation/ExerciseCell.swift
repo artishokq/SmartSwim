@@ -10,45 +10,49 @@ import UIKit
 // ExerciseCell.swift
 protocol ExerciseCellDelegate: AnyObject {
     func exerciseCell(_ cell: ExerciseCell, didUpdate exercise: Exercise)
+    func exerciseCell(_ cell: ExerciseCell, didRequestDeletionAt indexPath: IndexPath)
 }
 
 final class ExerciseCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
         static let cellCornerRadius: CGFloat = 18
-        static let borderWidth: CGFloat = 6
         
         static let textFieldHeight: CGFloat = 38
         static let textFieldCornerRadius: CGFloat = 6
         
         static let toolBarDoneButton: String = "Готово"
         
+        static let exerciseNumberLabelTopPadding: CGFloat = 9
+        static let exerciseNumberLabelLeftPadding: CGFloat = 9
+        static let exerciseNumberText: String = "Задание"
+        
         static let typeItems: [String] = ["Разминка", "Основное", "Заминка"]
         static let typeSegmentControlCornerRadius: CGFloat = 6
         static let typeSegmentControlTopPadding: CGFloat = 12
-        static let typeSegmentControlRightPadding: CGFloat = 12
-        static let typeSegmentControlLeftPadding: CGFloat = 12
+        static let typeSegmentControlRightPadding: CGFloat = 9
+        static let typeSegmentControlLeftPadding: CGFloat = 9
         static let typeSegmentControlHeight: CGFloat = 38
         
         static let metersValues: [Int] = Array(stride(from: 25, through: 5000, by: 25))
         static let metersPlaceholder: String = "Метры"
         static let metersTextFieldTopPadding: CGFloat = 12
-        static let metersTextFieldLeftPadding: CGFloat = 12
+        static let metersTextFieldLeftPadding: CGFloat = 9
         static let metersTextFieldRightPadding: CGFloat = 6
         
         static let repsValues: [Int] = Array(1...50)
         static let repsPlaceholder: String = "Повторения"
         static let repsTextFieldTopPadding: CGFloat = 12
-        static let repsTextFieldRightPadding: CGFloat = 12
+        static let repsTextFieldRightPadding: CGFloat = 9
         static let repsTextFieldLeftPadding: CGFloat = 6
         
         static let intervalLabel: String = "Режим"
         static let intervalLabelTopPadding: CGFloat = 16
-        static let intervalLabelLeftPadding: CGFloat = 12
+        static let intervalLabelLeftPadding: CGFloat = 9
         static let intervalSwitchLeftPadding: CGFloat = 8
         static let intervalStackViewTopPadding: CGFloat = 16
-        static let intervalStackViewLeftPadding: CGFloat = 12
-        static let intervalStackViewRightPadding: CGFloat = 12
+        static let intervalStackViewLeftPadding: CGFloat = 9
+        static let intervalStackViewRightPadding: CGFloat = 9
         
         static let minutesValues: [Int] = Array(0...59)
         static let minutesPlaceholder: String = "Минуты"
@@ -61,20 +65,24 @@ final class ExerciseCell: UITableViewCell {
         static let styleItems: [String] = ["Кроль", "Брасс", "Спина", "Батт", "К/П", "Любой"]
         static let styleSegmentControlCornerRadius: CGFloat = 6
         static let styleSegmentControlTopPadding: CGFloat = 12
-        static let styleSegmentControlRightPadding: CGFloat = 12
-        static let styleSegmentControlLeftPadding: CGFloat = 12
+        static let styleSegmentControlRightPadding: CGFloat = 9
+        static let styleSegmentControlLeftPadding: CGFloat = 9
         static let styleSegmentControlHeight: CGFloat = 38
         
         static let descriptionPlaceholder: String = "Описание"
         static let descriptionTextViewCornerRadius: CGFloat = 6
         static let descriptionTextViewTopPadding: CGFloat = 12
-        static let descriptionTextViewLeftPadding: CGFloat = 12
-        static let descriptionTextViewRightPadding: CGFloat = 12
+        static let descriptionTextViewLeftPadding: CGFloat = 9
+        static let descriptionTextViewRightPadding: CGFloat = 9
         static let descriptionTextViewHeight: CGFloat = 50
         
-        static let deleteButtonTopPadding: CGFloat = 12
-        static let deleteButtonRightPadding: CGFloat = 12
-        static let deleteButtonBottomPadding: CGFloat = 12
+        static let deleteButtonTopPadding: CGFloat = 9
+        static let deleteButtonRightPadding: CGFloat = 9
+        static let deleteButtonBottomPadding: CGFloat = 9
+        static let deleteButtonTitle: String = "Удаление задания"
+        static let deleteButtonMessage: String = "Вы уверены, что хотите удалить это задание?"
+        static let deleteButtonCancelTitle: String = "Отмена"
+        static let deleteButtonDeleteTitle: String = "Удалить"
     }
     
     // MARK: - Fields
@@ -82,6 +90,7 @@ final class ExerciseCell: UITableViewCell {
     weak var delegate: ExerciseCellDelegate?
     private var exercise: Exercise?
     
+    private let exerciseNumberLabel: UILabel = UILabel()
     private let typeSegmentControl: UISegmentedControl = UISegmentedControl()
     private let metersTextField: UITextField = UITextField()
     private let repsTextField: UITextField = UITextField()
@@ -115,10 +124,9 @@ final class ExerciseCell: UITableViewCell {
         backgroundColor = Resources.Colors.createCellBackgroundColor
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
-        layer.borderWidth = Constants.borderWidth
-        layer.borderColor = Resources.Colors.createBackgroundColor?.cgColor
         descriptionTextView.delegate = self
         
+        contentView.addSubview(exerciseNumberLabel)
         contentView.addSubview(typeSegmentControl)
         contentView.addSubview(metersTextField)
         contentView.addSubview(repsTextField)
@@ -129,6 +137,7 @@ final class ExerciseCell: UITableViewCell {
         contentView.addSubview(descriptionTextView)
         contentView.addSubview(deleteButton)
         
+        exerciseNumberLabelConfiguration()
         typeSegmentControlConfiguration()
         metersTextFieldConfiguration()
         repsTextFieldConfiguration()
@@ -201,6 +210,16 @@ final class ExerciseCell: UITableViewCell {
         return toolbar
     }
     
+    // НОМЕР ЗАДАНИЯ
+    private func exerciseNumberLabelConfiguration() {
+        exerciseNumberLabel.font = Resources.Fonts.fieldsAndPlaceholdersFont
+        exerciseNumberLabel.textColor = Resources.Colors.titleWhite
+        
+        exerciseNumberLabel.translatesAutoresizingMaskIntoConstraints = false
+        exerciseNumberLabel.pinTop(to: contentView.topAnchor, Constants.exerciseNumberLabelTopPadding)
+        exerciseNumberLabel.pinLeft(to: contentView.leadingAnchor, Constants.exerciseNumberLabelLeftPadding)
+    }
+    
     // ВЫБОР ТИПА ТРЕНИРОВКИ (РАЗМИНКА / ОСНОВНОЕ / ЗАМИНКА)
     private func typeSegmentControlConfiguration() {
         typeSegmentControl.removeAllSegments()
@@ -228,7 +247,7 @@ final class ExerciseCell: UITableViewCell {
         
         // Констрейнты
         typeSegmentControl.translatesAutoresizingMaskIntoConstraints = false
-        typeSegmentControl.pinTop(to: contentView.topAnchor, Constants.typeSegmentControlTopPadding)
+        typeSegmentControl.pinTop(to: exerciseNumberLabel.bottomAnchor, Constants.typeSegmentControlTopPadding)
         typeSegmentControl.pinLeft(to: contentView.leadingAnchor, Constants.typeSegmentControlLeftPadding)
         typeSegmentControl.pinRight(to: contentView.trailingAnchor, Constants.typeSegmentControlRightPadding)
         typeSegmentControl.setHeight(Constants.typeSegmentControlHeight)
@@ -387,8 +406,10 @@ final class ExerciseCell: UITableViewCell {
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
     }
     
-    func configure(with exercise: Exercise) {
+    func configure(with exercise: Exercise, number: Int) {
         self.exercise = exercise
+        
+        exerciseNumberLabel.text = "\(Constants.exerciseNumberText) \(number)"
         
         typeSegmentControl.selectedSegmentIndex = {
             switch exercise.type {
@@ -503,7 +524,7 @@ final class ExerciseCell: UITableViewCell {
         let selectedMeters = Constants.metersValues[metersPicker.selectedRow(inComponent: 0)]
         let selectedReps = Constants.repsValues[repsPicker.selectedRow(inComponent: 0)]
         let description = descriptionTextView.textColor == .gray ? "" : (descriptionTextView.text ?? "")
-                
+        
         let updatedExercise = Exercise(
             type: type,
             meters: selectedMeters,
@@ -519,9 +540,47 @@ final class ExerciseCell: UITableViewCell {
         delegate?.exerciseCell(self, didUpdate: updatedExercise)
     }
     
-    // TODO: - СДЕЛАТЬ УДАЛЕНИЕ
     @objc private func deleteButtonTapped() {
+        let alert = UIAlertController(
+            title: Constants.deleteButtonTitle,
+            message: Constants.deleteButtonMessage,
+            preferredStyle: .alert
+        )
         
+        let cancelAction = UIAlertAction(title: Constants.deleteButtonCancelTitle, style: .cancel)
+        
+        let deleteAction = UIAlertAction(
+            title: Constants.deleteButtonDeleteTitle,
+            style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            if let indexPath = self.getIndexPath() {
+                self.delegate?.exerciseCell(self, didRequestDeletionAt: indexPath)
+            }
+        }
+        
+        alert.addAction(cancelAction)
+        alert.addAction(deleteAction)
+        
+        // Находим текущий ViewController
+        if let viewController = self.findViewController() {
+            viewController.present(alert, animated: true)
+        }
+    }
+    
+    private func getIndexPath() -> IndexPath? {
+        guard let tableView = self.superview as? UITableView else { return nil }
+        return tableView.indexPath(for: self)
+    }
+    
+    private func findViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let nextResponder = responder?.next {
+            if let viewController = nextResponder as? UIViewController {
+                return viewController
+            }
+            responder = nextResponder
+        }
+        return nil
     }
 }
 

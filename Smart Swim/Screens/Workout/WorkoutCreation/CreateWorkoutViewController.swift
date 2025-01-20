@@ -8,6 +8,17 @@
 import UIKit
 
 final class CreateWorkoutViewController: UIViewController {
+    // MARK: - Constants
+    private enum Constants {
+        static let tableViewLeftPadding: CGFloat = 14
+        static let tableViewRightPadding: CGFloat = 14
+        
+        static let sectionSpacing: CGFloat = 14
+        
+        static let createButtonAlertTitle: String = "Ошибка"
+        static let createButtonAlertMessage: String = "Введите название тренировки"
+    }
+    
     // MARK: - Fields
     private var workout: Workout?
     private var exercises: [Exercise] = []
@@ -50,6 +61,7 @@ final class CreateWorkoutViewController: UIViewController {
         tableView.frame = .zero
         tableView.register(HeaderCell.self, forCellReuseIdentifier: HeaderCell.identifier)
         tableView.register(ExerciseCell.self, forCellReuseIdentifier: ExerciseCell.identifier)
+        tableView.sectionHeaderTopPadding = 0
         
         tableView.delegate = self
         tableView.dataSource = self
@@ -59,8 +71,8 @@ final class CreateWorkoutViewController: UIViewController {
         
         tableView.pinTop(to: view.safeAreaLayoutGuide.topAnchor)
         tableView.pinBottom(to: view.bottomAnchor)
-        tableView.pinLeft(to: view.leadingAnchor, 9)
-        tableView.pinRight(to: view.trailingAnchor, 9)
+        tableView.pinLeft(to: view.leadingAnchor, Constants.tableViewLeftPadding)
+        tableView.pinRight(to: view.trailingAnchor, Constants.tableViewRightPadding)
     }
     
     private func configureAddButton() {
@@ -97,16 +109,14 @@ final class CreateWorkoutViewController: UIViewController {
         )
         exercises.append(newExercise)
         
-        let indexPath = IndexPath(row: exercises.count - 1, section: 1)
-        tableView.insertRows(at: [indexPath], with: .automatic)
+        tableView.insertSections(IndexSet(integer: exercises.count), with: .automatic)
     }
     
     @objc private func createButtonTapped() {
         guard let workoutName = workout?.name, !workoutName.isEmpty else {
-            // Show error - name required
             let alert = UIAlertController(
-                title: "Ошибка",
-                message: "Введите название тренировки",
+                title: Constants.createButtonAlertTitle,
+                message: Constants.createButtonAlertMessage,
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -114,7 +124,6 @@ final class CreateWorkoutViewController: UIViewController {
             return
         }
         
-        // Save workout using WorkoutStorage
         if let workout = workout {
             WorkoutStorage.shared.saveWorkout(workout)
             dismiss(animated: true)
@@ -126,24 +135,38 @@ final class CreateWorkoutViewController: UIViewController {
 // MARK: - TableView DataSource & Delegate
 extension CreateWorkoutViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 2 // Header section and Exercises section
+        return exercises.count + 1
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if section == 0 {
-            return 1
-        }
-        return exercises.count
+        // Каждая секция содержит только одну ячейку
+        return 1
+    }
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        // Устанавливаем отступ между секциями
+        return section == 0 ? 0 : Constants.sectionSpacing
+    }
+    
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        // Делаем header прозрачным
+        let headerView = UIView()
+        headerView.backgroundColor = .clear
+        return headerView
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: HeaderCell.identifier, for: indexPath) as! HeaderCell
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: HeaderCell.identifier,
+                for: indexPath) as! HeaderCell
             cell.delegate = self
             return cell
         } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: ExerciseCell.identifier, for: indexPath) as! ExerciseCell
-            cell.configure(with: exercises[indexPath.row])
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: ExerciseCell.identifier,
+                for: indexPath) as! ExerciseCell
+            cell.configure(with: exercises[indexPath.section - 1], number: indexPath.section)
             cell.delegate = self
             return cell
         }
@@ -163,9 +186,30 @@ extension CreateWorkoutViewController: HeaderCellDelegate {
 
 // MARK: - ExerciseCell Delegate
 extension CreateWorkoutViewController: ExerciseCellDelegate {
+    func exerciseCell(_ cell: ExerciseCell, didRequestDeletionAt indexPath: IndexPath) {
+        // Удаляем из массива данных
+        exercises.remove(at: indexPath.section - 1)
+        
+        // Удаляем секцию из таблицы
+        tableView.deleteSections(IndexSet(integer: indexPath.section), with: .automatic)
+        
+        // Обновляем нумерацию оставшихся ячеек
+        // Начинаем с секции, где было удаление, и идем до последнего упражнения
+        if indexPath.section <= exercises.count {
+            for section in indexPath.section...exercises.count {
+                if let cell = tableView.cellForRow(at: IndexPath(row: 0, section: section)) as? ExerciseCell {
+                    cell.configure(with: exercises[section - 1], number: section)
+                }
+            }
+        }
+        
+        // Обновляем данные тренировки
+        workout?.exercises = exercises
+    }
+    
     func exerciseCell(_ cell: ExerciseCell, didUpdate exercise: Exercise) {
         if let indexPath = tableView.indexPath(for: cell) {
-            exercises[indexPath.row] = exercise
+            exercises[indexPath.section - 1] = exercise
             workout?.exercises = exercises
         }
     }

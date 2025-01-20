@@ -17,19 +17,18 @@ final class HeaderCell: UITableViewCell {
     private enum Constants {
         static let cellCornerRadius: CGFloat = 18
         static let fieldCrnerRadius: CGFloat = 6
-        static let borderWidth: CGFloat = 6
         
         static let nameTextFieldTopPadding: CGFloat = 12
-        static let nameTextFieldRightPadding: CGFloat = 12
-        static let nameTextFieldLeftPadding: CGFloat = 12
+        static let nameTextFieldRightPadding: CGFloat = 9
+        static let nameTextFieldLeftPadding: CGFloat = 9
         static let nameTextFieldHeight: CGFloat = 38
         static let textPaddingView: UIView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 0))
         static let textPlaceholderTransparency: CGFloat = 0.5
         
-        static let poolSizeSegmentControlTopPadding: CGFloat = 6
+        static let poolSizeSegmentControlTopPadding: CGFloat = 9
         static let poolSizeSegmentControlBottomPadding: CGFloat = 12
-        static let poolSizeSegmentControlRightPadding: CGFloat = 12
-        static let poolSizeSegmentControlLeftPadding: CGFloat = 12
+        static let poolSizeSegmentControlRightPadding: CGFloat = 9
+        static let poolSizeSegmentControlLeftPadding: CGFloat = 9
         static let poolSizeSegmentControlHeight: CGFloat = 38
     }
     
@@ -55,9 +54,6 @@ final class HeaderCell: UITableViewCell {
         backgroundColor = Resources.Colors.createCellBackgroundColor
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
-        
-        layer.borderWidth = Constants.borderWidth
-        layer.borderColor = Resources.Colors.createBackgroundColor?.cgColor
         
         contentView.addSubview(nameTextField)
         contentView.addSubview(poolSizeSegmentControl)
