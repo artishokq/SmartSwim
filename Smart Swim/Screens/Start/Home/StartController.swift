@@ -8,7 +8,12 @@
 import UIKit
 
 final class StartController: UIViewController {
+    // MARK: - Constants
+    private enum Constants {
+        
+    }
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         

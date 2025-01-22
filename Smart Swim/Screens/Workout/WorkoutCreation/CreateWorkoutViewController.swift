@@ -125,10 +125,16 @@ final class CreateWorkoutViewController: UIViewController {
         }
         
         if let workout = workout {
-            WorkoutStorage.shared.saveWorkout(workout)
+            // Вызываем метод создания тренировки в CoreData
+            CoreDataManager.shared.createWorkout(
+                name: workout.name,
+                poolSize: Int16(workout.poolSize.rawValue),
+                exercises: workout.exercises  // <-- Массив Exercise
+            )
+            
+            // Закрываем экран
             dismiss(animated: true)
         }
-        
     }
 }
 
