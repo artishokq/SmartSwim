@@ -1,5 +1,5 @@
 //
-//  CreateWorkoutViewController.swift
+//  WorkoutCreationViewController.swift
 //  Smart Swim
 //
 //  Created by Artem Tkachuk on 14.01.2025.
@@ -7,21 +7,33 @@
 
 import UIKit
 
-final class CreateWorkoutViewController: UIViewController {
+protocol WorkoutCreationDisplayLogic: AnyObject {
+    func displayCreateWorkout(viewModel: WorkoutCreationModels.CreateWorkout.ViewModel)
+    func displayAddExercise(viewModel: WorkoutCreationModels.AddExercise.ViewModel)
+    func displayDeleteExercise(viewModel: WorkoutCreationModels.DeleteExercise.ViewModel)
+    func displayUpdateExercise(viewModel: WorkoutCreationModels.UpdateExercise.ViewModel)
+}
+
+final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisplayLogic {
     // MARK: - Constants
     private enum Constants {
         static let tableViewLeftPadding: CGFloat = 14
         static let tableViewRightPadding: CGFloat = 14
         
         static let sectionSpacing: CGFloat = 14
+        static let sectionHeaderTopPadding: CGFloat = 0
         
-        static let createButtonAlertTitle: String = "Ошибка"
-        static let createButtonAlertMessage: String = "Введите название тренировки"
+        static let alertTitle: String = "Ошибка"
+        static let alertDefaultMessage: String = "Не удалось создать тренировку."
     }
     
     // MARK: - Fields
-    private var workout: Workout?
+    var interactor: WorkoutCreationBusinessLogic?
+    var router: WorkoutCreationRoutingLogic?
+    
     private var exercises: [Exercise] = []
+    private var workoutName: String?
+    private var poolSize: PoolSize?
     
     private let titleLabel: UILabel = UILabel()
     private let addButton: UIBarButtonItem = UIBarButtonItem()
@@ -31,17 +43,24 @@ final class CreateWorkoutViewController: UIViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        workout = Workout(
-            name: "",
-            poolSize: .poolSize25,
-            exercises: []
-        )
-        
+        configure()
         configureUI()
     }
     
     // MARK: - Configurations
+    private func configure() {
+        let interactor = WorkoutCreationInteractor()
+        let presenter = WorkoutCreationPresenter()
+        let router = WorkoutCreationRouter()
+        
+        interactor.presenter = presenter
+        presenter.viewController = self
+        router.viewController = self
+        
+        self.interactor = interactor
+        self.router = router
+    }
+    
     private func configureUI() {
         view.backgroundColor = Resources.Colors.createBackgroundColor
         titleLabel.textColor = Resources.Colors.titleWhite
@@ -61,7 +80,7 @@ final class CreateWorkoutViewController: UIViewController {
         tableView.frame = .zero
         tableView.register(HeaderCell.self, forCellReuseIdentifier: HeaderCell.identifier)
         tableView.register(ExerciseCell.self, forCellReuseIdentifier: ExerciseCell.identifier)
-        tableView.sectionHeaderTopPadding = 0
+        tableView.sectionHeaderTopPadding = Constants.sectionHeaderTopPadding
         
         tableView.delegate = self
         tableView.dataSource = self
@@ -95,51 +114,66 @@ final class CreateWorkoutViewController: UIViewController {
         navigationItem.rightBarButtonItem = createButton
     }
     
+    private func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+    
     // MARK: - Actions
     @objc private func addButtonTapped() {
         let newExercise = Exercise(
             type: .warmup,
-            meters: nil,
-            repetitions: nil,
+            meters: 0,
+            repetitions: 0,
             hasInterval: false,
             intervalMinutes: nil,
             intervalSeconds: nil,
             style: .freestyle,
             description: ""
         )
-        exercises.append(newExercise)
-        
-        tableView.insertSections(IndexSet(integer: exercises.count), with: .automatic)
+        let request = WorkoutCreationModels.AddExercise.Request(exercise: newExercise)
+        interactor?.addExercise(request: request)
     }
     
+    // MARK: - Actions
     @objc private func createButtonTapped() {
-        guard let workoutName = workout?.name, !workoutName.isEmpty else {
-            let alert = UIAlertController(
-                title: Constants.createButtonAlertTitle,
-                message: Constants.createButtonAlertMessage,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
-            return
+        // Передаем данные в Interactor
+        let request = WorkoutCreationModels.CreateWorkout.Request(
+            name: workoutName ?? "",
+            poolSize: poolSize ?? .poolSize25,
+            exercises: exercises
+        )
+        interactor?.createWorkout(request: request)
+    }
+    
+    // MARK: - Display Logic
+    func displayCreateWorkout(viewModel: WorkoutCreationModels.CreateWorkout.ViewModel) {
+        if viewModel.success {
+            router?.routeToWorkoutList()
+        } else {
+            showAlert(title: Constants.alertTitle, message: viewModel.errorMessage ?? Constants.alertDefaultMessage)
         }
-        
-        if let workout = workout {
-            // Вызываем метод создания тренировки в CoreData
-            CoreDataManager.shared.createWorkout(
-                name: workout.name,
-                poolSize: Int16(workout.poolSize.rawValue),
-                exercises: workout.exercises  // <-- Массив Exercise
-            )
-            
-            // Закрываем экран
-            dismiss(animated: true)
-        }
+    }
+    
+    func displayAddExercise(viewModel: WorkoutCreationModels.AddExercise.ViewModel) {
+        exercises = viewModel.exercises
+        tableView.reloadData()
+    }
+    
+    func displayDeleteExercise(viewModel: WorkoutCreationModels.DeleteExercise.ViewModel) {
+        exercises = viewModel.exercises
+        tableView.reloadData()
+    }
+    
+    func displayUpdateExercise(viewModel: WorkoutCreationModels.UpdateExercise.ViewModel) {
+        exercises = viewModel.exercises
+        tableView.reloadData()
     }
 }
 
 // MARK: - TableView DataSource & Delegate
-extension CreateWorkoutViewController: UITableViewDataSource, UITableViewDelegate {
+extension WorkoutCreationViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
         return exercises.count + 1
     }
@@ -172,51 +206,45 @@ extension CreateWorkoutViewController: UITableViewDataSource, UITableViewDelegat
             let cell = tableView.dequeueReusableCell(
                 withIdentifier: ExerciseCell.identifier,
                 for: indexPath) as! ExerciseCell
-            cell.configure(with: exercises[indexPath.section - 1], number: indexPath.section)
+            cell.configure(with: exercises[indexPath.section - 1], number: indexPath.section, indexPath: indexPath)
             cell.delegate = self
             return cell
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let request = WorkoutCreationModels.DeleteExercise.Request(index: indexPath.section - 1)
+            interactor?.deleteExercise(request: request)
         }
     }
 }
 
 // MARK: - HeaderCell Delegate
-extension CreateWorkoutViewController: HeaderCellDelegate {
+extension WorkoutCreationViewController: HeaderCellDelegate {
     func headerCell(_ cell: HeaderCell, didUpdateName name: String) {
-        workout?.name = name
+        workoutName = name
     }
     
     func headerCell(_ cell: HeaderCell, didSelectPoolSize poolSize: PoolSize) {
-        workout?.poolSize = poolSize
+        self.poolSize = poolSize
     }
 }
 
-// MARK: - ExerciseCell Delegate
-extension CreateWorkoutViewController: ExerciseCellDelegate {
+// MARK: - ExerciseCellDelegate
+extension WorkoutCreationViewController: ExerciseCellDelegate {
     func exerciseCell(_ cell: ExerciseCell, didRequestDeletionAt indexPath: IndexPath) {
-        // Удаляем из массива данных
-        exercises.remove(at: indexPath.section - 1)
-        
-        // Удаляем секцию из таблицы
-        tableView.deleteSections(IndexSet(integer: indexPath.section), with: .automatic)
-        
-        // Обновляем нумерацию оставшихся ячеек
-        // Начинаем с секции, где было удаление, и идем до последнего упражнения
-        if indexPath.section <= exercises.count {
-            for section in indexPath.section...exercises.count {
-                if let cell = tableView.cellForRow(at: IndexPath(row: 0, section: section)) as? ExerciseCell {
-                    cell.configure(with: exercises[section - 1], number: section)
-                }
-            }
-        }
-        
-        // Обновляем данные тренировки
-        workout?.exercises = exercises
+        let request = WorkoutCreationModels.DeleteExercise.Request(index: indexPath.section - 1)
+        interactor?.deleteExercise(request: request)
     }
     
     func exerciseCell(_ cell: ExerciseCell, didUpdate exercise: Exercise) {
         if let indexPath = tableView.indexPath(for: cell) {
-            exercises[indexPath.section - 1] = exercise
-            workout?.exercises = exercises
+            let request = WorkoutCreationModels.UpdateExercise.Request(
+                exercise: exercise,
+                index: indexPath.section - 1
+            )
+            interactor?.updateExercise(request: request)
         }
     }
 }

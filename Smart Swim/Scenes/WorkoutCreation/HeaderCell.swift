@@ -15,8 +15,8 @@ protocol HeaderCellDelegate: AnyObject {
 final class HeaderCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
-        static let cellCornerRadius: CGFloat = 18
-        static let fieldCrnerRadius: CGFloat = 6
+        static let cellCornerRadius: CGFloat = 20
+        static let fieldCrnerRadius: CGFloat = 9
         
         static let nameTextFieldTopPadding: CGFloat = 12
         static let nameTextFieldRightPadding: CGFloat = 9
@@ -30,6 +30,7 @@ final class HeaderCell: UITableViewCell {
         static let poolSizeSegmentControlRightPadding: CGFloat = 9
         static let poolSizeSegmentControlLeftPadding: CGFloat = 9
         static let poolSizeSegmentControlHeight: CGFloat = 38
+        static let poolSizeSegmentControlItems: [String] = ["25 м", "50 м"]
     }
     
     // MARK: - Fields
@@ -94,10 +95,9 @@ final class HeaderCell: UITableViewCell {
     }
     
     private func poolSizeSegmentControlConfiguration() {
-        let items = ["25 м", "50 м"]
         poolSizeSegmentControl.removeAllSegments()
         
-        for (index, title) in items.enumerated() {
+        for (index, title) in Constants.poolSizeSegmentControlItems.enumerated() {
             poolSizeSegmentControl.insertSegment(withTitle: title, at: index, animated: false)
         }
         

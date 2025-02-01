@@ -7,7 +7,6 @@
 
 import UIKit
 
-// ExerciseCell.swift
 protocol ExerciseCellDelegate: AnyObject {
     func exerciseCell(_ cell: ExerciseCell, didUpdate exercise: Exercise)
     func exerciseCell(_ cell: ExerciseCell, didRequestDeletionAt indexPath: IndexPath)
@@ -16,20 +15,20 @@ protocol ExerciseCellDelegate: AnyObject {
 final class ExerciseCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
-        static let cellCornerRadius: CGFloat = 18
+        static let cellCornerRadius: CGFloat = 20
         
         static let textFieldHeight: CGFloat = 38
-        static let textFieldCornerRadius: CGFloat = 6
+        static let textFieldCornerRadius: CGFloat = 9
         
         static let toolBarDoneButton: String = "Готово"
         
-        static let exerciseNumberLabelTopPadding: CGFloat = 9
+        static let exerciseNumberLabelTopPadding: CGFloat = 10
         static let exerciseNumberLabelLeftPadding: CGFloat = 9
         static let exerciseNumberText: String = "Задание"
         
         static let typeItems: [String] = ["Разминка", "Основное", "Заминка"]
-        static let typeSegmentControlCornerRadius: CGFloat = 6
-        static let typeSegmentControlTopPadding: CGFloat = 12
+        static let typeSegmentControlCornerRadius: CGFloat = 9
+        static let typeSegmentControlTopPadding: CGFloat = 9
         static let typeSegmentControlRightPadding: CGFloat = 9
         static let typeSegmentControlLeftPadding: CGFloat = 9
         static let typeSegmentControlHeight: CGFloat = 38
@@ -63,14 +62,14 @@ final class ExerciseCell: UITableViewCell {
         static let secondsTextFieldLeftPadding: CGFloat = 6
         
         static let styleItems: [String] = ["Кроль", "Брасс", "Спина", "Батт", "К/П", "Любой"]
-        static let styleSegmentControlCornerRadius: CGFloat = 6
+        static let styleSegmentControlCornerRadius: CGFloat = 9
         static let styleSegmentControlTopPadding: CGFloat = 12
         static let styleSegmentControlRightPadding: CGFloat = 9
         static let styleSegmentControlLeftPadding: CGFloat = 9
         static let styleSegmentControlHeight: CGFloat = 38
         
         static let descriptionPlaceholder: String = "Описание"
-        static let descriptionTextViewCornerRadius: CGFloat = 6
+        static let descriptionTextViewCornerRadius: CGFloat = 9
         static let descriptionTextViewTopPadding: CGFloat = 12
         static let descriptionTextViewLeftPadding: CGFloat = 9
         static let descriptionTextViewRightPadding: CGFloat = 9
@@ -88,7 +87,7 @@ final class ExerciseCell: UITableViewCell {
     // MARK: - Fields
     static let identifier = "ExerciseCell"
     weak var delegate: ExerciseCellDelegate?
-    private var exercise: Exercise?
+    private var indexPath: IndexPath?
     
     private let exerciseNumberLabel: UILabel = UILabel()
     private let typeSegmentControl: UISegmentedControl = UISegmentedControl()
@@ -119,7 +118,7 @@ final class ExerciseCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // MARK: - Configurations
+    // MARK: - UI Configuration
     private func configureUI() {
         backgroundColor = Resources.Colors.createCellBackgroundColor
         selectionStyle = .none
@@ -152,6 +151,7 @@ final class ExerciseCell: UITableViewCell {
         configurePickers()
     }
     
+    // MARK: - Text Field Configuration
     private func configureTextField(_ textField: UITextField, placeholder: String) {
         textField.backgroundColor = Resources.Colors.fieldsBackgroundColor
         textField.layer.cornerRadius = Constants.textFieldCornerRadius
@@ -161,56 +161,7 @@ final class ExerciseCell: UITableViewCell {
         textField.textAlignment = .center
     }
     
-    private func configurePickers() {
-        [metersPicker, repsPicker, minutesPicker, secondsPicker].forEach { picker in
-            picker.delegate = self
-            picker.dataSource = self
-        }
-        
-        metersPicker.tag = 0
-        repsPicker.tag = 1
-        minutesPicker.tag = 2
-        secondsPicker.tag = 3
-        
-        metersTextField.inputView = metersPicker
-        repsTextField.inputView = repsPicker
-        minutesTextField.inputView = minutesPicker
-        secondsTextField.inputView = secondsPicker
-        
-        let metersToolbar = createToolbar(for: metersTextField)
-        let repsToolbar = createToolbar(for: repsTextField)
-        let minutesToolbar = createToolbar(for: minutesTextField)
-        let secondsToolbar = createToolbar(for: secondsTextField)
-        
-        metersTextField.inputAccessoryView = metersToolbar
-        repsTextField.inputAccessoryView = repsToolbar
-        minutesTextField.inputAccessoryView = minutesToolbar
-        secondsTextField.inputAccessoryView = secondsToolbar
-    }
-    
-    private func createToolbar(for textField: UITextField) -> UIToolbar {
-        let toolbar = UIToolbar()
-        toolbar.sizeToFit()
-        
-        let doneButton = UIBarButtonItem(
-            title: Constants.toolBarDoneButton,
-            style: .done,
-            target: self,
-            action: #selector(doneButtonTapped))
-        
-        doneButton.tintColor = Resources.Colors.blueColor
-        
-        let flexibleSpace = UIBarButtonItem(
-            barButtonSystemItem: .flexibleSpace,
-            target: nil,
-            action: nil)
-        
-        toolbar.setItems([flexibleSpace, doneButton], animated: false)
-        doneButton.tag = textField.hash
-        return toolbar
-    }
-    
-    // НОМЕР ЗАДАНИЯ
+    // MARK: - Exercise Number Label Configuration
     private func exerciseNumberLabelConfiguration() {
         exerciseNumberLabel.font = Resources.Fonts.fieldsAndPlaceholdersFont
         exerciseNumberLabel.textColor = Resources.Colors.titleWhite
@@ -220,7 +171,7 @@ final class ExerciseCell: UITableViewCell {
         exerciseNumberLabel.pinLeft(to: contentView.leadingAnchor, Constants.exerciseNumberLabelLeftPadding)
     }
     
-    // ВЫБОР ТИПА ТРЕНИРОВКИ (РАЗМИНКА / ОСНОВНОЕ / ЗАМИНКА)
+    // MARK: - Type Segment Control Configuration
     private func typeSegmentControlConfiguration() {
         typeSegmentControl.removeAllSegments()
         for (index, title) in Constants.typeItems.enumerated() {
@@ -253,7 +204,7 @@ final class ExerciseCell: UITableViewCell {
         typeSegmentControl.setHeight(Constants.typeSegmentControlHeight)
     }
     
-    // КОЛИЧЕСТВО МЕТРОВ
+    // MARK: - Meters Text Field Configuration
     private func metersTextFieldConfiguration() {
         configureTextField(metersTextField, placeholder: Constants.metersPlaceholder)
         
@@ -265,7 +216,7 @@ final class ExerciseCell: UITableViewCell {
         metersTextField.setHeight(Constants.textFieldHeight)
     }
     
-    // КОЛИЧЕСТВО ПОВТОРЕНИЙ
+    // MARK: - Reps Text Field Configuration
     private func repsTextFieldConfiguration() {
         configureTextField(repsTextField, placeholder: Constants.repsPlaceholder)
         
@@ -277,7 +228,7 @@ final class ExerciseCell: UITableViewCell {
         repsTextField.setHeight(Constants.textFieldHeight)
     }
     
-    // РЕЖИМ
+    // MARK: - Interval Label Configuration
     private func intervalLabelConfiguration() {
         intervalLabel.text = Constants.intervalLabel
         
@@ -287,7 +238,7 @@ final class ExerciseCell: UITableViewCell {
         intervalLabel.pinLeft(to: contentView.leadingAnchor, Constants.intervalLabelLeftPadding)
     }
     
-    // ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА
+    // MARK: - Interval Switch Configuration
     private func hasIntervalSwitchConfiguration() {
         // Констрейнты
         hasIntervalSwitch.translatesAutoresizingMaskIntoConstraints = false
@@ -295,7 +246,7 @@ final class ExerciseCell: UITableViewCell {
         hasIntervalSwitch.pinLeft(to: intervalLabel.trailingAnchor, Constants.intervalSwitchLeftPadding)
     }
     
-    // STACKVIEW МИНУТ И СЕКУНД
+    // MARK: - Interval Stack View Configuration
     private func intervalStackViewConfiguration() {
         intervalStackView.axis = .horizontal
         intervalStackView.distribution = .fillEqually
@@ -311,7 +262,7 @@ final class ExerciseCell: UITableViewCell {
         intervalStackView.pinRight(to: contentView.trailingAnchor, Constants.intervalStackViewRightPadding)
     }
     
-    // КОЛИЧЕСТВО МИНУТ
+    // MARK: - Minutes Text Field Configuration
     private func minutesTextFieldConfiguration() {
         configureTextField(minutesTextField, placeholder: Constants.minutesPlaceholder)
         
@@ -323,7 +274,7 @@ final class ExerciseCell: UITableViewCell {
         minutesTextField.setHeight(Constants.textFieldHeight)
     }
     
-    // КОЛИЧЕСТВО СЕКУНД
+    // MARK: - Seconds Text Field Configuration
     private func secondsTextFieldConfiguration() {
         configureTextField(secondsTextField, placeholder: Constants.secondsPlaceholder)
         
@@ -335,7 +286,7 @@ final class ExerciseCell: UITableViewCell {
         secondsTextField.setHeight(Constants.textFieldHeight)
     }
     
-    // СТИЛЬ ПЛАВАНИЯ
+    // MARK: - Style Segment Control Configuration
     private func styleSegmentControlConfiguration() {
         styleSegmentControl.removeAllSegments()
         for (index, title) in Constants.styleItems.enumerated() {
@@ -368,7 +319,7 @@ final class ExerciseCell: UITableViewCell {
         styleSegmentControl.setHeight(Constants.styleSegmentControlHeight)
     }
     
-    // ОПИСАНИЕ ТРЕНИРОВКИ
+    // MARK: - Description Text View Configuration
     private func descriptionTextViewConfiguration() {
         descriptionTextView.backgroundColor = Resources.Colors.fieldsBackgroundColor
         descriptionTextView.layer.cornerRadius = Constants.descriptionTextViewCornerRadius
@@ -389,6 +340,7 @@ final class ExerciseCell: UITableViewCell {
         descriptionTextView.setHeight(Constants.descriptionTextViewHeight)
     }
     
+    // MARK: - Delete Button Configuration
     private func deleteButtonConfiguration() {
         deleteButton.setImage(Resources.Images.Workout.deleteButtonImage, for: .normal)
         
@@ -399,172 +351,58 @@ final class ExerciseCell: UITableViewCell {
         deleteButton.pinBottom(to: contentView.bottomAnchor, Constants.deleteButtonBottomPadding)
     }
     
-    private func configureActions() {
-        typeSegmentControl.addTarget(self, action: #selector(updateExercise), for: .valueChanged)
-        hasIntervalSwitch.addTarget(self, action: #selector(intervalSwitchChanged), for: .valueChanged)
-        styleSegmentControl.addTarget(self, action: #selector(updateExercise), for: .valueChanged)
-        deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
+    // MARK: - Pickers Configuration
+    private func configurePickers() {
+        [metersPicker, repsPicker, minutesPicker, secondsPicker].forEach { picker in
+            picker.delegate = self
+            picker.dataSource = self
+        }
+        
+        metersPicker.tag = 0
+        repsPicker.tag = 1
+        minutesPicker.tag = 2
+        secondsPicker.tag = 3
+        
+        metersTextField.inputView = metersPicker
+        repsTextField.inputView = repsPicker
+        minutesTextField.inputView = minutesPicker
+        secondsTextField.inputView = secondsPicker
+        
+        let metersToolbar = createToolbar(for: metersTextField)
+        let repsToolbar = createToolbar(for: repsTextField)
+        let minutesToolbar = createToolbar(for: minutesTextField)
+        let secondsToolbar = createToolbar(for: secondsTextField)
+        
+        metersTextField.inputAccessoryView = metersToolbar
+        repsTextField.inputAccessoryView = repsToolbar
+        minutesTextField.inputAccessoryView = minutesToolbar
+        secondsTextField.inputAccessoryView = secondsToolbar
     }
     
-    func configure(with exercise: Exercise, number: Int) {
-        self.exercise = exercise
+    // MARK: - Private Methods
+    private func createToolbar(for textField: UITextField) -> UIToolbar {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
         
-        exerciseNumberLabel.text = "\(Constants.exerciseNumberText) \(number)"
-        
-        typeSegmentControl.selectedSegmentIndex = {
-            switch exercise.type {
-            case .warmup: return 0
-            case .main: return 1
-            case .cooldown: return 2
-            }
-        }()
-        
-        if let meters = exercise.meters {
-            metersTextField.text = "\(meters) м"
-            if let index = Constants.metersValues.firstIndex(of: meters) {
-                metersPicker.selectRow(index, inComponent: 0, animated: false)
-            }
-        }
-        
-        if let reps = exercise.repetitions {
-            repsTextField.text = "\(reps) повт"
-            if let index = Constants.repsValues.firstIndex(of: reps) {
-                repsPicker.selectRow(index, inComponent: 0, animated: false)
-            }
-        }
-        
-        hasIntervalSwitch.isOn = exercise.hasInterval
-        intervalStackView.isHidden = !exercise.hasInterval
-        
-        if exercise.hasInterval {
-            if let minutes = exercise.intervalMinutes {
-                minutesTextField.text = "\(minutes) мин"
-                if let index = Constants.minutesValues.firstIndex(of: minutes) {
-                    minutesPicker.selectRow(index, inComponent: 0, animated: false)
-                }
-            }
-            
-            if let seconds = exercise.intervalSeconds {
-                secondsTextField.text = "\(seconds) сек"
-                if let index = Constants.secondsValues.firstIndex(of: seconds) {
-                    secondsPicker.selectRow(index, inComponent: 0, animated: false)
-                }
-            }
-        }
-        
-        styleSegmentControl.selectedSegmentIndex = {
-            switch exercise.style {
-            case .freestyle: return 0
-            case .breaststroke: return 1
-            case .backstroke: return 2
-            case .butterfly: return 3
-            case .medley: return 4
-            }
-        }()
-        
-        if !exercise.description.isEmpty {
-            descriptionTextView.text = exercise.description
-            descriptionTextView.textColor = Resources.Colors.titleWhite
-        } else {
-            descriptionTextView.text = Constants.descriptionPlaceholder
-            descriptionTextView.textColor = .gray
-        }
-    }
-    
-    private func getValueForPicker(_ picker: UIPickerView, row: Int) -> String {
-        switch picker.tag {
-        case 0: return "\(Constants.metersValues[row]) м"
-        case 1: return "\(Constants.repsValues[row]) повт"
-        case 2: return "\(Constants.minutesValues[row]) мин"
-        case 3: return "\(Constants.secondsValues[row]) сек"
-        default: return ""
-        }
-    }
-    
-    // MARK: - Actions
-    @objc private func doneButtonTapped(_ sender: UIBarButtonItem) {
-        [metersTextField, repsTextField, minutesTextField, secondsTextField].forEach { textField in
-            if textField.hash == sender.tag {
-                textField.resignFirstResponder()
-                
-                // Обновляем значение в текстовом поле при закрытии
-                let picker = textField.inputView as! UIPickerView
-                let selectedRow = picker.selectedRow(inComponent: 0)
-                
-                textField.text = getValueForPicker(picker, row: selectedRow)
-                updateExercise()
-            }
-        }
-    }
-    
-    @objc private func intervalSwitchChanged() {
-        intervalStackView.isHidden = !hasIntervalSwitch.isOn
-        updateExercise()
-    }
-    
-    @objc private func updateExercise() {
-        let type: ExerciseType = {
-            switch typeSegmentControl.selectedSegmentIndex {
-            case 0: return .warmup
-            case 1: return .main
-            default: return .cooldown
-            }
-        }()
-        
-        let style: SwimStyle = {
-            switch styleSegmentControl.selectedSegmentIndex {
-            case 0: return .freestyle
-            case 1: return .breaststroke
-            case 2: return .backstroke
-            case 3: return .butterfly
-            default: return .medley
-            }
-        }()
-        
-        let selectedMeters = Constants.metersValues[metersPicker.selectedRow(inComponent: 0)]
-        let selectedReps = Constants.repsValues[repsPicker.selectedRow(inComponent: 0)]
-        let description = descriptionTextView.textColor == .gray ? "" : (descriptionTextView.text ?? "")
-        
-        let updatedExercise = Exercise(
-            type: type,
-            meters: selectedMeters,
-            repetitions: selectedReps,
-            hasInterval: hasIntervalSwitch.isOn,
-            intervalMinutes: hasIntervalSwitch.isOn ? Constants.minutesValues[minutesPicker.selectedRow(inComponent: 0)] : nil,
-            intervalSeconds: hasIntervalSwitch.isOn ? Constants.secondsValues[secondsPicker.selectedRow(inComponent: 0)] : nil,
-            style: style,
-            description: description
+        let doneButton = UIBarButtonItem(
+            title: Constants.toolBarDoneButton,
+            style: .done,
+            target: self,
+            action: #selector(doneButtonTapped)
         )
         
-        exercise = updatedExercise
-        delegate?.exerciseCell(self, didUpdate: updatedExercise)
-    }
-    
-    @objc private func deleteButtonTapped() {
-        let alert = UIAlertController(
-            title: Constants.deleteButtonTitle,
-            message: Constants.deleteButtonMessage,
-            preferredStyle: .alert
+        doneButton.tintColor = Resources.Colors.blueColor
+        
+        // В качестве id вешаем на кнопку хэш самого textField ,Потом в doneButtonTapped мы этот хэш и используем
+        doneButton.tag = textField.hash
+        
+        let flexibleSpace = UIBarButtonItem(
+            barButtonSystemItem: .flexibleSpace,
+            target: nil,
+            action: nil
         )
-        
-        let cancelAction = UIAlertAction(title: Constants.deleteButtonCancelTitle, style: .cancel)
-        
-        let deleteAction = UIAlertAction(
-            title: Constants.deleteButtonDeleteTitle,
-            style: .destructive) { [weak self] _ in
-            guard let self = self else { return }
-            if let indexPath = self.getIndexPath() {
-                self.delegate?.exerciseCell(self, didRequestDeletionAt: indexPath)
-            }
-        }
-        
-        alert.addAction(cancelAction)
-        alert.addAction(deleteAction)
-        
-        // Находим текущий ViewController
-        if let viewController = self.findViewController() {
-            viewController.present(alert, animated: true)
-        }
+        toolbar.setItems([flexibleSpace, doneButton], animated: false)
+        return toolbar
     }
     
     private func getIndexPath() -> IndexPath? {
@@ -582,9 +420,105 @@ final class ExerciseCell: UITableViewCell {
         }
         return nil
     }
+    
+    private func notifyDelegate() {
+        let exercise = Exercise(
+            type: ExerciseType(rawValue: Int16(typeSegmentControl.selectedSegmentIndex)) ?? .warmup,
+            meters: Int16(metersTextField.text?.replacingOccurrences(of: " м", with: "") ?? "0") ?? 0,
+            repetitions: Int16(repsTextField.text?.replacingOccurrences(of: " повт", with: "") ?? "0") ?? 0,
+            hasInterval: hasIntervalSwitch.isOn,
+            intervalMinutes: Int16(minutesTextField.text?.replacingOccurrences(of: " мин", with: "") ?? "0") ?? 0,
+            intervalSeconds: Int16(secondsTextField.text?.replacingOccurrences(of: " сек", with: "") ?? "0") ?? 0,
+            style: SwimStyle(rawValue: Int16(styleSegmentControl.selectedSegmentIndex)) ?? .freestyle,
+            description: descriptionTextView.text == Constants.descriptionPlaceholder ? "" : descriptionTextView.text
+        )
+        delegate?.exerciseCell(self, didUpdate: exercise)
+    }
+    
+    // MARK: - Actions Configuration
+    private func configureActions() {
+        typeSegmentControl.addTarget(self, action: #selector(segmentControlChanged), for: .valueChanged)
+        hasIntervalSwitch.addTarget(self, action: #selector(intervalSwitchChanged), for: .valueChanged)
+        styleSegmentControl.addTarget(self, action: #selector(segmentControlChanged), for: .valueChanged)
+        deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
+    }
+    
+    // MARK: - Actions
+    @objc private func segmentControlChanged() {
+        notifyDelegate()
+    }
+    
+    @objc private func intervalSwitchChanged() {
+        intervalStackView.isHidden = !hasIntervalSwitch.isOn
+        notifyDelegate()
+    }
+    
+    @objc private func deleteButtonTapped() {
+        if let indexPath = indexPath {
+            delegate?.exerciseCell(self, didRequestDeletionAt: indexPath)
+        }
+    }
+    
+    @objc private func doneButtonTapped(_ sender: UIBarButtonItem) {
+        // Ищем тот textField, чей hash совпадает с sender.tag
+        guard let textField = [metersTextField, repsTextField, minutesTextField, secondsTextField]
+            .first(where: { $0.hash == sender.tag })
+        else { return }
+        
+        // Берём pickerView из inputView
+        guard let picker = textField.inputView as? UIPickerView else { return }
+        
+        let selectedRow = picker.selectedRow(inComponent: 0)
+        
+        // Заполняем текст в зависимости от текущего пикера
+        switch picker.tag {
+        case 0: // metersPicker
+            textField.text = "\(Constants.metersValues[selectedRow]) м"
+        case 1: // repsPicker
+            textField.text = "\(Constants.repsValues[selectedRow]) повт"
+        case 2: // minutesPicker
+            textField.text = "\(Constants.minutesValues[selectedRow]) мин"
+        case 3: // secondsPicker
+            textField.text = "\(Constants.secondsValues[selectedRow]) сек"
+        default:
+            break
+        }
+        
+        // Скрываем клавиатуру
+        textField.resignFirstResponder()
+        
+        // Уведомляем делегата, что изменились данные
+        notifyDelegate()
+    }
+    
+    // MARK: - Public Methods
+    func configure(with exercise: Exercise, number: Int, indexPath: IndexPath) {
+        self.indexPath = indexPath
+        exerciseNumberLabel.text = "\(Constants.exerciseNumberText) \(number)"
+        typeSegmentControl.selectedSegmentIndex = Int(exercise.type.rawValue)
+        
+        metersTextField.text = exercise.meters == 0 ? "" : "\(exercise.meters) м"
+        repsTextField.text = exercise.repetitions == 0 ? "" : "\(exercise.repetitions) повт"
+        
+        hasIntervalSwitch.isOn = exercise.hasInterval
+        intervalStackView.isHidden = !exercise.hasInterval
+        
+        // Сбрасываем значения полей интервала
+        if exercise.hasInterval {
+            minutesTextField.text = exercise.intervalMinutes == 0 ? "" : "\(exercise.intervalMinutes!) мин"
+            secondsTextField.text = exercise.intervalSeconds == 0 ? "" : "\(exercise.intervalSeconds!) сек"
+        } else {
+            minutesTextField.text = ""
+            secondsTextField.text = ""
+        }
+        
+        styleSegmentControl.selectedSegmentIndex = Int(exercise.style.rawValue)
+        descriptionTextView.text = exercise.description.isEmpty ? Constants.descriptionPlaceholder : exercise.description
+        descriptionTextView.textColor = exercise.description.isEmpty ? .gray : Resources.Colors.titleWhite
+    }
 }
 
-// MARK: - UIPickerViewDelegate & DataSource
+// MARK: - UIPickerViewDelegate & UIPickerViewDataSource & UITextViewDelegate
 extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextViewDelegate {
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         return 1
@@ -598,20 +532,6 @@ extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextView
         case 3: return Constants.secondsValues.count
         default: return 0
         }
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        switch pickerView.tag {
-        case 0: return "\(Constants.metersValues[row]) м"
-        case 1: return "\(Constants.repsValues[row]) повт"
-        case 2: return "\(Constants.minutesValues[row]) мин"
-        case 3: return "\(Constants.secondsValues[row]) сек"
-        default: return nil
-        }
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        updateExercise()
     }
     
     func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
@@ -633,10 +553,6 @@ extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextView
         )
     }
     
-    func textViewDidChange(_ textView: UITextView) {
-        updateExercise()
-    }
-    
     func textViewDidBeginEditing(_ textView: UITextView) {
         if textView.textColor == .gray {
             textView.text = nil
@@ -649,5 +565,6 @@ extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextView
             textView.text = Constants.descriptionPlaceholder
             textView.textColor = .gray
         }
+        notifyDelegate()
     }
 }

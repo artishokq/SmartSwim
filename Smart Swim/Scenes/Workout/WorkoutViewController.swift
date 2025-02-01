@@ -8,8 +8,8 @@
 import UIKit
 
 protocol WorkoutDisplayLogic: AnyObject {
-    func displayCreateWorkout(viewModel: WorkoutHomeModels.Create.ViewModel)
-    func displayInfo(viewModel: WorkoutHomeModels.Info.ViewModel)
+    func displayWorkoutCreation(viewModel: WorkoutModels.Create.ViewModel)
+    func displayInfo(viewModel: WorkoutModels.Info.ViewModel)
 }
 
 final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
@@ -46,7 +46,7 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     }
     
     @objc private func createButtonTapped() {
-        let request = WorkoutHomeModels.Create.Request()
+        let request = WorkoutModels.Create.Request()
         interactor?.createWorkout(request: request)
     }
     
@@ -58,7 +58,7 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     }
     
     @objc private func infoButtonTapped() {
-        let request = WorkoutHomeModels.Info.Request()
+        let request = WorkoutModels.Info.Request()
         interactor?.showInfo(request: request)
     }
     
@@ -93,11 +93,11 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     }
     
     // MARK: - Display logic
-    func displayCreateWorkout(viewModel: WorkoutHomeModels.Create.ViewModel) {
-        router?.routeToCreateWorkout()
+    func displayWorkoutCreation(viewModel: WorkoutModels.Create.ViewModel) {
+        router?.routeToWorkoutCreation()
     }
     
-    func displayInfo(viewModel: WorkoutHomeModels.Info.ViewModel) {
+    func displayInfo(viewModel: WorkoutModels.Info.ViewModel) {
         router?.routeToInfo()
     }
 }

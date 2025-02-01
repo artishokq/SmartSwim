@@ -26,8 +26,8 @@ extension ExerciseEntity {
     @NSManaged public var meters: Int16
     @NSManaged public var orderIndex: Int16
     @NSManaged public var repetitions: Int16
-    @NSManaged public var style: String?
-    @NSManaged public var type: String?
+    @NSManaged public var style: Int16
+    @NSManaged public var type: Int16
     @NSManaged public var workout: WorkoutEntity?
 }
 

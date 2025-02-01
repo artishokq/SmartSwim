@@ -84,14 +84,14 @@ extension CoreDataManager {
             createExercise(
                 for: workoutEntity,
                 description: exercise.description,
-                style: exercise.style.rawValue,       // Если style – это enum, берём rawValue
-                type: exercise.type.rawValue,          // Если type – это enum, берём rawValue
+                style: exercise.style.rawValue,
+                type: exercise.type.rawValue,
                 hasInterval: exercise.hasInterval,
                 intervalMinutes: Int16(exercise.intervalMinutes ?? 0),
                 intervalSeconds: Int16(exercise.intervalSeconds ?? 0),
-                meters: Int16(exercise.meters ?? 0),
+                meters: exercise.meters,
                 orderIndex: Int16(index),
-                repetitions: Int16(exercise.repetitions ?? 0)
+                repetitions: exercise.repetitions
             )
         }
         
@@ -121,8 +121,8 @@ extension CoreDataManager {
     @discardableResult
     func createExercise(for workout: WorkoutEntity,
                         description: String?,
-                        style: String?,
-                        type: String?,
+                        style: Int16,
+                        type: Int16,
                         hasInterval: Bool,
                         intervalMinutes: Int16,
                         intervalSeconds: Int16,

@@ -8,7 +8,7 @@
 import UIKit
 
 protocol WorkoutRoutingLogic {
-    func routeToCreateWorkout()
+    func routeToWorkoutCreation()
     func routeToInfo()
 }
 
@@ -20,9 +20,9 @@ final class WorkoutRouter: NSObject, WorkoutRoutingLogic, WorkoutDataPassing {
     weak var viewController: WorkoutViewController?
     var dataStore: WorkoutDataStore?
     
-    func routeToCreateWorkout() {
-        let createWorkoutVC = CreateWorkoutViewController()
-        let navigationController = UINavigationController(rootViewController: createWorkoutVC)
+    func routeToWorkoutCreation() {
+        let workoutCreationVC = WorkoutCreationViewController()
+        let navigationController = UINavigationController(rootViewController: workoutCreationVC)
         viewController?.present(navigationController, animated: true)
     }
     
