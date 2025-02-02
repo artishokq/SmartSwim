@@ -28,8 +28,14 @@ final class TabBarController: UITabBarController {
     private func configure() {
         tabBar.tintColor = Resources.Colors.active
         tabBar.barTintColor = Resources.Colors.inactive
+        tabBar.isTranslucent = false
         tabBar.backgroundColor = Resources.Colors.tabAndNavBar
         tabBar.layer.masksToBounds = true
+        // Чтобы TabBar не менял цвет при скроле
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Resources.Colors.tabAndNavBar
+        tabBar.standardAppearance = appearance
         
         let workoutController = WorkoutViewController()
         let startController = StartController()

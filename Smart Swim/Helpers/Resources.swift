@@ -24,6 +24,8 @@ enum Resources {
         static let infoBackgroundColor = UIColor(hexString: "#242531")
         static let createCellBackgroundColor = UIColor(hexString: "#505773")
         static let fieldsBackgroundColor = UIColor(hexString: "#323645")
+        static let workoutCellBackgroundColor = UIColor(hexString: "#323645")
+        static let workoutCellNameHeaderColor = UIColor(hexString: "#505773")
         
         static let blueColor = UIColor(hexString: "#0A84FF")
     }
@@ -80,7 +82,11 @@ enum Resources {
         static let NavBarTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
         static let constructorTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
         static let infoTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        
         static let fieldsAndPlaceholdersFont = UIFont.systemFont(ofSize: 18, weight: .light)
         static let fieldsAndPlaceholdersSmallerFont = UIFont.systemFont(ofSize: 16, weight: .light)
+        
+        static let workoutNameFont = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        static let workoutExerciseFont = UIFont.systemFont(ofSize: 20, weight: .light)
     }
 }

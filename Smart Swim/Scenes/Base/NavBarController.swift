@@ -18,6 +18,12 @@ final class NavBarController: UINavigationController {
     private func configure() {
         view.backgroundColor = Resources.Colors.tabAndNavBar
         navigationBar.isTranslucent = false
+        // Чтобы NavBar не менял цвет при скроле
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Resources.Colors.tabAndNavBar
+        navigationBar.standardAppearance = appearance
+
         navigationBar.standardAppearance.titleTextAttributes = [
             .foregroundColor: Resources.Colors.titleWhite,
             .font: Resources.Fonts.NavBarTitle

@@ -35,4 +35,35 @@ enum WorkoutModels {
             // Ничего не передаём
         }
     }
+    
+    enum FetchWorkouts {
+        struct Request {}
+        
+        struct Response {
+            struct WorkoutData {
+                let name: String
+                let exercises: [ExerciseData]
+                let totalVolume: Int
+            }
+            
+            struct ExerciseData {
+                let meters: Int16
+                let styleDescription: String
+                let type: ExerciseType
+                let exerciseDescription: String?
+                let formattedString: String
+            }
+            
+            let workouts: [WorkoutData]
+        }
+        
+        struct ViewModel {
+            struct DisplayedWorkout {
+                let name: String
+                let totalVolume: Int
+                let exercises: [String]
+            }
+            let workouts: [DisplayedWorkout]
+        }
+    }
 }
