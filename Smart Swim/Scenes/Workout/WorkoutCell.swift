@@ -7,6 +7,11 @@
 
 import UIKit
 
+protocol WorkoutCellDelegate: AnyObject {
+    func workoutCellDidRequestEdit(_ cell: WorkoutCell)
+    func workoutCellDidRequestDeletion(_ cell: WorkoutCell)
+}
+
 final class WorkoutCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
@@ -35,6 +40,7 @@ final class WorkoutCell: UITableViewCell {
     
     // MARK: - Fields
     static let identifier = "WorkoutCell"
+    weak var delegate: WorkoutCellDelegate?
     
     private let nameHeaderView: UIView = UIView()
     private let nameLabel: UILabel = UILabel()
@@ -156,10 +162,10 @@ final class WorkoutCell: UITableViewCell {
     }
     
     @objc private func deleteButtonTapped() {
-        
+        delegate?.workoutCellDidRequestDeletion(self)
     }
     
     @objc private func editButtonTapped() {
-        
+        delegate?.workoutCellDidRequestEdit(self)
     }
 }

@@ -11,6 +11,7 @@ protocol WorkoutBusinessLogic {
     func createWorkout(request: WorkoutModels.Create.Request)
     func showInfo(request: WorkoutModels.Info.Request)
     func fetchWorkouts(request: WorkoutModels.FetchWorkouts.Request)
+    func deleteWorkout(request: WorkoutModels.DeleteWorkout.Request)
 }
 
 protocol WorkoutDataStore {
@@ -50,11 +51,12 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
                         styleDescription: getStyleDescription(SwimStyle(rawValue: exercise.style) ?? .any),
                         type: ExerciseType(rawValue: exercise.type) ?? .main,
                         exerciseDescription: exercise.exerciseDescription,
-                        formattedString: formattedString
+                        formattedString: formattedString,
+                        repetitions: exercise.repetitions // Добавлено
                     )
                 } ?? []
             
-            let totalVolume = exercises.reduce(0) { $0 + Int($1.meters) }
+            let totalVolume = exercises.reduce(0) { $0 + Int($1.meters) * Int($1.repetitions) }
             
             return WorkoutModels.FetchWorkouts.Response.WorkoutData(
                 name: entity.name ?? "Без названия",
@@ -66,6 +68,27 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
         let response = WorkoutModels.FetchWorkouts.Response(workouts: workoutData)
         presenter?.presentWorkouts(response: response)
     }
+    
+    // MARK: - Workout Deletion
+    func deleteWorkout(request: WorkoutModels.DeleteWorkout.Request) {
+        guard let workouts = workouts,
+              request.index < workouts.count else {
+            return
+        }
+        
+        let workoutToDelete = workouts[request.index]
+        
+        // Удаляем тренировку в CoreData + упражнения
+        CoreDataManager.shared.deleteWorkout(workoutToDelete)
+        
+        // Удаляем из локального массива интерактора
+        self.workouts?.remove(at: request.index)
+        
+        // Сообщаем презентеру
+        let response = WorkoutModels.DeleteWorkout.Response(deletedIndex: request.index)
+        presenter?.presentDeleteWorkout(response: response)
+    }
+    
     
     // MARK: - Private Methods
     private func getStyleDescription(_ style: SwimStyle) -> String {

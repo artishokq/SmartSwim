@@ -52,6 +52,7 @@ enum WorkoutModels {
                 let type: ExerciseType
                 let exerciseDescription: String?
                 let formattedString: String
+                let repetitions: Int16
             }
             
             let workouts: [WorkoutData]
@@ -64,6 +65,20 @@ enum WorkoutModels {
                 let exercises: [String]
             }
             let workouts: [DisplayedWorkout]
+        }
+    }
+    
+    enum DeleteWorkout {
+        struct Request {
+            let index: Int
+        }
+        
+        struct Response {
+            let deletedIndex: Int
+        }
+        
+        struct ViewModel {
+            let deletedIndex: Int
         }
     }
 }

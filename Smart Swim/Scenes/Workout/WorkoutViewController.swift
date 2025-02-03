@@ -11,6 +11,7 @@ protocol WorkoutDisplayLogic: AnyObject {
     func displayWorkoutCreation(viewModel: WorkoutModels.Create.ViewModel)
     func displayInfo(viewModel: WorkoutModels.Info.ViewModel)
     func displayWorkouts(viewModel: WorkoutModels.FetchWorkouts.ViewModel)
+    func displayDeleteWorkout(viewModel: WorkoutModels.DeleteWorkout.ViewModel)
 }
 
 final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
@@ -21,6 +22,11 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
         
         static let tableViewRightPadding: CGFloat = 16
         static let tableViewLeftPadding: CGFloat = 16
+        
+        static let deleteTitle: String = "Удалить тренировку?"
+        static let deleteMessage: String = "Данное действие нельзя отменить."
+        static let deleteActionString: String = "Удалить"
+        static let cancelActionString: String = "Отмена"
     }
     
     // MARK: - Fields
@@ -144,6 +150,11 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
         tableView.reloadData()
     }
     
+    func displayDeleteWorkout(viewModel: WorkoutModels.DeleteWorkout.ViewModel) {
+        displayedWorkouts.remove(at: viewModel.deletedIndex)
+        tableView.deleteSections(IndexSet(integer: viewModel.deletedIndex), with: .automatic)
+    }
+    
     // MARK: - Private Methods
     private func fetchWorkouts() {
         let request = WorkoutModels.FetchWorkouts.Request()
@@ -175,13 +186,52 @@ extension WorkoutViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: WorkoutCell.identifier, for: indexPath) as? WorkoutCell else {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: WorkoutCell.identifier,
+            for: indexPath
+        ) as? WorkoutCell else {
             return UITableViewCell()
         }
         
         let workout = displayedWorkouts[indexPath.section]
         cell.configure(with: workout)
-        
+        cell.delegate = self
         return cell
+    }
+}
+
+// MARK: - WorkoutCellDelegate
+extension WorkoutViewController: WorkoutCellDelegate {
+    func workoutCellDidRequestDeletion(_ cell: WorkoutCell) {
+        // С помощью tableView получаем indexPath
+        guard let indexPath = tableView.indexPath(for: cell) else {
+            return
+        }
+        
+        // Показываем UIAlertController для подтверждения
+        let alert = UIAlertController(
+            title: Constants.deleteTitle,
+            message: Constants.deleteMessage,
+            preferredStyle: .alert
+        )
+        
+        let deleteAction = UIAlertAction(title: Constants.deleteActionString, style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            
+            let request = WorkoutModels.DeleteWorkout.Request(index: indexPath.section)
+            self.interactor?.deleteWorkout(request: request)
+        }
+        
+        let cancelAction = UIAlertAction(title: Constants.cancelActionString, style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    func workoutCellDidRequestEdit(_ cell: WorkoutCell) {
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        print("Нажата кнопка редактирования тренировки в секции \(indexPath.section)")
     }
 }
