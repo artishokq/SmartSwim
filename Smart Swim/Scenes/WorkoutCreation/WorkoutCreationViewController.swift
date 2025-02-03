@@ -150,6 +150,9 @@ final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisp
     // MARK: - Display Logic
     func displayCreateWorkout(viewModel: WorkoutCreationModels.CreateWorkout.ViewModel) {
         if viewModel.success {
+            // Отправляем уведомление о создании тренировки
+            NotificationCenter.default.post(name: .workoutCreated, object: nil)
+            // После уведомления переходим к списку тренировок (главный экран)
             router?.routeToWorkoutList()
         } else {
             showAlert(title: Constants.alertTitle, message: viewModel.errorMessage ?? Constants.alertDefaultMessage)

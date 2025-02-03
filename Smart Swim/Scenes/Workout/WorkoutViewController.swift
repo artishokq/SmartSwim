@@ -38,6 +38,7 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     
     var interactor: WorkoutBusinessLogic?
     var router: (NSObjectProtocol & WorkoutRoutingLogic & WorkoutDataPassing)?
+    static let workoutCreated = Notification.Name("workoutCreated")
     
     // MARK: - Object lifecycle
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
@@ -56,6 +57,17 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
         configureUI()
         configureTableView()
         fetchWorkouts()
+        
+        // Подписываемся на уведомление об обновлении списка тренировок
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(workoutCreated),
+                                               name: .workoutCreated,
+                                               object: nil)
+    }
+    
+    deinit {
+        // Удаляем наблюдателя при деинициализации
+        NotificationCenter.default.removeObserver(self, name: .workoutCreated, object: nil)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -134,6 +146,10 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     @objc private func createButtonTapped() {
         let request = WorkoutModels.Create.Request()
         interactor?.createWorkout(request: request)
+    }
+    
+    @objc private func workoutCreated() {
+        fetchWorkouts()
     }
     
     // MARK: - Display logic
