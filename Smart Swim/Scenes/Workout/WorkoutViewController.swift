@@ -17,8 +17,12 @@ protocol WorkoutDisplayLogic: AnyObject {
 final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     // MARK: - Constants
     private enum Constants {
+        static let backgroundColor = UIColor(hexString: "#242531")
+        static let infoButtonColor = UIColor(hexString: "#B7C4E6")
+        
         static let sectionSpacing: CGFloat = 14
         static let sectionHeaderTopPadding: CGFloat = 0
+        static let createButtonColor = UIColor(hexString: "#B7C4E6")
         
         static let tableViewRightPadding: CGFloat = 16
         static let tableViewLeftPadding: CGFloat = 16
@@ -27,6 +31,11 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
         static let deleteMessage: String = "Данное действие нельзя отменить."
         static let deleteActionString: String = "Удалить"
         static let cancelActionString: String = "Отмена"
+        
+        static let workoutTabBarTitle = "Тренировка"
+        static let workoutTitle = "Тренировки"
+        static let infoButtonImage = UIImage(named: "infoButton")
+        static let createButtonImage = UIImage(named: "createButton")
     }
     
     // MARK: - Fields
@@ -91,9 +100,9 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     }
     
     private func configureUI() {
-        view.backgroundColor = Resources.Colors.background
-        title = Resources.Strings.Workout.workoutTitle
-        navigationController?.tabBarItem.title = Resources.Strings.TabBar.workout
+        view.backgroundColor = Constants.backgroundColor
+        title = Constants.workoutTitle
+        navigationController?.tabBarItem.title = Constants.workoutTabBarTitle
         
         configureCreateButton()
         configureInfoButton()
@@ -107,15 +116,15 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
     }
     
     private func configureCreateButton() {
-        createButton.setImage(Resources.Images.Workout.createButtonImage, for: .normal)
-        createButton.tintColor = Resources.Colors.createButtonColor
+        createButton.setImage(Constants.createButtonImage, for: .normal)
+        createButton.tintColor = Constants.createButtonColor
         
         createButton.addTarget(self, action: #selector(createButtonTapped), for: .touchUpInside)
     }
     
     private func configureInfoButton() {
-        infoButton.setImage(Resources.Images.Workout.infoButtonImage, for: .normal)
-        infoButton.tintColor = Resources.Colors.infoButtonColor
+        infoButton.setImage(Constants.infoButtonImage, for: .normal)
+        infoButton.tintColor = Constants.infoButtonColor
         
         infoButton.addTarget(self, action: #selector(infoButtonTapped), for: .touchUpInside)
     }

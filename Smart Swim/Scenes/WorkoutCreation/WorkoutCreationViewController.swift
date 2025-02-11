@@ -17,12 +17,19 @@ protocol WorkoutCreationDisplayLogic: AnyObject {
 final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisplayLogic {
     // MARK: - Constants
     private enum Constants {
+        static let createBackgroundColor = UIColor(hexString: "#242531")
+        static let blueColor = UIColor(hexString: "#0A84FF")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+        static let constructorTitleFont = UIFont.systemFont(ofSize: 20, weight: .semibold)
         static let tableViewLeftPadding: CGFloat = 14
         static let tableViewRightPadding: CGFloat = 14
         
         static let sectionSpacing: CGFloat = 14
         static let sectionHeaderTopPadding: CGFloat = 0
         
+        static let constructorTitle = "Конструктор"
+        static let addButtonTitle = "Добавить"
+        static let createButtonTitle = "Создать"
         static let alertTitle: String = "Ошибка"
         static let alertDefaultMessage: String = "Не удалось создать тренировку."
     }
@@ -62,10 +69,10 @@ final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisp
     }
     
     private func configureUI() {
-        view.backgroundColor = Resources.Colors.createBackgroundColor
-        titleLabel.textColor = Resources.Colors.titleWhite
-        titleLabel.text = Resources.Strings.Workout.constructorTitle
-        titleLabel.font = Resources.Fonts.constructorTitle
+        view.backgroundColor = Constants.createBackgroundColor
+        titleLabel.textColor = Constants.titleWhite
+        titleLabel.text = Constants.constructorTitle
+        titleLabel.font = Constants.constructorTitleFont
         titleLabel.textAlignment = .center
         
         navigationItem.titleView = titleLabel
@@ -76,7 +83,7 @@ final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisp
     }
     
     private func configureTableView() {
-        tableView.backgroundColor = Resources.Colors.createBackgroundColor
+        tableView.backgroundColor = Constants.createBackgroundColor
         tableView.frame = .zero
         tableView.register(HeaderCell.self, forCellReuseIdentifier: HeaderCell.identifier)
         tableView.register(ExerciseCell.self, forCellReuseIdentifier: ExerciseCell.identifier)
@@ -95,22 +102,22 @@ final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisp
     }
     
     private func configureAddButton() {
-        addButton.title = Resources.Strings.Workout.addButtonTitle
+        addButton.title = Constants.addButtonTitle
         addButton.style = .done
         addButton.target = self
         addButton.action = #selector(addButtonTapped)
         
-        addButton.tintColor = Resources.Colors.blueColor
+        addButton.tintColor = Constants.blueColor
         navigationItem.leftBarButtonItem = addButton
     }
     
     private func configureCreateButton() {
-        createButton.title = Resources.Strings.Workout.createButtonTitle
+        createButton.title = Constants.createButtonTitle
         createButton.style = .done
         createButton.target = self
         createButton.action = #selector(createButtonTapped)
         
-        createButton.tintColor = Resources.Colors.blueColor
+        createButton.tintColor = Constants.blueColor
         navigationItem.rightBarButtonItem = createButton
     }
     

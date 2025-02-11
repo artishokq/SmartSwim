@@ -15,6 +15,11 @@ protocol HeaderCellDelegate: AnyObject {
 final class HeaderCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
+        static let createCellBackgroundColor = UIColor(hexString: "#505773")
+        static let fieldsBackgroundColor = UIColor(hexString: "#323645")
+        static let blueColor = UIColor(hexString: "#0A84FF")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+        static let fieldsAndPlaceholdersFont = UIFont.systemFont(ofSize: 18, weight: .light)
         static let cellCornerRadius: CGFloat = 20
         static let fieldCrnerRadius: CGFloat = 9
         
@@ -24,6 +29,7 @@ final class HeaderCell: UITableViewCell {
         static let nameTextFieldHeight: CGFloat = 38
         static let textPaddingView: UIView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 0))
         static let textPlaceholderTransparency: CGFloat = 0.5
+        static let workoutNamePlaceholder = "Название тренировки"
         
         static let poolSizeSegmentControlTopPadding: CGFloat = 9
         static let poolSizeSegmentControlBottomPadding: CGFloat = 12
@@ -52,7 +58,7 @@ final class HeaderCell: UITableViewCell {
     
     // MARK: - Configurations
     private func ConfigureUI() {
-        backgroundColor = Resources.Colors.createCellBackgroundColor
+        backgroundColor = Constants.createCellBackgroundColor
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
         
@@ -65,20 +71,20 @@ final class HeaderCell: UITableViewCell {
     
     private func nameTextFieldConfiguration() {
         let placeholderAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite.withAlphaComponent(Constants.textPlaceholderTransparency),
-            .font: Resources.Fonts.fieldsAndPlaceholdersFont
+            .foregroundColor: Constants.titleWhite.withAlphaComponent(Constants.textPlaceholderTransparency),
+            .font: Constants.fieldsAndPlaceholdersFont
         ]
         
         nameTextField.attributedPlaceholder = NSAttributedString(
-            string: Resources.Strings.Workout.workoutNamePlaceholder,
+            string: Constants.workoutNamePlaceholder,
             attributes: placeholderAttributes
         )
         
-        nameTextField.font = Resources.Fonts.fieldsAndPlaceholdersFont
-        nameTextField.textColor = Resources.Colors.titleWhite
-        nameTextField.tintColor = Resources.Colors.titleWhite
+        nameTextField.font = Constants.fieldsAndPlaceholdersFont
+        nameTextField.textColor = Constants.titleWhite
+        nameTextField.tintColor = Constants.titleWhite
         nameTextField.layer.cornerRadius = Constants.fieldCrnerRadius
-        nameTextField.backgroundColor = Resources.Colors.fieldsBackgroundColor
+        nameTextField.backgroundColor = Constants.fieldsBackgroundColor
         
         // Чтобы текст не с самого бока печатался
         let paddingView = Constants.textPaddingView
@@ -104,17 +110,17 @@ final class HeaderCell: UITableViewCell {
         poolSizeSegmentControl.selectedSegmentIndex = 0
         poolSizeSegmentControl.layer.cornerRadius = Constants.fieldCrnerRadius
         
-        poolSizeSegmentControl.backgroundColor = Resources.Colors.fieldsBackgroundColor
-        poolSizeSegmentControl.selectedSegmentTintColor = Resources.Colors.blueColor
+        poolSizeSegmentControl.backgroundColor = Constants.fieldsBackgroundColor
+        poolSizeSegmentControl.selectedSegmentTintColor = Constants.blueColor
         
         let normalTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersFont
         ]
         
         let selectedTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersFont
         ]
         
         poolSizeSegmentControl.setTitleTextAttributes(normalTextAttributes, for: .normal)

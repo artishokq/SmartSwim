@@ -15,7 +15,13 @@ protocol ExerciseCellDelegate: AnyObject {
 final class ExerciseCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
+        static let createCellBackgroundColor = UIColor(hexString: "#505773")
         static let cellCornerRadius: CGFloat = 20
+        static let blueColor = UIColor(hexString: "#0A84FF")
+        static let fieldsBackgroundColor = UIColor(hexString: "#323645")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+        static let fieldsAndPlaceholdersFont = UIFont.systemFont(ofSize: 18, weight: .light)
+        static let fieldsAndPlaceholdersSmallerFont = UIFont.systemFont(ofSize: 16, weight: .light)
         
         static let textFieldHeight: CGFloat = 38
         static let textFieldCornerRadius: CGFloat = 9
@@ -82,6 +88,7 @@ final class ExerciseCell: UITableViewCell {
         static let deleteButtonMessage: String = "Вы уверены, что хотите удалить это задание?"
         static let deleteButtonCancelTitle: String = "Отмена"
         static let deleteButtonDeleteTitle: String = "Удалить"
+        static let deleteButtonImage = UIImage(named: "deleteButton")
     }
     
     // MARK: - Fields
@@ -120,7 +127,7 @@ final class ExerciseCell: UITableViewCell {
     
     // MARK: - UI Configuration
     private func configureUI() {
-        backgroundColor = Resources.Colors.createCellBackgroundColor
+        backgroundColor = Constants.createCellBackgroundColor
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
         descriptionTextView.delegate = self
@@ -153,18 +160,18 @@ final class ExerciseCell: UITableViewCell {
     
     // MARK: - Text Field Configuration
     private func configureTextField(_ textField: UITextField, placeholder: String) {
-        textField.backgroundColor = Resources.Colors.fieldsBackgroundColor
+        textField.backgroundColor = Constants.fieldsBackgroundColor
         textField.layer.cornerRadius = Constants.textFieldCornerRadius
-        textField.textColor = Resources.Colors.titleWhite
-        textField.font = Resources.Fonts.fieldsAndPlaceholdersFont
+        textField.textColor = Constants.titleWhite
+        textField.font = Constants.fieldsAndPlaceholdersFont
         textField.placeholder = placeholder
         textField.textAlignment = .center
     }
     
     // MARK: - Exercise Number Label Configuration
     private func exerciseNumberLabelConfiguration() {
-        exerciseNumberLabel.font = Resources.Fonts.fieldsAndPlaceholdersFont
-        exerciseNumberLabel.textColor = Resources.Colors.titleWhite
+        exerciseNumberLabel.font = Constants.fieldsAndPlaceholdersFont
+        exerciseNumberLabel.textColor = Constants.titleWhite
         
         exerciseNumberLabel.translatesAutoresizingMaskIntoConstraints = false
         exerciseNumberLabel.pinTop(to: contentView.topAnchor, Constants.exerciseNumberLabelTopPadding)
@@ -180,21 +187,21 @@ final class ExerciseCell: UITableViewCell {
         typeSegmentControl.selectedSegmentIndex = 0
         
         let normalTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersFont
         ]
         
         let selectedTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersFont
         ]
         
         typeSegmentControl.setTitleTextAttributes(normalTextAttributes, for: .normal)
         typeSegmentControl.setTitleTextAttributes(selectedTextAttributes, for: .selected)
         
         typeSegmentControl.layer.cornerRadius = Constants.typeSegmentControlCornerRadius
-        typeSegmentControl.backgroundColor = Resources.Colors.fieldsBackgroundColor
-        typeSegmentControl.selectedSegmentTintColor = Resources.Colors.blueColor
+        typeSegmentControl.backgroundColor = Constants.fieldsBackgroundColor
+        typeSegmentControl.selectedSegmentTintColor = Constants.blueColor
         
         // Констрейнты
         typeSegmentControl.translatesAutoresizingMaskIntoConstraints = false
@@ -295,17 +302,17 @@ final class ExerciseCell: UITableViewCell {
         styleSegmentControl.selectedSegmentIndex = 0
         
         styleSegmentControl.layer.cornerRadius = Constants.styleSegmentControlCornerRadius
-        styleSegmentControl.backgroundColor = Resources.Colors.fieldsBackgroundColor
-        styleSegmentControl.selectedSegmentTintColor = Resources.Colors.blueColor
+        styleSegmentControl.backgroundColor = Constants.fieldsBackgroundColor
+        styleSegmentControl.selectedSegmentTintColor = Constants.blueColor
         
         let normalTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersSmallerFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersSmallerFont
         ]
         
         let selectedTextAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.fieldsAndPlaceholdersSmallerFont
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.fieldsAndPlaceholdersSmallerFont
         ]
         
         styleSegmentControl.setTitleTextAttributes(normalTextAttributes, for: .normal)
@@ -321,15 +328,15 @@ final class ExerciseCell: UITableViewCell {
     
     // MARK: - Description Text View Configuration
     private func descriptionTextViewConfiguration() {
-        descriptionTextView.backgroundColor = Resources.Colors.fieldsBackgroundColor
+        descriptionTextView.backgroundColor = Constants.fieldsBackgroundColor
         descriptionTextView.layer.cornerRadius = Constants.descriptionTextViewCornerRadius
-        descriptionTextView.textColor = Resources.Colors.titleWhite
-        descriptionTextView.font = Resources.Fonts.fieldsAndPlaceholdersFont
+        descriptionTextView.textColor = Constants.titleWhite
+        descriptionTextView.font = Constants.fieldsAndPlaceholdersFont
         if descriptionTextView.text.isEmpty {
             descriptionTextView.text = Constants.descriptionPlaceholder
             descriptionTextView.textColor = .gray
         } else {
-            descriptionTextView.textColor = Resources.Colors.titleWhite
+            descriptionTextView.textColor = Constants.titleWhite
         }
         
         // Констрейнты
@@ -342,7 +349,7 @@ final class ExerciseCell: UITableViewCell {
     
     // MARK: - Delete Button Configuration
     private func deleteButtonConfiguration() {
-        deleteButton.setImage(Resources.Images.Workout.deleteButtonImage, for: .normal)
+        deleteButton.setImage(Constants.deleteButtonImage, for: .normal)
         
         // Констрейнты
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
@@ -391,7 +398,7 @@ final class ExerciseCell: UITableViewCell {
             action: #selector(doneButtonTapped)
         )
         
-        doneButton.tintColor = Resources.Colors.blueColor
+        doneButton.tintColor = Constants.blueColor
         
         // В качестве id вешаем на кнопку хэш самого textField ,Потом в doneButtonTapped мы этот хэш и используем
         doneButton.tag = textField.hash
@@ -514,7 +521,7 @@ final class ExerciseCell: UITableViewCell {
         
         styleSegmentControl.selectedSegmentIndex = Int(exercise.style.rawValue)
         descriptionTextView.text = exercise.description.isEmpty ? Constants.descriptionPlaceholder : exercise.description
-        descriptionTextView.textColor = exercise.description.isEmpty ? .gray : Resources.Colors.titleWhite
+        descriptionTextView.textColor = exercise.description.isEmpty ? .gray : Constants.titleWhite
     }
 }
 
@@ -547,8 +554,8 @@ extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextView
         return NSAttributedString(
             string: title,
             attributes: [
-                .foregroundColor: Resources.Colors.titleWhite,
-                .font: Resources.Fonts.fieldsAndPlaceholdersFont
+                .foregroundColor: Constants.titleWhite,
+                .font: Constants.fieldsAndPlaceholdersFont
             ]
         )
     }
@@ -556,7 +563,7 @@ extension ExerciseCell: UIPickerViewDelegate, UIPickerViewDataSource, UITextView
     func textViewDidBeginEditing(_ textView: UITextView) {
         if textView.textColor == .gray {
             textView.text = nil
-            textView.textColor = Resources.Colors.titleWhite
+            textView.textColor = Constants.titleWhite
         }
     }
     

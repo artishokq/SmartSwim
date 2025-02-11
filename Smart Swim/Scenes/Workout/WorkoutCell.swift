@@ -16,6 +16,11 @@ final class WorkoutCell: UITableViewCell {
     // MARK: - Constants
     private enum Constants {
         static let cellCornerRadius: CGFloat = 20
+        static let workoutCellBackgroundColor = UIColor(hexString: "#323645")
+        static let workoutCellNameHeaderColor = UIColor(hexString: "#505773")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+        static let workoutNameFont = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        static let workoutExerciseFont = UIFont.systemFont(ofSize: 20, weight: .light)
         
         static let nameHeaderViewCornerRadius: CGFloat = 20
         static let nameHeaderHeight: CGFloat = 50
@@ -32,10 +37,12 @@ final class WorkoutCell: UITableViewCell {
         static let editButtonTopPadding: CGFloat = 12
         static let editButtonBottomPadding: CGFloat = 12
         static let editButtonRightPadding: CGFloat = 12
+        static let editButtonImage = UIImage(named: "editButton")
         
         static let deleteButtonTopPadding: CGFloat = 12
         static let deleteButtonBottomPadding: CGFloat = 12
         static let deleteButtonRightPadding: CGFloat = 8
+        static let deleteButtonImage = UIImage(named: "deleteButton")
     }
     
     // MARK: - Fields
@@ -62,7 +69,7 @@ final class WorkoutCell: UITableViewCell {
     
     // MARK: - UI Configuration
     private func configureUI() {
-        backgroundColor = Resources.Colors.workoutCellBackgroundColor
+        backgroundColor = Constants.workoutCellBackgroundColor
         selectionStyle = .none
         layer.cornerRadius = Constants.cellCornerRadius
         
@@ -82,7 +89,7 @@ final class WorkoutCell: UITableViewCell {
     }
     
     private func nameHeaderViewConfiguration() {
-        nameHeaderView.backgroundColor = Resources.Colors.workoutCellNameHeaderColor
+        nameHeaderView.backgroundColor = Constants.workoutCellNameHeaderColor
         // Скругление только верхних углов
         nameHeaderView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         nameHeaderView.layer.cornerRadius = Constants.nameHeaderViewCornerRadius
@@ -95,8 +102,8 @@ final class WorkoutCell: UITableViewCell {
     }
     
     private func nameLabelConfiguration() {
-        nameLabel.font = Resources.Fonts.workoutNameFont
-        nameLabel.textColor = Resources.Colors.titleWhite
+        nameLabel.font = Constants.workoutNameFont
+        nameLabel.textColor = Constants.titleWhite
         
         // Констрейнты
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -106,7 +113,7 @@ final class WorkoutCell: UITableViewCell {
     
     
     private func editButtonConfiguration() {
-        editButton.setImage(Resources.Images.Workout.editButtonImage, for: .normal)
+        editButton.setImage(Constants.editButtonImage, for: .normal)
         
         // Констрейнты
         editButton.translatesAutoresizingMaskIntoConstraints = false
@@ -116,7 +123,7 @@ final class WorkoutCell: UITableViewCell {
     }
     
     private func deleteButtonConfiguration() {
-        deleteButton.setImage(Resources.Images.Workout.deleteButtonImage, for: .normal)
+        deleteButton.setImage(Constants.deleteButtonImage, for: .normal)
         
         // Констрейнты
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
@@ -126,8 +133,8 @@ final class WorkoutCell: UITableViewCell {
     }
     
     private func exercisesLabelConfiguration() {
-        exercisesLabel.font = Resources.Fonts.workoutExerciseFont
-        exercisesLabel.textColor = Resources.Colors.titleWhite
+        exercisesLabel.font = Constants.workoutExerciseFont
+        exercisesLabel.textColor = Constants.titleWhite
         exercisesLabel.numberOfLines = 0
         
         // Констрейнты
@@ -138,8 +145,8 @@ final class WorkoutCell: UITableViewCell {
     }
     
     private func volumeLabelConfiguration() {
-        volumeLabel.font = Resources.Fonts.workoutExerciseFont
-        volumeLabel.textColor = Resources.Colors.titleWhite
+        volumeLabel.font = Constants.workoutExerciseFont
+        volumeLabel.textColor = Constants.titleWhite
         
         // Констрейнты
         volumeLabel.translatesAutoresizingMaskIntoConstraints = false

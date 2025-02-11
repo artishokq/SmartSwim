@@ -8,13 +8,17 @@
 import UIKit
 
 final class DiaryController: UIViewController {
+    // MARK: - Constants
+    private enum Constants {
+        static let backgroundColor = UIColor(hexString: "#242531")
+        static let diaryTabBarTitle: String = "Дневник"
+        static let diaryTitle: String = "Дневник"
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        view.backgroundColor = Resources.Colors.background
-        
-        title = "Дневник"
-        navigationController?.tabBarItem.title = Resources.Strings.TabBar.diary
+        view.backgroundColor = Constants.backgroundColor
+        title = Constants.diaryTitle
+        navigationController?.tabBarItem.title = Constants.diaryTabBarTitle
     }
 }

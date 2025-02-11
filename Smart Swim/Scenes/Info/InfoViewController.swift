@@ -8,6 +8,14 @@
 import UIKit
 
 final class InfoViewController: UIViewController {
+    // MARK: - Constants
+    private enum Constants {
+        static let infoTitle = "Информация"
+        static let infoTitleFont = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        static let infoBackgroundColor = UIColor(hexString: "#242531")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+    }
+    
     // MARK: - Fields
     private let titleLabel: UILabel = UILabel()
     
@@ -20,12 +28,12 @@ final class InfoViewController: UIViewController {
     
     // MARK: - Configurations
     private func configureUI() {
-        view.backgroundColor = Resources.Colors.infoBackgroundColor
+        view.backgroundColor = Constants.infoBackgroundColor
         
-        titleLabel.textColor = Resources.Colors.titleWhite
+        titleLabel.textColor = Constants.titleWhite
         titleLabel.textAlignment = .center
-        titleLabel.font = Resources.Fonts.infoTitle
-        titleLabel.text = Resources.Strings.Workout.infoTitle
+        titleLabel.font = Constants.infoTitleFont
+        titleLabel.text = Constants.infoTitle
         navigationItem.titleView = titleLabel
     }
 }

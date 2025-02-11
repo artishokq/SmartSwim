@@ -8,6 +8,12 @@
 import UIKit
 
 final class NavBarController: UINavigationController {
+    // MARK: - Constants
+    private enum Constants {
+        static let tabAndNavBarColor = UIColor(hexString: "#3A3C5D")
+        static let titleWhite = UIColor(hexString: "#FFFFFF") ?? .white
+        static let NavBarTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -16,17 +22,17 @@ final class NavBarController: UINavigationController {
     }
     
     private func configure() {
-        view.backgroundColor = Resources.Colors.tabAndNavBar
+        view.backgroundColor = Constants.tabAndNavBarColor
         navigationBar.isTranslucent = false
         // Чтобы NavBar не менял цвет при скроле
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = Resources.Colors.tabAndNavBar
+        appearance.backgroundColor = Constants.tabAndNavBarColor
         navigationBar.standardAppearance = appearance
 
         navigationBar.standardAppearance.titleTextAttributes = [
-            .foregroundColor: Resources.Colors.titleWhite,
-            .font: Resources.Fonts.NavBarTitle
+            .foregroundColor: Constants.titleWhite,
+            .font: Constants.NavBarTitle
         ]
     }
 }
