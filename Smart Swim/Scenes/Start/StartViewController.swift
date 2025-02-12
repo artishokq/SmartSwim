@@ -8,7 +8,7 @@
 import UIKit
 
 protocol StartDisplayLogic: AnyObject {
-    
+    func displayContinue(viewModel: StartModels.Continue.ViewModel)
 }
 
 final class StartViewController: UIViewController, StartDisplayLogic {
@@ -42,7 +42,6 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         static let styleSegmentControlRightPadding: CGFloat = 12
         static let styleSegmentControlHeight: CGFloat = 42
         
-        static let metersValues: [Int] = Array(stride(from: 25, through: 5000, by: 25))
         static let metersPlaceholder: String = "Метры"
         static let metersTextFieldTopPadding: CGFloat = 16
         static let metersTextFieldLeftPadding: CGFloat = 12
@@ -73,6 +72,25 @@ final class StartViewController: UIViewController, StartDisplayLogic {
     private let metersPicker: UIPickerView = UIPickerView()
     private let continueButton: UIButton = UIButton(type: .system)
     
+    private var currentMeterValues: [Int] {
+        let styleIndex = styleSegmentControl.selectedSegmentIndex
+        let poolSizeIndex = poolSizeSegmentControl.selectedSegmentIndex
+        switch styleIndex {
+        case 0: // Кроль
+            return [50, 100, 200, 400, 800, 1500]
+        case 1, 2, 3: // Брасс, Спина, Батт
+            return [50, 100, 200]
+        case 4: // К/П
+            if poolSizeIndex == 0 { // 25м
+                return [100, 200, 400]
+            } else { // 50м
+                return [200, 400]
+            }
+        default:
+            return []
+        }
+    }
+    
     // MARK: - Object lifecycle
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -102,7 +120,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         interactor.presenter = presenter
         presenter.viewController = viewController
         router.viewController = viewController
-        //router.dataStore = interactor
+        router.dataStore = interactor
     }
     
     private func configureUI() {
@@ -205,6 +223,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         metersTextField.placeholder = Constants.metersPlaceholder
         metersTextField.textAlignment = .center
         
+        // Назначаем делегат и dataSource для UIPickerView
         metersPicker.delegate = self
         metersPicker.dataSource = self
         metersTextField.inputView = metersPicker
@@ -238,7 +257,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
     }
     
     private func continueButtonConfiguration() {
-        continueButton.backgroundColor = Constants.blueColor //поменять
+        continueButton.backgroundColor = Constants.blueColor
         continueButton.setTitle(Constants.continueButtonTitle, for: .normal)
         continueButton.titleLabel?.font = Constants.continueButtonTitleFont
         continueButton.setTitleColor(Constants.continueButtonTitleColor, for: .normal)
@@ -254,23 +273,48 @@ final class StartViewController: UIViewController, StartDisplayLogic {
     
     // MARK: - Actions
     private func configureActions() {
+        // При изменении выбора в любом из UISegmentedControl обновляем набор метражей
         poolSizeSegmentControl.addTarget(self, action: #selector(segmentControlChanged), for: .valueChanged)
         styleSegmentControl.addTarget(self, action: #selector(segmentControlChanged), for: .valueChanged)
         continueButton.addTarget(self, action: #selector(continueButtonTapped), for: .touchUpInside)
     }
     
     @objc private func segmentControlChanged() {
-        
+        metersPicker.reloadAllComponents()
+        // Устанавливаем значение по умолчанию (первый доступный метраж)
+        if let firstValue = currentMeterValues.first {
+            metersTextField.text = "\(firstValue) м"
+            metersPicker.selectRow(0, inComponent: 0, animated: true)
+        } else {
+            metersTextField.text = ""
+        }
     }
     
     @objc private func doneButtonTapped() {
         let selectedRow = metersPicker.selectedRow(inComponent: 0)
-        metersTextField.text = "\(Constants.metersValues[selectedRow]) м"
+        if selectedRow < currentMeterValues.count {
+            metersTextField.text = "\(currentMeterValues[selectedRow]) м"
+        }
         metersTextField.resignFirstResponder()
     }
     
     @objc private func continueButtonTapped() {
+        guard let metersText = metersTextField.text,
+              let totalMeters = Int(metersText.components(separatedBy: " ").first ?? "") else { return }
         
+        let poolSize = poolSizeSegmentControl.selectedSegmentIndex == 0 ? 25 : 50
+        let selectedIndex = styleSegmentControl.selectedSegmentIndex
+        let swimmingStyle = Constants.styleItems[selectedIndex]
+        
+        let request = StartModels.Continue.Request(totalMeters: totalMeters,
+                                                   poolSize: poolSize,
+                                                   swimmingStyle: swimmingStyle)
+        interactor?.continueAction(request: request)
+    }
+    
+    // MARK: - StartDisplayLogic
+    func displayContinue(viewModel: StartModels.Continue.ViewModel) {
+        router?.routeToStopwatch()
     }
 }
 
@@ -281,12 +325,11 @@ extension StartViewController: UIPickerViewDelegate, UIPickerViewDataSource {
     }
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return Constants.metersValues.count
+        return currentMeterValues.count
     }
     
     func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
-        let title = "\(Constants.metersValues[row]) м"
-        
+        let title = "\(currentMeterValues[row]) м"
         return NSAttributedString(
             string: title,
             attributes: [

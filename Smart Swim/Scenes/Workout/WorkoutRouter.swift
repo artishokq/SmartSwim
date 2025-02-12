@@ -22,6 +22,16 @@ final class WorkoutRouter: NSObject, WorkoutRoutingLogic, WorkoutDataPassing {
     
     func routeToWorkoutCreation() {
         let workoutCreationVC = WorkoutCreationViewController()
+        let interactor = WorkoutCreationInteractor()
+        let presenter = WorkoutCreationPresenter()
+        let router = WorkoutCreationRouter()
+        
+        workoutCreationVC.interactor = interactor
+        workoutCreationVC.router = router
+        interactor.presenter = presenter
+        presenter.viewController = workoutCreationVC
+        router.viewController = workoutCreationVC
+        
         let navigationController = UINavigationController(rootViewController: workoutCreationVC)
         viewController?.present(navigationController, animated: true)
     }

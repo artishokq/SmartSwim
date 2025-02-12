@@ -29,6 +29,7 @@ final class TabBarController: UITabBarController {
         static let tabAndNavBarColor = UIColor(hexString: "#3A3C5D")
     }
     
+    // MARK: - Object lifecycle
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         

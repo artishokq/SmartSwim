@@ -15,9 +15,9 @@ final class NavBarController: UINavigationController {
         static let NavBarTitle = UIFont.systemFont(ofSize: 20, weight: .semibold)
     }
     
+    // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         configure()
     }
     

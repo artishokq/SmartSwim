@@ -8,5 +8,19 @@
 import Foundation
 
 enum StartModels {
-    
+    enum Continue {
+        struct Request {
+            let totalMeters: Int
+            let poolSize: Int
+            let swimmingStyle: String
+        }
+        
+        struct Response {
+
+        }
+        
+        struct ViewModel {
+
+        }
+    }
 }

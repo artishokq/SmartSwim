@@ -8,10 +8,14 @@
 import UIKit
 
 protocol StartPresentationLogic {
-    
+    func presentContinue(response: StartModels.Continue.Response)
 }
 
 final class StartPresenter: StartPresentationLogic {
     weak var viewController: StartDisplayLogic?
     
+    func presentContinue(response: StartModels.Continue.Response) {
+        let viewModel = StartModels.Continue.ViewModel()
+        viewController?.displayContinue(viewModel: viewModel)
+    }
 }

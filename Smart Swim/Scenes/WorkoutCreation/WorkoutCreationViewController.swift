@@ -50,24 +50,10 @@ final class WorkoutCreationViewController: UIViewController, WorkoutCreationDisp
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        configure()
         configureUI()
     }
     
     // MARK: - Configurations
-    private func configure() {
-        let interactor = WorkoutCreationInteractor()
-        let presenter = WorkoutCreationPresenter()
-        let router = WorkoutCreationRouter()
-        
-        interactor.presenter = presenter
-        presenter.viewController = self
-        router.viewController = self
-        
-        self.interactor = interactor
-        self.router = router
-    }
-    
     private func configureUI() {
         view.backgroundColor = Constants.createBackgroundColor
         titleLabel.textColor = Constants.titleWhite

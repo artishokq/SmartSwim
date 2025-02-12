@@ -15,6 +15,7 @@ final class DiaryController: UIViewController {
         static let diaryTitle: String = "Дневник"
     }
     
+    // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Constants.backgroundColor

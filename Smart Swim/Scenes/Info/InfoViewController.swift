@@ -19,17 +19,15 @@ final class InfoViewController: UIViewController {
     // MARK: - Fields
     private let titleLabel: UILabel = UILabel()
     
-    // MARK: - Lifecycle
+    // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         configureUI()
     }
     
     // MARK: - Configurations
     private func configureUI() {
         view.backgroundColor = Constants.infoBackgroundColor
-        
         titleLabel.textColor = Constants.titleWhite
         titleLabel.textAlignment = .center
         titleLabel.font = Constants.infoTitleFont
