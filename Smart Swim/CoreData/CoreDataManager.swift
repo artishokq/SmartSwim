@@ -22,7 +22,7 @@ final class CoreDataManager {
     
     // MARK: - Инициализация
     private init() {
-        persistentContainer = NSPersistentContainer(name: "WorkoutCoreData")
+        persistentContainer = NSPersistentContainer(name: "CoreData")
         persistentContainer.loadPersistentStores { description, error in
             if let error = error {
                 fatalError("Unresolved error \(error.localizedDescription)")
@@ -164,6 +164,108 @@ extension CoreDataManager {
     
     func deleteExercise(_ exercise: ExerciseEntity) {
         context.delete(exercise)
+        _ = saveContext()
+    }
+}
+
+// MARK: - Start CRUD
+extension CoreDataManager {
+    // Создаёт новый старт в CoreData
+    @discardableResult
+    func createStart(poolSize: Int16, totalMeters: Int16, swimmingStyle: Int16, numberOfLaps: Int16) -> StartEntity? {
+        let startEntity = StartEntity(context: context)
+        startEntity.poolSize = poolSize
+        startEntity.totalMeters = totalMeters
+        startEntity.swimmingStyle = swimmingStyle
+        startEntity.numberOfLaps = numberOfLaps
+        startEntity.totalTime = 0 // Начальное значение общего времени
+        
+        if saveContext() {
+            return startEntity
+        } else {
+            context.delete(startEntity)
+            return nil
+        }
+    }
+
+    // Получает все старты из CoreData
+    func fetchAllStarts() -> [StartEntity] {
+        let request: NSFetchRequest<StartEntity> = StartEntity.fetchRequest()
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch starts: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // Получить старт по идентификатору
+    func fetchStart(byID id: NSManagedObjectID) -> StartEntity? {
+        do {
+            return try context.existingObject(with: id) as? StartEntity
+        } catch {
+            print("Failed to fetch start by ID: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // Удаляет старт из CoreData
+    func deleteStart(_ start: StartEntity) {
+        context.delete(start)
+        _ = saveContext()
+    }
+
+    // Обновить общее время старта
+    func updateStartTotalTime(_ start: StartEntity, totalTime: Double) {
+        start.totalTime = totalTime
+        _ = saveContext()
+    }
+}
+
+// MARK: - Lap CRUD
+extension CoreDataManager {
+    // Создаёт новый отрезок в CoreData
+    @discardableResult
+    func createLap(lapTime: Double, pulse: Double, strokes: Int16, lapNumber: Int16, startEntity: StartEntity) -> LapEntity? {
+        let lapEntity = LapEntity(context: context)
+        lapEntity.lapTime = lapTime
+        lapEntity.pulse = pulse
+        lapEntity.strokes = strokes
+        lapEntity.lapNumber = lapNumber
+        lapEntity.start = startEntity // Привязываем к старту
+        
+        if saveContext() {
+            return lapEntity
+        } else {
+            context.delete(lapEntity)
+            return nil
+        }
+    }
+
+    // Получает все отрезки для определённого старта
+    func fetchLaps(for start: StartEntity) -> [LapEntity] {
+        let request: NSFetchRequest<LapEntity> = LapEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "start == %@", start)
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch laps: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // Удаляет отрезок
+    func deleteLap(_ lap: LapEntity) {
+        context.delete(lap)
+        _ = saveContext()
+    }
+
+    // Обновить данные отрезка (например, пульс или количество гребков)
+    func updateLapData(lap: LapEntity, lapTime: Double, pulse: Double, strokes: Int16) {
+        lap.lapTime = lapTime
+        lap.pulse = pulse
+        lap.strokes = strokes
         _ = saveContext()
     }
 }

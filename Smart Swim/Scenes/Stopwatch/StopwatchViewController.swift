@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import HealthKit
 
 protocol StopwatchDisplayLogic: AnyObject {
     func displayTimerTick(viewModel: StopwatchModels.TimerTick.ViewModel)
@@ -21,7 +22,7 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
         static let backgroundColor: UIColor = UIColor(hexString: "#242531") ?? .systemBlue
         
         static let timerLabelText: String = "00:00,00"
-        static let timerLabelFont: UIFont = UIFont.monospacedDigitSystemFont(ofSize: 90, weight: .semibold)
+        static let timerLabelFont: UIFont = UIFont.monospacedDigitSystemFont(ofSize: 80, weight: .light)
         static let timerLabelTopPadding: CGFloat = 70
         
         static let mainButtonTitle: String = "Старт"
@@ -46,11 +47,13 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
     
     // Локальное хранилище для отрезков; последний элемент соответствует активному отрезку
     private var laps: [StopwatchModels.LapRecording.ViewModel] = []
+    private var healthStore = HKHealthStore()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         ConfigureUI()
+        requestHealthKitAuthorization()
     }
     
     // MARK: - Configurations
@@ -141,12 +144,26 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
             lapsTableView.insertRows(at: [indexPath], with: .automatic)
         }
     }
-
     
     func displayFinish(viewModel: StopwatchModels.Finish.ViewModel) {
         mainButton.setTitle(viewModel.buttonTitle, for: .normal)
         mainButton.backgroundColor = viewModel.buttonColor
         mainButton.isEnabled = false
+    }
+    
+    // MARK: - Public Methods
+    // Запрашиваем разрешение на доступ к HealthKit
+    func requestHealthKitAuthorization() {
+        let swimmingStrokes = HKObjectType.quantityType(forIdentifier: .swimmingStrokeCount)!
+        let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate)!
+        
+        healthStore.requestAuthorization(toShare: [], read: [swimmingStrokes, heartRate]) { (success, error) in
+            if success {
+                print("HealthKit Authorization successful.")
+            } else {
+                print("Error: \(error?.localizedDescription ?? "Unknown error")")
+            }
+        }
     }
 }
 

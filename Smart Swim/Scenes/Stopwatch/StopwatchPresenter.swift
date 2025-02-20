@@ -23,14 +23,16 @@ final class StopwatchPresenter: StopwatchPresentationLogic {
         let formattedGlobalTime = formatTime(response.globalTime)
         let formattedLapTime = formatTime(response.lapTime)
         let viewModel = StopwatchModels.TimerTick.ViewModel(formattedGlobalTime: formattedGlobalTime,
-                                                            formattedActiveLapTime: formattedLapTime)
+                                                            formattedActiveLapTime: formattedLapTime
+        )
         viewController?.displayTimerTick(viewModel: viewModel)
     }
     
     // MARK: - Present MainButton Action
     func presentMainButtonAction(response: StopwatchModels.MainButtonAction.Response) {
         let viewModel = StopwatchModels.MainButtonAction.ViewModel(buttonTitle: response.nextButtonTitle,
-                                                                   buttonColor: response.nextButtonColor)
+                                                                   buttonColor: response.nextButtonColor
+        )
         viewController?.displayMainButtonAction(viewModel: viewModel)
     }
     
@@ -38,14 +40,16 @@ final class StopwatchPresenter: StopwatchPresentationLogic {
     func presentLapRecording(response: StopwatchModels.LapRecording.Response) {
         let formattedLapTime = formatTime(response.lapTime)
         let viewModel = StopwatchModels.LapRecording.ViewModel(lapNumber: response.lapNumber,
-                                                               lapTimeString: formattedLapTime)
+                                                               lapTimeString: formattedLapTime
+        )
         viewController?.displayLapRecording(viewModel: viewModel)
     }
     
     // MARK: - Present Finish
     func presentFinish(response: StopwatchModels.Finish.Response) {
         let viewModel = StopwatchModels.Finish.ViewModel(buttonTitle: response.finalButtonTitle,
-                                                         buttonColor: response.finalButtonColor)
+                                                         buttonColor: response.finalButtonColor
+        )
         viewController?.displayFinish(viewModel: viewModel)
     }
     

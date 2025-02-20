@@ -24,7 +24,6 @@ extension WorkoutEntity {
     @NSManaged public var exercises: NSSet?
 }
 
-// MARK: Generated accessors for exercises
 extension WorkoutEntity {
 
     @objc(addExercisesObject:)

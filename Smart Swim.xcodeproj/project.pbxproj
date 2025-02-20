@@ -6,11 +6,48 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		166B97002D65310800D91CF0 /* SSwim Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 166B96F32D65310700D91CF0 /* SSwim Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		166B96FE2D65310800D91CF0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 16A8236A2D3006480084DADF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 166B96F22D65310700D91CF0;
+			remoteInfo = "SSwim Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		166B95FB2D65246300D91CF0 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				166B97002D65310800D91CF0 /* SSwim Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		166B96F32D65310700D91CF0 /* SSwim Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SSwim Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		16A823722D3006480084DADF /* Smart Swim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Smart Swim.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		166B97152D66312700D91CF0 /* Exceptions for "Smart Swim" folder in "SSwim Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CoreData/LapEntity.swift,
+				CoreData/StartEntity.swift,
+			);
+			target = 166B96F22D65310700D91CF0 /* SSwim Watch App */;
+		};
 		16A823842D3006490084DADF /* Exceptions for "Smart Swim" folder in "Smart Swim" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -21,10 +58,16 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		166B96F42D65310700D91CF0 /* SSwim Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SSwim Watch App";
+			sourceTree = "<group>";
+		};
 		16A823742D3006480084DADF /* Smart Swim */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				16A823842D3006490084DADF /* Exceptions for "Smart Swim" folder in "Smart Swim" target */,
+				166B97152D66312700D91CF0 /* Exceptions for "Smart Swim" folder in "SSwim Watch App" target */,
 			);
 			path = "Smart Swim";
 			sourceTree = "<group>";
@@ -32,6 +75,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		166B96F02D65310700D91CF0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16A8236F2D3006480084DADF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -46,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				16A823742D3006480084DADF /* Smart Swim */,
+				166B96F42D65310700D91CF0 /* SSwim Watch App */,
 				16A823732D3006480084DADF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				16A823722D3006480084DADF /* Smart Swim.app */,
+				166B96F32D65310700D91CF0 /* SSwim Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +113,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		166B96F22D65310700D91CF0 /* SSwim Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 166B97032D65310800D91CF0 /* Build configuration list for PBXNativeTarget "SSwim Watch App" */;
+			buildPhases = (
+				166B96EF2D65310700D91CF0 /* Sources */,
+				166B96F02D65310700D91CF0 /* Frameworks */,
+				166B96F12D65310700D91CF0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				166B96F42D65310700D91CF0 /* SSwim Watch App */,
+			);
+			name = "SSwim Watch App";
+			packageProductDependencies = (
+			);
+			productName = "SSwim Watch App";
+			productReference = 166B96F32D65310700D91CF0 /* SSwim Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		16A823712D3006480084DADF /* Smart Swim */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 16A823852D3006490084DADF /* Build configuration list for PBXNativeTarget "Smart Swim" */;
@@ -68,10 +142,12 @@
 				16A8236E2D3006480084DADF /* Sources */,
 				16A8236F2D3006480084DADF /* Frameworks */,
 				16A823702D3006480084DADF /* Resources */,
+				166B95FB2D65246300D91CF0 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				166B96FF2D65310800D91CF0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				16A823742D3006480084DADF /* Smart Swim */,
@@ -93,6 +169,9 @@
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					166B96F22D65310700D91CF0 = {
+						CreatedOnToolsVersion = 16.0;
+					};
 					16A823712D3006480084DADF = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -113,11 +192,19 @@
 			projectRoot = "";
 			targets = (
 				16A823712D3006480084DADF /* Smart Swim */,
+				166B96F22D65310700D91CF0 /* SSwim Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		166B96F12D65310700D91CF0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16A823702D3006480084DADF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +215,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		166B96EF2D65310700D91CF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16A8236E2D3006480084DADF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,17 +231,87 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		166B96FF2D65310800D91CF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 166B96F22D65310700D91CF0 /* SSwim Watch App */;
+			targetProxy = 166B96FE2D65310800D91CF0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		16A823862D3006490084DADF /* Debug */ = {
+		166B97012D65310800D91CF0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"SSwim Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.tkachuk.Smart-Swim";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tkachuk.Smart-Swim.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		166B97022D65310800D91CF0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"SSwim Watch App/Preview Content\"";
+				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.tkachuk.Smart-Swim";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tkachuk.Smart-Swim.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		16A823862D3006490084DADF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Smart Swim/Smart Swim.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Smart Swim/Helpers/Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Нам нужны данные о вашем здоровье";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -175,11 +339,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Smart Swim/Smart Swim.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Smart Swim/Helpers/Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Нам нужны данные о вашем здоровье";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -324,6 +490,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		166B97032D65310800D91CF0 /* Build configuration list for PBXNativeTarget "SSwim Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				166B97012D65310800D91CF0 /* Debug */,
+				166B97022D65310800D91CF0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		16A8236D2D3006480084DADF /* Build configuration list for PBXProject "Smart Swim" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
