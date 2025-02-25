@@ -27,7 +27,7 @@ final class CoreDataManager {
             if let error = error {
                 fatalError("Unresolved error \(error.localizedDescription)")
             }
-
+            
             if let url = description.url {
                 print("Core Data store URL: \(url)")
             }
@@ -172,12 +172,12 @@ extension CoreDataManager {
 extension CoreDataManager {
     // Создаёт новый старт в CoreData
     @discardableResult
-    func createStart(poolSize: Int16, totalMeters: Int16, swimmingStyle: Int16, numberOfLaps: Int16) -> StartEntity? {
+    func createStart(poolSize: Int16, totalMeters: Int16, swimmingStyle: Int16, date: Date = Date()) -> StartEntity? {
         let startEntity = StartEntity(context: context)
         startEntity.poolSize = poolSize
         startEntity.totalMeters = totalMeters
         startEntity.swimmingStyle = swimmingStyle
-        startEntity.numberOfLaps = numberOfLaps
+        startEntity.date = date
         startEntity.totalTime = 0 // Начальное значение общего времени
         
         if saveContext() {
@@ -187,7 +187,7 @@ extension CoreDataManager {
             return nil
         }
     }
-
+    
     // Получает все старты из CoreData
     func fetchAllStarts() -> [StartEntity] {
         let request: NSFetchRequest<StartEntity> = StartEntity.fetchRequest()
@@ -198,7 +198,7 @@ extension CoreDataManager {
             return []
         }
     }
-
+    
     // Получить старт по идентификатору
     func fetchStart(byID id: NSManagedObjectID) -> StartEntity? {
         do {
@@ -208,13 +208,13 @@ extension CoreDataManager {
             return nil
         }
     }
-
+    
     // Удаляет старт из CoreData
     func deleteStart(_ start: StartEntity) {
         context.delete(start)
         _ = saveContext()
     }
-
+    
     // Обновить общее время старта
     func updateStartTotalTime(_ start: StartEntity, totalTime: Double) {
         start.totalTime = totalTime
@@ -226,13 +226,16 @@ extension CoreDataManager {
 extension CoreDataManager {
     // Создаёт новый отрезок в CoreData
     @discardableResult
-    func createLap(lapTime: Double, pulse: Double, strokes: Int16, lapNumber: Int16, startEntity: StartEntity) -> LapEntity? {
+    func createLap(lapTime: Double, pulse: Int16, strokes: Int16, lapNumber: Int16, startEntity: StartEntity) -> LapEntity? {
         let lapEntity = LapEntity(context: context)
         lapEntity.lapTime = lapTime
         lapEntity.pulse = pulse
         lapEntity.strokes = strokes
         lapEntity.lapNumber = lapNumber
         lapEntity.start = startEntity // Привязываем к старту
+        
+        // Добавляем отрезок к набору отрезков старта
+        startEntity.addToLapsData(lapEntity)
         
         if saveContext() {
             return lapEntity
@@ -241,11 +244,12 @@ extension CoreDataManager {
             return nil
         }
     }
-
+    
     // Получает все отрезки для определённого старта
     func fetchLaps(for start: StartEntity) -> [LapEntity] {
         let request: NSFetchRequest<LapEntity> = LapEntity.fetchRequest()
         request.predicate = NSPredicate(format: "start == %@", start)
+        request.sortDescriptors = [NSSortDescriptor(key: "lapNumber", ascending: true)]
         
         do {
             return try context.fetch(request)
@@ -254,15 +258,18 @@ extension CoreDataManager {
             return []
         }
     }
-
+    
     // Удаляет отрезок
     func deleteLap(_ lap: LapEntity) {
+        if let start = lap.start {
+            start.removeFromLapsData(lap)
+        }
         context.delete(lap)
         _ = saveContext()
     }
-
-    // Обновить данные отрезка (например, пульс или количество гребков)
-    func updateLapData(lap: LapEntity, lapTime: Double, pulse: Double, strokes: Int16) {
+    
+    // Обновить данные отрезка
+    func updateLapData(lap: LapEntity, lapTime: Double, pulse: Int16, strokes: Int16) {
         lap.lapTime = lapTime
         lap.pulse = pulse
         lap.strokes = strokes

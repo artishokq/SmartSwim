@@ -23,10 +23,9 @@ extension StartEntity {
     @NSManaged public var poolSize: Int16
     @NSManaged public var totalMeters: Int16
     @NSManaged public var swimmingStyle: Int16
-    @NSManaged public var numberOfLaps: Int16
+    @NSManaged public var date: Date
     @NSManaged public var totalTime: Double
-    @NSManaged public var laps: LapEntity?
-
+    @NSManaged public var laps: NSSet?
 }
 
 extension StartEntity {

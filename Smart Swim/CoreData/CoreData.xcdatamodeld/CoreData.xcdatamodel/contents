@@ -15,12 +15,12 @@
     <entity name="LapEntity" representedClassName="LapEntity" syncable="YES">
         <attribute name="lapNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="lapTime" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="pulse" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="pulse" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="strokes" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="start" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StartEntity" inverseName="laps" inverseEntity="StartEntity"/>
     </entity>
     <entity name="StartEntity" representedClassName="StartEntity" syncable="YES">
-        <attribute name="numberOfLaps" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="poolSize" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="swimmingStyle" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="totalMeters" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>

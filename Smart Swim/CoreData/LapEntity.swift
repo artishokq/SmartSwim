@@ -21,11 +21,10 @@ extension LapEntity {
     }
 
     @NSManaged public var lapTime: Double
-    @NSManaged public var pulse: Double
+    @NSManaged public var pulse: Int16
     @NSManaged public var strokes: Int16
     @NSManaged public var lapNumber: Int16
     @NSManaged public var start: StartEntity?
-
 }
 
 extension LapEntity : Identifiable {
