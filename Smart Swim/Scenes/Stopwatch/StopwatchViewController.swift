@@ -13,6 +13,9 @@ protocol StopwatchDisplayLogic: AnyObject {
     func displayMainButtonAction(viewModel: StopwatchModels.MainButtonAction.ViewModel)
     func displayLapRecording(viewModel: StopwatchModels.LapRecording.ViewModel)
     func displayFinish(viewModel: StopwatchModels.Finish.ViewModel)
+    func displayPulseUpdate(viewModel: StopwatchModels.PulseUpdate.ViewModel)
+    func displayStrokeUpdate(viewModel: StopwatchModels.StrokeUpdate.ViewModel)
+    func displayWatchStatusUpdate(viewModel: StopwatchModels.WatchStatusUpdate.ViewModel)
 }
 
 final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
@@ -149,6 +152,38 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
         mainButton.setTitle(viewModel.buttonTitle, for: .normal)
         mainButton.backgroundColor = viewModel.buttonColor
         mainButton.isEnabled = false
+        
+        // Показываем уведомление об успешном сохранении если данные были сохранены
+        if viewModel.showSaveSuccessAlert {
+            showSaveSuccessAlert()
+        }
+    }
+    
+    func displayPulseUpdate(viewModel: StopwatchModels.PulseUpdate.ViewModel) {
+        
+    }
+    
+    func displayStrokeUpdate(viewModel: StopwatchModels.StrokeUpdate.ViewModel) {
+       
+    }
+    
+    func displayWatchStatusUpdate(viewModel: StopwatchModels.WatchStatusUpdate.ViewModel) {
+        
+    }
+    
+    // MARK: - Helper Methods
+    private func showSaveSuccessAlert() {
+        let alert = UIAlertController(
+            title: "Тренировка завершена",
+            message: "Данные успешно сохранены",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            self?.router?.routeToBack()
+        })
+        
+        present(alert, animated: true)
     }
     
     // MARK: - Public Methods
@@ -178,6 +213,7 @@ extension StopwatchViewController: UITableViewDataSource {
         let lap = laps[indexPath.row]
         cell.backgroundColor = Constants.backgroundColor
         cell.textLabel?.text = "Отрезок \(lap.lapNumber):  \(lap.lapTimeString)"
+        cell.textLabel?.textColor = .white
         return cell
     }
 }

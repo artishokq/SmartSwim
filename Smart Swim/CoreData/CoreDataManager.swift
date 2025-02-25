@@ -234,9 +234,6 @@ extension CoreDataManager {
         lapEntity.lapNumber = lapNumber
         lapEntity.start = startEntity // Привязываем к старту
         
-        // Добавляем отрезок к набору отрезков старта
-        startEntity.addToLapsData(lapEntity)
-        
         if saveContext() {
             return lapEntity
         } else {
@@ -262,7 +259,7 @@ extension CoreDataManager {
     // Удаляет отрезок
     func deleteLap(_ lap: LapEntity) {
         if let start = lap.start {
-            start.removeFromLapsData(lap)
+            start.removeFromLaps(lap)
         }
         context.delete(lap)
         _ = saveContext()

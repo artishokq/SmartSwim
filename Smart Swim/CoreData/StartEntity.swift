@@ -29,17 +29,17 @@ extension StartEntity {
 }
 
 extension StartEntity {
-    @objc(addLapsDataObject:)
-    @NSManaged public func addToLapsData(_ value: LapEntity)
+    @objc(addLapsObject:)
+    @NSManaged public func addToLaps(_ value: LapEntity)
 
-    @objc(removeLapsDataObject:)
-    @NSManaged public func removeFromLapsData(_ value: LapEntity)
+    @objc(removeLapsObject:)
+    @NSManaged public func removeFromLaps(_ value: LapEntity)
 
-    @objc(addLapsData:)
-    @NSManaged public func addToLapsData(_ values: NSSet)
+    @objc(addLaps:)
+    @NSManaged public func addToLaps(_ values: NSSet)
 
-    @objc(removeLapsData:)
-    @NSManaged public func removeFromLapsData(_ values: NSSet)
+    @objc(removeLaps:)
+    @NSManaged public func removeFromLaps(_ values: NSSet)
 }
 
 extension StartEntity : Identifiable {

@@ -66,12 +66,58 @@ enum StopwatchModels {
         struct Response {
             let finalButtonTitle: String
             let finalButtonColor: UIColor
+            let dataSaved: Bool
         }
         
         struct ViewModel {
             let buttonTitle: String
             let buttonColor: UIColor
+            let showSaveSuccessAlert: Bool
+        }
+    }
+    
+    // Модель для обновления данных о пульсе
+    enum PulseUpdate {
+        struct Request {
+            let pulse: Int
+        }
+        
+        struct Response {
+            let pulse: Int
+        }
+        
+        struct ViewModel {
+            let pulse: Int
+        }
+    }
+    
+    // Модель для обновления данных о гребках
+    enum StrokeUpdate {
+        struct Request {
+            let strokes: Int
+        }
+        
+        struct Response {
+            let strokes: Int
+        }
+        
+        struct ViewModel {
+            let strokes: Int
+        }
+    }
+    
+    // Модель для обновления статуса часов
+    enum WatchStatusUpdate {
+        struct Request {
+            let status: String
+        }
+        
+        struct Response {
+            let status: String
+        }
+        
+        struct ViewModel {
+            let status: String
         }
     }
 }
-

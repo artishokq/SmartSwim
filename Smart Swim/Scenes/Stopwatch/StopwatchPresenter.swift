@@ -12,6 +12,9 @@ protocol StopwatchPresentationLogic {
     func presentMainButtonAction(response: StopwatchModels.MainButtonAction.Response)
     func presentLapRecording(response: StopwatchModels.LapRecording.Response)
     func presentFinish(response: StopwatchModels.Finish.Response)
+    func presentPulseUpdate(response: StopwatchModels.PulseUpdate.Response)
+    func presentStrokeUpdate(response: StopwatchModels.StrokeUpdate.Response)
+    func presentWatchStatusUpdate(response: StopwatchModels.WatchStatusUpdate.Response)
 }
 
 final class StopwatchPresenter: StopwatchPresentationLogic {
@@ -47,10 +50,30 @@ final class StopwatchPresenter: StopwatchPresentationLogic {
     
     // MARK: - Present Finish
     func presentFinish(response: StopwatchModels.Finish.Response) {
-        let viewModel = StopwatchModels.Finish.ViewModel(buttonTitle: response.finalButtonTitle,
-                                                         buttonColor: response.finalButtonColor
+        let viewModel = StopwatchModels.Finish.ViewModel(
+            buttonTitle: response.finalButtonTitle,
+            buttonColor: response.finalButtonColor,
+            showSaveSuccessAlert: response.dataSaved
         )
         viewController?.displayFinish(viewModel: viewModel)
+    }
+    
+    // MARK: - Present Pulse Update
+    func presentPulseUpdate(response: StopwatchModels.PulseUpdate.Response) {
+        let viewModel = StopwatchModels.PulseUpdate.ViewModel(pulse: response.pulse)
+        viewController?.displayPulseUpdate(viewModel: viewModel)
+    }
+    
+    // MARK: - Present Stroke Update
+    func presentStrokeUpdate(response: StopwatchModels.StrokeUpdate.Response) {
+        let viewModel = StopwatchModels.StrokeUpdate.ViewModel(strokes: response.strokes)
+        viewController?.displayStrokeUpdate(viewModel: viewModel)
+    }
+    
+    // MARK: - Present Watch Status Update
+    func presentWatchStatusUpdate(response: StopwatchModels.WatchStatusUpdate.Response) {
+        let viewModel = StopwatchModels.WatchStatusUpdate.ViewModel(status: response.status)
+        viewController?.displayWatchStatusUpdate(viewModel: viewModel)
     }
     
     // MARK: - Private Methods
