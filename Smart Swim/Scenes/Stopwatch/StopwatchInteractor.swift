@@ -73,30 +73,62 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     func handleMainButtonAction(request: StopwatchModels.MainButtonAction.Request) {
         switch state {
         case .notStarted:
-            // Запуск секундомера
-            state = .running
-            currentLapNumber = 1
-            globalStartTime = Date()
-            lapStartTime = globalStartTime
-            startTimer()
+            // Проверяем, что все необходимые параметры установлены
+            guard let poolSize = poolSize,
+                  let totalMeters = totalMeters,
+                  let swimmingStyle = swimmingStyle else {
+                print("ОШИБКА: Не все параметры тренировки установлены")
+                return
+            }
             
-            // Определяем заголовок кнопки: если всего один отрезок — сразу "Финиш", иначе "Поворот"
-            let nextTitle = (totalLengths == 1) ? Constants.finishString : Constants.turnString
-            let nextColor = (totalLengths == 1) ? Constants.finishColor : Constants.turnColor
-            let response = StopwatchModels.MainButtonAction.Response(nextButtonTitle: nextTitle,
-                                                                     nextButtonColor: nextColor)
-            presenter?.presentMainButtonAction(response: response)
+            // Преобразуем стиль плавания в код
+            var styleCode: Int
+            switch swimmingStyle {
+            case "Кроль": styleCode = 0
+            case "Брасс": styleCode = 1
+            case "На спине": styleCode = 2
+            case "Баттерфляй": styleCode = 3
+            default: styleCode = 0
+            }
             
-            // Создаём первый активный отрезок с нулевым временем
-            let lapResponse = StopwatchModels.LapRecording.Response(lapNumber: currentLapNumber, lapTime: 0)
-            laps.append(lapResponse)
-            presenter?.presentLapRecording(response: lapResponse)
+            print("Отправка параметров на часы: бассейн \(poolSize)м, стиль \(swimmingStyle) (\(styleCode)), дистанция \(totalMeters)м")
             
-            // Отправляем команду на часы о начале тренировки
-            WatchSessionManager.shared.sendCommandToWatch("start")
+            // Сначала отправляем параметры тренировки на часы
+            WatchSessionManager.shared.sendTrainingParametersToWatch(
+                poolSize: Double(poolSize),
+                style: styleCode,
+                meters: totalMeters
+            )
             
-            // Создаем запись в CoreData
-            createStartEntity()
+            // Даем немного времени на доставку параметров
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                
+                // Запуск секундомера
+                self.state = .running
+                self.currentLapNumber = 1
+                self.globalStartTime = Date()
+                self.lapStartTime = self.globalStartTime
+                self.startTimer()
+                
+                // Определяем заголовок кнопки: если всего один отрезок — сразу "Финиш", иначе "Поворот"
+                let nextTitle = (self.totalLengths == 1) ? Constants.finishString : Constants.turnString
+                let nextColor = (self.totalLengths == 1) ? Constants.finishColor : Constants.turnColor
+                let response = StopwatchModels.MainButtonAction.Response(nextButtonTitle: nextTitle,
+                                                                         nextButtonColor: nextColor)
+                self.presenter?.presentMainButtonAction(response: response)
+                
+                // Создаём первый активный отрезок с нулевым временем
+                let lapResponse = StopwatchModels.LapRecording.Response(lapNumber: self.currentLapNumber, lapTime: 0)
+                self.laps.append(lapResponse)
+                self.presenter?.presentLapRecording(response: lapResponse)
+                
+                // Отправляем команду на часы о начале тренировки после отправки параметров
+                WatchSessionManager.shared.sendCommandToWatch("start")
+                
+                // Создаем запись в CoreData
+                self.createStartEntity()
+            }
             
         case .running:
             // Фиксируем текущий отрезок
@@ -179,6 +211,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     
     func updateWatchStatus(request: StopwatchModels.WatchStatusUpdate.Request) {
         // Обрабатываем статус часов при необходимости
+        print("Получен статус от часов: \(request.status)")
     }
     
     // MARK: - WatchDataDelegate
