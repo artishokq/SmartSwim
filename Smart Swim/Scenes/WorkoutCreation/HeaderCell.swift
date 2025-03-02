@@ -37,6 +37,9 @@ final class HeaderCell: UITableViewCell {
         static let poolSizeSegmentControlLeftPadding: CGFloat = 9
         static let poolSizeSegmentControlHeight: CGFloat = 38
         static let poolSizeSegmentControlItems: [String] = ["25 м", "50 м"]
+        
+        static let nameTextFieldTag: Int = 101
+        static let poolSizeSegmentControlTag: Int = 102
     }
     
     // MARK: - Fields
@@ -86,6 +89,9 @@ final class HeaderCell: UITableViewCell {
         nameTextField.layer.cornerRadius = Constants.fieldCrnerRadius
         nameTextField.backgroundColor = Constants.fieldsBackgroundColor
         
+        // Устанавливаем тег для доступа извне
+        nameTextField.tag = Constants.nameTextFieldTag
+        
         // Чтобы текст не с самого бока печатался
         let paddingView = Constants.textPaddingView
         nameTextField.leftView = paddingView
@@ -109,6 +115,9 @@ final class HeaderCell: UITableViewCell {
         
         poolSizeSegmentControl.selectedSegmentIndex = 0
         poolSizeSegmentControl.layer.cornerRadius = Constants.fieldCrnerRadius
+        
+        // Устанавливаем тег для доступа извне
+        poolSizeSegmentControl.tag = Constants.poolSizeSegmentControlTag
         
         poolSizeSegmentControl.backgroundColor = Constants.fieldsBackgroundColor
         poolSizeSegmentControl.selectedSegmentTintColor = Constants.blueColor
@@ -134,6 +143,12 @@ final class HeaderCell: UITableViewCell {
         poolSizeSegmentControl.pinBottom(to: contentView.bottomAnchor, Constants.poolSizeSegmentControlBottomPadding)
         
         poolSizeSegmentControl.addTarget(self, action: #selector(poolSizeDidChange), for: .valueChanged)
+    }
+    
+    // MARK: - Public Methods
+    func configure(withName name: String, poolSize: PoolSize) {
+        nameTextField.text = name
+        poolSizeSegmentControl.selectedSegmentIndex = poolSize == .poolSize25 ? 0 : 1
     }
     
     // MARK: - Actions

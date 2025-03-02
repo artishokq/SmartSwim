@@ -12,6 +12,7 @@ protocol WorkoutDisplayLogic: AnyObject {
     func displayInfo(viewModel: WorkoutModels.Info.ViewModel)
     func displayWorkouts(viewModel: WorkoutModels.FetchWorkouts.ViewModel)
     func displayDeleteWorkout(viewModel: WorkoutModels.DeleteWorkout.ViewModel)
+    func displayEditWorkout(viewModel: WorkoutModels.EditWorkout.ViewModel)
 }
 
 final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
@@ -180,6 +181,10 @@ final class WorkoutViewController: UIViewController, WorkoutDisplayLogic {
         tableView.deleteSections(IndexSet(integer: viewModel.deletedIndex), with: .automatic)
     }
     
+    func displayEditWorkout(viewModel: WorkoutModels.EditWorkout.ViewModel) {
+        router?.routeToWorkoutEdition(index: viewModel.index)
+    }
+    
     // MARK: - Private Methods
     private func fetchWorkouts() {
         let request = WorkoutModels.FetchWorkouts.Request()
@@ -257,6 +262,8 @@ extension WorkoutViewController: WorkoutCellDelegate {
     
     func workoutCellDidRequestEdit(_ cell: WorkoutCell) {
         guard let indexPath = tableView.indexPath(for: cell) else { return }
-        print("Нажата кнопка редактирования тренировки в секции \(indexPath.section)")
+        // Отправляем запрос на редактирование тренировки
+        let request = WorkoutModels.EditWorkout.Request(index: indexPath.section)
+        interactor?.editWorkout(request: request)
     }
 }

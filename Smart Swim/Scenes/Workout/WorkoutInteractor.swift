@@ -12,6 +12,7 @@ protocol WorkoutBusinessLogic {
     func showInfo(request: WorkoutModels.Info.Request)
     func fetchWorkouts(request: WorkoutModels.FetchWorkouts.Request)
     func deleteWorkout(request: WorkoutModels.DeleteWorkout.Request)
+    func editWorkout(request: WorkoutModels.EditWorkout.Request)
 }
 
 protocol WorkoutDataStore {
@@ -52,7 +53,7 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
                         type: ExerciseType(rawValue: exercise.type) ?? .main,
                         exerciseDescription: exercise.exerciseDescription,
                         formattedString: formattedString,
-                        repetitions: exercise.repetitions // Добавлено
+                        repetitions: exercise.repetitions
                     )
                 } ?? []
             
@@ -89,6 +90,11 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
         presenter?.presentDeleteWorkout(response: response)
     }
     
+    // MARK: - Edit Workout
+    func editWorkout(request: WorkoutModels.EditWorkout.Request) {
+        let response = WorkoutModels.EditWorkout.Response(index: request.index)
+        presenter?.presentEditWorkout(response: response)
+    }
     
     // MARK: - Private Methods
     private func getStyleDescription(_ style: SwimStyle) -> String {

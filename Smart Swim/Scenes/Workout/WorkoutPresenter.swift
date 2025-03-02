@@ -12,6 +12,7 @@ protocol WorkoutPresentationLogic {
     func presentInfo(response: WorkoutModels.Info.Response)
     func presentWorkouts(response: WorkoutModels.FetchWorkouts.Response)
     func presentDeleteWorkout(response: WorkoutModels.DeleteWorkout.Response)
+    func presentEditWorkout(response: WorkoutModels.EditWorkout.Response)
 }
 
 final class WorkoutPresenter: WorkoutPresentationLogic {
@@ -47,5 +48,11 @@ final class WorkoutPresenter: WorkoutPresentationLogic {
     func presentDeleteWorkout(response: WorkoutModels.DeleteWorkout.Response) {
         let viewModel = WorkoutModels.DeleteWorkout.ViewModel(deletedIndex: response.deletedIndex)
         viewController?.displayDeleteWorkout(viewModel: viewModel)
+    }
+    
+    // MARK: - Workout Edition
+    func presentEditWorkout(response: WorkoutModels.EditWorkout.Response) {
+        let viewModel = WorkoutModels.EditWorkout.ViewModel(index: response.index)
+        viewController?.displayEditWorkout(viewModel: viewModel)
     }
 }

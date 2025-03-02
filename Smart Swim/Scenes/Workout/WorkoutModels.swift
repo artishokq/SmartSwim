@@ -8,6 +8,7 @@
 import UIKit
 
 enum WorkoutModels {
+    // MARK: - Create
     enum Create {
         struct Request {
             // Ничего не передаём
@@ -22,6 +23,7 @@ enum WorkoutModels {
         }
     }
     
+    // MARK: - Info
     enum Info {
         struct Request {
             // Ничего не передаём
@@ -36,6 +38,7 @@ enum WorkoutModels {
         }
     }
     
+    // MARK: - Fetch Workouts
     enum FetchWorkouts {
         struct Request {}
         
@@ -68,6 +71,7 @@ enum WorkoutModels {
         }
     }
     
+    // MARK: - Delete Workout
     enum DeleteWorkout {
         struct Request {
             let index: Int
@@ -79,6 +83,21 @@ enum WorkoutModels {
         
         struct ViewModel {
             let deletedIndex: Int
+        }
+    }
+    
+    // MARK: - Edit Workout
+    enum EditWorkout {
+        struct Request {
+            let index: Int
+        }
+        
+        struct Response {
+            let index: Int
+        }
+        
+        struct ViewModel {
+            let index: Int
         }
     }
 }
