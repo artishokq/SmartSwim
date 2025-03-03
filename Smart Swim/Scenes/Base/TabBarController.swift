@@ -55,7 +55,7 @@ final class TabBarController: UITabBarController {
         
         let workoutController = WorkoutViewController()
         let startController = StartViewController()
-        let diaryController = DiaryController()
+        let diaryController = DiaryViewController()
         
         let workoutNavigation = NavBarController(rootViewController: workoutController)
         let startNavigation = NavBarController(rootViewController: startController)
