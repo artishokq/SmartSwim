@@ -50,7 +50,6 @@ final class CoreDataManager {
 
 // MARK: - Workout CRUD
 extension CoreDataManager {
-    
     // Создаёт тренировку в CoreData без добавления упражнений
     @discardableResult
     func createWorkout(name: String,
@@ -117,7 +116,6 @@ extension CoreDataManager {
 
 // MARK: - Exercise CRUD
 extension CoreDataManager {
-    
     @discardableResult
     func createExercise(for workout: WorkoutEntity,
                         description: String?,
@@ -170,7 +168,7 @@ extension CoreDataManager {
 
 // MARK: - Start CRUD
 extension CoreDataManager {
-    // Создаёт новый старт в CoreData
+    // Создаёт новый старт в CoreData без добавления отрезков
     @discardableResult
     func createStart(poolSize: Int16, totalMeters: Int16, swimmingStyle: Int16, date: Date = Date()) -> StartEntity? {
         let startEntity = StartEntity(context: context)
@@ -188,6 +186,25 @@ extension CoreDataManager {
         }
     }
     
+    @discardableResult
+    func createStart(poolSize: Int16, totalMeters: Int16, swimmingStyle: Int16, laps: [LapData], date: Date = Date()) -> StartEntity? {
+        // 1. Создаём сам StartEntity
+        guard let startEntity = createStart(poolSize: poolSize, totalMeters: totalMeters, swimmingStyle: swimmingStyle, date: date) else {
+            return nil
+        }
+        
+        // 2. Для каждого отрезка из массива создаём LapEntity и привязываем его к старту
+        for (index, lap) in laps.enumerated() {
+            _ = createLap(lapTime: lap.lapTime,
+                          pulse: lap.pulse,
+                          strokes: lap.strokes,
+                          lapNumber: Int16(index + 1),
+                          startEntity: startEntity)
+        }
+        
+        return startEntity
+    }
+    
     // Получает все старты из CoreData
     func fetchAllStarts() -> [StartEntity] {
         let request: NSFetchRequest<StartEntity> = StartEntity.fetchRequest()
@@ -199,7 +216,7 @@ extension CoreDataManager {
         }
     }
     
-    // Получить старт по идентификатору
+    // Получает старт по идентификатору
     func fetchStart(byID id: NSManagedObjectID) -> StartEntity? {
         do {
             return try context.existingObject(with: id) as? StartEntity
@@ -215,16 +232,16 @@ extension CoreDataManager {
         _ = saveContext()
     }
     
-    // Обновить общее время старта
+    // Обновляет общее время старта
     func updateStartTotalTime(_ start: StartEntity, totalTime: Double) {
         start.totalTime = totalTime
         _ = saveContext()
     }
 }
 
+
 // MARK: - Lap CRUD
 extension CoreDataManager {
-    // Создаёт новый отрезок в CoreData
     @discardableResult
     func createLap(lapTime: Double, pulse: Int16, strokes: Int16, lapNumber: Int16, startEntity: StartEntity) -> LapEntity? {
         let lapEntity = LapEntity(context: context)
@@ -232,7 +249,9 @@ extension CoreDataManager {
         lapEntity.pulse = pulse
         lapEntity.strokes = strokes
         lapEntity.lapNumber = lapNumber
-        lapEntity.start = startEntity // Привязываем к старту
+        
+        // Устанавливаем связь с StartEntity; обратное отношение обновится автоматически.
+        lapEntity.start = startEntity
         
         if saveContext() {
             return lapEntity
@@ -241,6 +260,7 @@ extension CoreDataManager {
             return nil
         }
     }
+
     
     // Получает все отрезки для определённого старта
     func fetchLaps(for start: StartEntity) -> [LapEntity] {
@@ -262,14 +282,6 @@ extension CoreDataManager {
             start.removeFromLaps(lap)
         }
         context.delete(lap)
-        _ = saveContext()
-    }
-    
-    // Обновить данные отрезка
-    func updateLapData(lap: LapEntity, lapTime: Double, pulse: Int16, strokes: Int16) {
-        lap.lapTime = lapTime
-        lap.pulse = pulse
-        lap.strokes = strokes
         _ = saveContext()
     }
 }

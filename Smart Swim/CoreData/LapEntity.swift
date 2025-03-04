@@ -15,7 +15,6 @@ public class LapEntity: NSManagedObject {
 }
 
 extension LapEntity {
-
     @nonobjc public class func fetchRequest() -> NSFetchRequest<LapEntity> {
         return NSFetchRequest<LapEntity>(entityName: "LapEntity")
     }

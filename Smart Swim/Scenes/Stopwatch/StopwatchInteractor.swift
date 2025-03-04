@@ -2,7 +2,7 @@
 //  StopwatchInteractor.swift
 //  Smart Swim
 //
-//  Created by Artem Tkachuk on 11.02.2025.
+//  Обновлённая версия для сохранения Start аналогично Workout
 //
 
 import UIKit
@@ -44,13 +44,13 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     private var currentLapNumber: Int = 0
     private var laps: [StopwatchModels.LapRecording.Response] = []
     
-    // Данные для CoreData
-    private var startEntity: StartEntity?
+    // Данные для пульса и гребков, накапливаем локально
     private var currentPulse: Int = 0
     private var currentStrokes: Int = 0
     private var lapPulseData: [Int: Int] = [:]
     private var lapStrokesData: [Int: Int] = [:]
     
+    // Количество отрезков, рассчитываемое по дистанции и размеру бассейна
     var totalLengths: Int {
         if let totalMeters = totalMeters, let poolSize = poolSize, poolSize > 0 {
             return totalMeters / poolSize
@@ -62,6 +62,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         case notStarted, running, finished
     }
     private var state: StopwatchState = .notStarted
+    
+    // Core Data объект StartEntity (будет создан при завершении тренировки)
+    private var startEntity: StartEntity?
     
     // MARK: - Инициализация
     init() {
@@ -81,87 +84,80 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
                 return
             }
             
-            // Преобразуем стиль плавания в код
-            var styleCode: Int
+            // Преобразуем стиль плавания в числовой код (Int16)
+            var styleCode: Int16 = 0
             switch swimmingStyle {
             case "Кроль": styleCode = 0
             case "Брасс": styleCode = 1
             case "Спина": styleCode = 2
             case "Батт": styleCode = 3
-            case "К/П" : styleCode = 4
+            case "К/П": styleCode = 4
             default: styleCode = 0
             }
             
             print("Отправка параметров на часы: бассейн \(poolSize)м, стиль \(swimmingStyle) (\(styleCode)), дистанция \(totalMeters)м")
             
-            // Сначала отправляем параметры тренировки на часы
+            // Отправляем параметры тренировки на часы
             WatchSessionManager.shared.sendTrainingParametersToWatch(
                 poolSize: Double(poolSize),
-                style: styleCode,
+                style: Int(styleCode),
                 meters: totalMeters
             )
             
-            // Даем немного времени на доставку параметров
+            // Немного ждём перед запуском секундомера
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self = self else { return }
                 
-                // Запуск секундомера
                 self.state = .running
                 self.currentLapNumber = 1
                 self.globalStartTime = Date()
                 self.lapStartTime = self.globalStartTime
                 self.startTimer()
                 
-                // Определяем заголовок кнопки: если всего один отрезок — сразу "Финиш", иначе "Поворот"
                 let nextTitle = (self.totalLengths == 1) ? Constants.finishString : Constants.turnString
                 let nextColor = (self.totalLengths == 1) ? Constants.finishColor : Constants.turnColor
                 let response = StopwatchModels.MainButtonAction.Response(nextButtonTitle: nextTitle,
                                                                          nextButtonColor: nextColor)
                 self.presenter?.presentMainButtonAction(response: response)
                 
-                // Создаём первый активный отрезок с нулевым временем
+                // Создаём первый активный отрезок (модельное представление)
                 let lapResponse = StopwatchModels.LapRecording.Response(lapNumber: self.currentLapNumber, lapTime: 0)
                 self.laps.append(lapResponse)
                 self.presenter?.presentLapRecording(response: lapResponse)
                 
-                // Отправляем команду на часы о начале тренировки после отправки параметров
+                // Команда для часов о старте тренировки
                 WatchSessionManager.shared.sendCommandToWatch("start")
-                
-                // Создаем запись в CoreData
-                self.createStartEntity()
             }
             
         case .running:
-            // Фиксируем текущий отрезок
+            // Завершаем текущий отрезок
             guard let lapStart = lapStartTime else { return }
             let now = Date()
             let lapTime = now.timeIntervalSince(lapStart)
-            let lapResponse = StopwatchModels.LapRecording.Response(lapNumber: currentLapNumber, lapTime: lapTime)
-            // Обновляем активный отрезок (последний в списке)
-            laps[laps.count - 1] = lapResponse
-            presenter?.presentLapRecording(response: lapResponse)
             
-            // Сохраняем пульс и гребки для текущего отрезка
+            // Обновляем модель текущего отрезка
+            let updatedLapResponse = StopwatchModels.LapRecording.Response(lapNumber: currentLapNumber,
+                                                                           lapTime: lapTime)
+            if let index = laps.firstIndex(where: { $0.lapNumber == currentLapNumber }) {
+                laps[index] = updatedLapResponse
+            }
+            presenter?.presentLapRecording(response: updatedLapResponse)
+            
+            // Сохраняем данные пульса и гребков для текущего отрезка
             if lapPulseData[currentLapNumber] == nil {
                 lapPulseData[currentLapNumber] = currentPulse
             }
-            
             if lapStrokesData[currentLapNumber] == nil {
                 lapStrokesData[currentLapNumber] = currentStrokes
-                // Сбрасываем счетчик гребков для следующего отрезка
                 currentStrokes = 0
             }
-            
-            // Сохраняем завершенный отрезок в CoreData
-            saveLapToCoreData(lapNumber: currentLapNumber)
             
             // Переходим к следующему отрезку
             currentLapNumber += 1
             lapStartTime = now
             
-            // Если количество отрезков превышает разрешённое, завершаем секундомер
             if currentLapNumber > totalLengths {
-                finishStopwatch()
+                self.finishStopwatch()
             } else {
                 let nextTitle = (currentLapNumber == totalLengths) ? Constants.finishString : Constants.turnString
                 let nextColor = (currentLapNumber == totalLengths) ? Constants.finishColor : Constants.turnColor
@@ -169,7 +165,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
                                                                          nextButtonColor: nextColor)
                 presenter?.presentMainButtonAction(response: response)
                 
-                // Создаём новый активный отрезок
+                // Создаём новый активный отрезок (модельное представление)
                 let newLapResponse = StopwatchModels.LapRecording.Response(lapNumber: currentLapNumber, lapTime: 0)
                 laps.append(newLapResponse)
                 presenter?.presentLapRecording(response: newLapResponse)
@@ -183,7 +179,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     
     // MARK: - TimerTick
     func timerTick(request: StopwatchModels.TimerTick.Request) {
-        guard state == .running, let globalStart = globalStartTime, let lapStart = lapStartTime else { return }
+        guard state == .running,
+              let globalStart = globalStartTime,
+              let lapStart = lapStartTime else { return }
         let now = Date()
         let globalTime = now.timeIntervalSince(globalStart)
         let lapTime = now.timeIntervalSince(lapStart)
@@ -191,11 +189,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         presenter?.presentTimerTick(response: response)
     }
     
-    // MARK: - Обработка данных с Watch
+    // MARK: - Обработка данных с часов
     func updatePulseData(request: StopwatchModels.PulseUpdate.Request) {
         currentPulse = request.pulse
-        
-        // Если есть активный отрезок, обновляем его пульс
         if state == .running {
             lapPulseData[currentLapNumber] = currentPulse
         }
@@ -203,15 +199,12 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     
     func updateStrokeCount(request: StopwatchModels.StrokeUpdate.Request) {
         currentStrokes = request.strokes
-        
-        // Если есть активный отрезок, обновляем количество его гребков
         if state == .running {
             lapStrokesData[currentLapNumber] = currentStrokes
         }
     }
     
     func updateWatchStatus(request: StopwatchModels.WatchStatusUpdate.Request) {
-        // Обрабатываем статус часов при необходимости
         print("Получен статус от часов: \(request.status)")
     }
     
@@ -231,57 +224,8 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         updateWatchStatus(request: request)
     }
     
-    // MARK: - CoreData Operations
-    private func createStartEntity() {
-        guard let poolSize = poolSize,
-              let totalMeters = totalMeters,
-              let swimmingStyle = swimmingStyle else { return }
-        
-        // Преобразуем строковый стиль плавания в Int16
-        var styleValue: Int16 = 0
-        
-        // Соответствие между названием стиля и его числовым кодом
-        switch swimmingStyle {
-        case "Кроль": styleValue = 0
-        case "Брасс": styleValue = 1
-        case "Спина": styleValue = 2
-        case "Батт": styleValue = 3
-        case "К/П" : styleValue = 4
-        default: styleValue = 0
-        }
-        
-        // Создаем запись о старте в CoreData
-        startEntity = CoreDataManager.shared.createStart(
-            poolSize: Int16(poolSize),
-            totalMeters: Int16(totalMeters),
-            swimmingStyle: styleValue
-        )
-    }
-    
-    private func saveLapToCoreData(lapNumber: Int) {
-        guard let startEntity = startEntity else { return }
-        
-        // Получаем данные отрезка
-        guard let lapResponse = laps.first(where: { $0.lapNumber == lapNumber }) else { return }
-        
-        // Получаем пульс и гребки для отрезка
-        let pulse = lapPulseData[lapNumber] ?? 0
-        let strokes = lapStrokesData[lapNumber] ?? 0
-        
-        // Сохраняем отрезок в CoreData
-        let _ = CoreDataManager.shared.createLap(
-            lapTime: lapResponse.lapTime,
-            pulse: Int16(pulse),
-            strokes: Int16(strokes),
-            lapNumber: Int16(lapNumber),
-            startEntity: startEntity
-        )
-    }
-    
-    // MARK: - Private Methods
+    // MARK: - Таймер
     private func startTimer() {
-        // Таймер обновляется каждые 0.01 секунды; добавляем его в RunLoop в режиме .common,
-        // чтобы он не замирал при прокрутке TableView
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.timerTick(request: StopwatchModels.TimerTick.Request())
@@ -296,24 +240,49 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         timer = nil
     }
     
+    // MARK: - Завершение тренировки
     private func finishStopwatch() {
         state = .finished
         stopTimer()
-        
-        // Отправляем команду остановки на часы
         WatchSessionManager.shared.sendCommandToWatch("stop")
         
-        // Сохраняем последний отрезок в CoreData если он существует
-        if let lastLap = laps.last {
-            lapPulseData[lastLap.lapNumber] = currentPulse
-            lapStrokesData[lastLap.lapNumber] = currentStrokes
-            saveLapToCoreData(lapNumber: lastLap.lapNumber)
+        guard let globalStart = globalStartTime else { return }
+        let totalTime = Date().timeIntervalSince(globalStart)
+        
+        // Собираем данные всех отрезков в массив LapData
+        let lapDatas: [LapData] = laps.map { lap in
+            let lapNumber = Int16(lap.lapNumber)
+            let pulse = Int16(lapPulseData[lap.lapNumber] ?? 0)
+            let strokes = Int16(lapStrokesData[lap.lapNumber] ?? 0)
+            return LapData(lapTime: lap.lapTime, pulse: pulse, strokes: strokes, lapNumber: lapNumber)
         }
         
-        // Сохраняем общее время тренировки в CoreData
-        if let startEntity = startEntity, let globalStart = globalStartTime {
-            let totalTime = Date().timeIntervalSince(globalStart)
-            CoreDataManager.shared.updateStartTotalTime(startEntity, totalTime: totalTime)
+        // Определяем код стиля плавания
+        var styleCode: Int16 = 0
+        if let swimmingStyle = swimmingStyle {
+            switch swimmingStyle {
+            case "Кроль": styleCode = 0
+            case "Брасс": styleCode = 1
+            case "Спина": styleCode = 2
+            case "Батт": styleCode = 3
+            case "К/П": styleCode = 4
+            default: styleCode = 0
+            }
+        }
+        
+        // Создаём StartEntity вместе с массивом отрезков, аналогично созданию Workout
+        if let start = CoreDataManager.shared.createStart(
+            poolSize: Int16(poolSize ?? 0),
+            totalMeters: Int16(totalMeters ?? 0),
+            swimmingStyle: styleCode,
+            laps: lapDatas,
+            date: globalStart
+        ) {
+            CoreDataManager.shared.updateStartTotalTime(start, totalTime: totalTime)
+            self.startEntity = start
+        } else {
+            print("Ошибка при создании StartEntity")
+            // При необходимости уведомляем презентер об ошибке сохранения
         }
         
         let response = StopwatchModels.Finish.Response(
