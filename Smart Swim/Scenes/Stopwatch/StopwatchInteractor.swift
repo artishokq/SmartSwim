@@ -86,8 +86,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             switch swimmingStyle {
             case "Кроль": styleCode = 0
             case "Брасс": styleCode = 1
-            case "На спине": styleCode = 2
-            case "Баттерфляй": styleCode = 3
+            case "Спина": styleCode = 2
+            case "Батт": styleCode = 3
+            case "К/П" : styleCode = 4
             default: styleCode = 0
             }
             
@@ -241,10 +242,11 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         
         // Соответствие между названием стиля и его числовым кодом
         switch swimmingStyle {
-        case "Кроль": styleValue = 1
-        case "Брасс": styleValue = 2
-        case "Баттерфляй": styleValue = 3
-        case "На спине": styleValue = 4
+        case "Кроль": styleValue = 0
+        case "Брасс": styleValue = 1
+        case "Спина": styleValue = 2
+        case "Батт": styleValue = 3
+        case "К/П" : styleValue = 4
         default: styleValue = 0
         }
         

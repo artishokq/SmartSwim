@@ -143,18 +143,18 @@ final class ExerciseCell: UITableViewCell {
         contentView.addSubview(descriptionTextView)
         contentView.addSubview(deleteButton)
         
-        exerciseNumberLabelConfiguration()
-        typeSegmentControlConfiguration()
-        metersTextFieldConfiguration()
-        repsTextFieldConfiguration()
-        intervalLabelConfiguration()
-        hasIntervalSwitchConfiguration()
-        intervalStackViewConfiguration()
-        minutesTextFieldConfiguration()
-        secondsTextFieldConfiguration()
-        styleSegmentControlConfiguration()
-        descriptionTextViewConfiguration()
-        deleteButtonConfiguration()
+        configureExerciseNumberLabel()
+        configureTypeSegmentControl()
+        configureMetersTextField()
+        configureRepsTextField()
+        configureIntervalLabel()
+        configureHasIntervalSwitch()
+        configureIntervalStackView()
+        configureMinutesTextField()
+        configureSecondsTextField()
+        configureStyleSegmentControl()
+        configureDescriptionTextView()
+        configureDeleteButton()
         configurePickers()
     }
     
@@ -169,7 +169,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Exercise Number Label Configuration
-    private func exerciseNumberLabelConfiguration() {
+    private func configureExerciseNumberLabel() {
         exerciseNumberLabel.font = Constants.fieldsAndPlaceholdersFont
         exerciseNumberLabel.textColor = Constants.titleWhite
         
@@ -179,7 +179,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Type Segment Control Configuration
-    private func typeSegmentControlConfiguration() {
+    private func configureTypeSegmentControl() {
         typeSegmentControl.removeAllSegments()
         for (index, title) in Constants.typeItems.enumerated() {
             typeSegmentControl.insertSegment(withTitle: title, at: index, animated: false)
@@ -212,7 +212,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Meters Text Field Configuration
-    private func metersTextFieldConfiguration() {
+    private func configureMetersTextField() {
         configureTextField(metersTextField, placeholder: Constants.metersPlaceholder)
         
         // Констрейнты
@@ -224,7 +224,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Reps Text Field Configuration
-    private func repsTextFieldConfiguration() {
+    private func configureRepsTextField() {
         configureTextField(repsTextField, placeholder: Constants.repsPlaceholder)
         
         // Констрейнты
@@ -236,7 +236,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Interval Label Configuration
-    private func intervalLabelConfiguration() {
+    private func configureIntervalLabel() {
         intervalLabel.text = Constants.intervalLabel
         
         // Констрейнты
@@ -246,7 +246,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Interval Switch Configuration
-    private func hasIntervalSwitchConfiguration() {
+    private func configureHasIntervalSwitch() {
         // Констрейнты
         hasIntervalSwitch.translatesAutoresizingMaskIntoConstraints = false
         hasIntervalSwitch.pinCenterY(to: intervalLabel.centerYAnchor)
@@ -254,7 +254,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Interval Stack View Configuration
-    private func intervalStackViewConfiguration() {
+    private func configureIntervalStackView() {
         intervalStackView.axis = .horizontal
         intervalStackView.distribution = .fillEqually
         intervalStackView.isHidden = true
@@ -270,7 +270,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Minutes Text Field Configuration
-    private func minutesTextFieldConfiguration() {
+    private func configureMinutesTextField() {
         configureTextField(minutesTextField, placeholder: Constants.minutesPlaceholder)
         
         // Констрейнты
@@ -282,7 +282,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Seconds Text Field Configuration
-    private func secondsTextFieldConfiguration() {
+    private func configureSecondsTextField() {
         configureTextField(secondsTextField, placeholder: Constants.secondsPlaceholder)
         
         // Констрейнты
@@ -294,7 +294,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Style Segment Control Configuration
-    private func styleSegmentControlConfiguration() {
+    private func configureStyleSegmentControl() {
         styleSegmentControl.removeAllSegments()
         for (index, title) in Constants.styleItems.enumerated() {
             styleSegmentControl.insertSegment(withTitle: title, at: index, animated: false)
@@ -327,7 +327,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Description Text View Configuration
-    private func descriptionTextViewConfiguration() {
+    private func configureDescriptionTextView() {
         descriptionTextView.backgroundColor = Constants.fieldsBackgroundColor
         descriptionTextView.layer.cornerRadius = Constants.descriptionTextViewCornerRadius
         descriptionTextView.textColor = Constants.titleWhite
@@ -348,7 +348,7 @@ final class ExerciseCell: UITableViewCell {
     }
     
     // MARK: - Delete Button Configuration
-    private func deleteButtonConfiguration() {
+    private func configureDeleteButton() {
         deleteButton.setImage(Constants.deleteButtonImage, for: .normal)
         
         // Констрейнты

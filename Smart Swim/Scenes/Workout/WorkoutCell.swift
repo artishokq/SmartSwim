@@ -80,15 +80,15 @@ final class WorkoutCell: UITableViewCell {
         contentView.addSubview(exercisesLabel)
         contentView.addSubview(volumeLabel)
         
-        nameHeaderViewConfiguration()
-        nameLabelConfiguration()
-        editButtonConfiguration()
-        deleteButtonConfiguration()
-        exercisesLabelConfiguration()
-        volumeLabelConfiguration()
+        configureNameHeaderView()
+        configureNameLabel()
+        configureEditButton()
+        configureDeleteButton()
+        configureExercisesLabel()
+        configureVolumeLabel()
     }
     
-    private func nameHeaderViewConfiguration() {
+    private func configureNameHeaderView() {
         nameHeaderView.backgroundColor = Constants.workoutCellNameHeaderColor
         // Скругление только верхних углов
         nameHeaderView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
@@ -101,7 +101,7 @@ final class WorkoutCell: UITableViewCell {
         nameHeaderView.pinRight(to: contentView.trailingAnchor)
     }
     
-    private func nameLabelConfiguration() {
+    private func configureNameLabel() {
         nameLabel.font = Constants.workoutNameFont
         nameLabel.textColor = Constants.titleWhite
         
@@ -112,7 +112,7 @@ final class WorkoutCell: UITableViewCell {
     }
     
     
-    private func editButtonConfiguration() {
+    private func configureEditButton() {
         editButton.setImage(Constants.editButtonImage, for: .normal)
         
         // Констрейнты
@@ -122,7 +122,7 @@ final class WorkoutCell: UITableViewCell {
         editButton.pinBottom(to: nameHeaderView.bottomAnchor, Constants.editButtonBottomPadding)
     }
     
-    private func deleteButtonConfiguration() {
+    private func configureDeleteButton() {
         deleteButton.setImage(Constants.deleteButtonImage, for: .normal)
         
         // Констрейнты
@@ -132,7 +132,7 @@ final class WorkoutCell: UITableViewCell {
         deleteButton.pinBottom(to: nameHeaderView.bottomAnchor, Constants.deleteButtonBottomPadding)
     }
     
-    private func exercisesLabelConfiguration() {
+    private func configureExercisesLabel() {
         exercisesLabel.font = Constants.workoutExerciseFont
         exercisesLabel.textColor = Constants.titleWhite
         exercisesLabel.numberOfLines = 0
@@ -144,7 +144,7 @@ final class WorkoutCell: UITableViewCell {
         exercisesLabel.pinRight(to: contentView.trailingAnchor, Constants.exercisesLabelRightPadding)
     }
     
-    private func volumeLabelConfiguration() {
+    private func configureVolumeLabel() {
         volumeLabel.font = Constants.workoutExerciseFont
         volumeLabel.textColor = Constants.titleWhite
         

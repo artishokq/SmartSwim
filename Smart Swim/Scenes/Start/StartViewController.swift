@@ -134,15 +134,15 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         backgroundView.addSubview(metersTextField)
         backgroundView.addSubview(continueButton)
         
-        backgroundViewConfiguration()
-        poolSizeSegmentControlConfiguration()
-        styleSegmentControlConfiguration()
-        metersTextFieldConfiguration()
-        continueButtonConfiguration()
+        configureBackgroundView()
+        configurePoolSizeSegmentControl()
+        configureStyleSegmentControl()
+        configureMetersTextField()
+        configureContinueButton()
         configureActions()
     }
     
-    private func backgroundViewConfiguration() {
+    private func configureBackgroundView() {
         backgroundView.backgroundColor = Constants.startBackgroundColor
         backgroundView.layer.cornerRadius = Constants.backgroundViewCornerRadius
         
@@ -153,7 +153,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         backgroundView.pinCenterY(to: view.centerYAnchor)
     }
     
-    private func poolSizeSegmentControlConfiguration() {
+    private func configurePoolSizeSegmentControl() {
         poolSizeSegmentControl.removeAllSegments()
         for (index, title) in Constants.poolSizeItems.enumerated() {
             poolSizeSegmentControl.insertSegment(withTitle: title, at: index, animated: false)
@@ -184,7 +184,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         poolSizeSegmentControl.setHeight(Constants.poolSizeSegmentControlHeight)
     }
     
-    private func styleSegmentControlConfiguration() {
+    private func configureStyleSegmentControl() {
         styleSegmentControl.removeAllSegments()
         for (index, title) in Constants.styleItems.enumerated() {
             styleSegmentControl.insertSegment(withTitle: title, at: index, animated: false)
@@ -215,7 +215,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         styleSegmentControl.setHeight(Constants.styleSegmentControlHeight)
     }
     
-    private func metersTextFieldConfiguration() {
+    private func configureMetersTextField() {
         metersTextField.backgroundColor = Constants.createCellBackgroundColor
         metersTextField.layer.cornerRadius = Constants.metersTextFieldCornerRadius
         metersTextField.textColor = Constants.titleWhite
@@ -256,7 +256,7 @@ final class StartViewController: UIViewController, StartDisplayLogic {
         metersTextField.setHeight(Constants.metersTextFieldHeight)
     }
     
-    private func continueButtonConfiguration() {
+    private func configureContinueButton() {
         continueButton.backgroundColor = Constants.blueColor
         continueButton.setTitle(Constants.continueButtonTitle, for: .normal)
         continueButton.titleLabel?.font = Constants.continueButtonTitleFont

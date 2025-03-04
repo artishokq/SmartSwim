@@ -68,11 +68,11 @@ final class HeaderCell: UITableViewCell {
         contentView.addSubview(nameTextField)
         contentView.addSubview(poolSizeSegmentControl)
         
-        nameTextFieldConfiguration()
-        poolSizeSegmentControlConfiguration()
+        configureNameTextField()
+        configurePoolSizeSegmentControl()
     }
     
-    private func nameTextFieldConfiguration() {
+    private func configureNameTextField() {
         let placeholderAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: Constants.titleWhite.withAlphaComponent(Constants.textPlaceholderTransparency),
             .font: Constants.fieldsAndPlaceholdersFont
@@ -106,7 +106,7 @@ final class HeaderCell: UITableViewCell {
         nameTextField.addTarget(self, action: #selector(nameDidChange), for: .editingChanged)
     }
     
-    private func poolSizeSegmentControlConfiguration() {
+    private func configurePoolSizeSegmentControl() {
         poolSizeSegmentControl.removeAllSegments()
         
         for (index, title) in Constants.poolSizeSegmentControlItems.enumerated() {
