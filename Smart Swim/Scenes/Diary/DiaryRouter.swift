@@ -31,6 +31,16 @@ final class DiaryRouter: NSObject, DiaryRoutingLogic, DiaryDataPassing {
     // MARK: - Route to Create Start
     func routeToCreateStart() {
         let createStartVC = DiaryCreateStartViewController()
+        let interactor = DiaryCreateStartInteractor()
+        let presenter = DiaryCreateStartPresenter()
+        let router = DiaryCreateStartRouter()
+        
+        createStartVC.interactor = interactor
+        createStartVC.router = router
+        interactor.presenter = presenter
+        presenter.viewController = createStartVC
+        router.viewController = createStartVC
+        
         let navigationController = UINavigationController(rootViewController: createStartVC)
         viewController?.present(navigationController, animated: true)
     }

@@ -105,7 +105,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             )
             
             // Немного ждём перед запуском секундомера
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 guard let self = self else { return }
                 
                 self.state = .running

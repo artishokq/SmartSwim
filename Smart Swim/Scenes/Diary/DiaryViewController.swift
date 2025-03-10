@@ -69,9 +69,20 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
     // MARK: - View lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleStartCreation),
+            name: .didCreateStart,
+            object: nil
+        )
         configureUI()
         displayMode = .starts
         fetchStarts()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self, name: .didCreateStart, object: nil)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -174,6 +185,12 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
     @objc private func createButtonTapped() {
         let request = DiaryModels.CreateStart.Request()
         interactor?.createStart(request: request)
+    }
+    
+    @objc private func handleStartCreation() {
+        if displayMode == .starts {
+            fetchStarts()
+        }
     }
     
     // MARK: - Business Logic

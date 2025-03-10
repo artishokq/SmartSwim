@@ -9,4 +9,5 @@ import Foundation
 
 extension Notification.Name {
     static let workoutCreated = Notification.Name("workoutCreated")
+    static let didCreateStart = Notification.Name("didCreateStart")
 }
