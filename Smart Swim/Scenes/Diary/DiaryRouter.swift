@@ -24,7 +24,20 @@ final class DiaryRouter: NSObject, DiaryRoutingLogic, DiaryDataPassing {
     // MARK: - Route to Start Detail
     func routeToStartDetail(startID: NSManagedObjectID) {
         let startDetailVC = DiaryStartDetailViewController()
+        let interactor = DiaryStartDetailInteractor()
+        let presenter = DiaryStartDetailPresenter()
+        let router = DiaryStartDetailRouter()
+        
+        startDetailVC.interactor = interactor
+        startDetailVC.router = router
+        interactor.presenter = presenter
+        presenter.viewController = startDetailVC
+        router.viewController = startDetailVC
+        router.dataStore = interactor
+        
+        interactor.startID = startID
         startDetailVC.startID = startID
+        
         viewController?.navigationController?.pushViewController(startDetailVC, animated: true)
     }
     

@@ -216,6 +216,26 @@ extension CoreDataManager {
         }
     }
     
+    func fetchStartsWithCriteria(totalMeters: Int16, swimmingStyle: Int16, poolSize: Int16) -> [StartEntity] {
+        let request: NSFetchRequest<StartEntity> = StartEntity.fetchRequest()
+        
+        // Set up the predicates to match our criteria
+        let predicate = NSPredicate(format: "totalMeters == %d AND swimmingStyle == %d AND poolSize == %d",
+                                    totalMeters, swimmingStyle, poolSize)
+        request.predicate = predicate
+        
+        // Sort by time (ascending = fastest first)
+        let sortDescriptor = NSSortDescriptor(key: "totalTime", ascending: true)
+        request.sortDescriptors = [sortDescriptor]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Error fetching starts with criteria: \(error)")
+            return []
+        }
+    }
+    
     // Получает старт по идентификатору
     func fetchStart(byID id: NSManagedObjectID) -> StartEntity? {
         do {
@@ -260,7 +280,6 @@ extension CoreDataManager {
             return nil
         }
     }
-
     
     // Получает все отрезки для определённого старта
     func fetchLaps(for start: StartEntity) -> [LapEntity] {
