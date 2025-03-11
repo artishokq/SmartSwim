@@ -82,7 +82,6 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        NotificationCenter.default.removeObserver(self, name: .didCreateStart, object: nil)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -91,6 +90,10 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         if displayMode == .starts {
             fetchStarts()
         }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Configurations
