@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import CoreData
 import UIKit
+import CoreData
 
 enum DiaryStartDetailModels {
     enum FetchStartDetails {
@@ -25,6 +25,9 @@ enum DiaryStartDetailModels {
             let bestTime: Double
             let bestTimeDate: Date?
             let isCurrentBest: Bool
+            let hasRecommendation: Bool
+            let recommendationText: String?
+            let isLoadingRecommendation: Bool
             
             struct LapData {
                 let lapNumber: Int16
@@ -38,6 +41,7 @@ enum DiaryStartDetailModels {
             let headerInfo: HeaderInfo
             let lapDetails: [LapDetail]
             let recommendationText: String
+            let isLoadingRecommendation: Bool
             
             struct HeaderInfo {
                 let distanceWithStyle: String
@@ -54,6 +58,27 @@ enum DiaryStartDetailModels {
                 let strokes: String
                 let time: String
             }
+        }
+    }
+    
+    enum RecommendationLoading {
+        struct Response {
+            let isLoading: Bool
+        }
+        
+        struct ViewModel {
+            let isLoading: Bool
+        }
+    }
+    
+    enum RecommendationReceived {
+        struct Response {
+            let recommendationText: String
+            let startID: NSManagedObjectID
+        }
+        
+        struct ViewModel {
+            let recommendationText: String
         }
     }
 }

@@ -282,7 +282,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             self.startEntity = start
         } else {
             print("Ошибка при создании StartEntity")
-            // При необходимости уведомляем презентер об ошибке сохранения
         }
         
         let response = StopwatchModels.Finish.Response(

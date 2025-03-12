@@ -26,6 +26,7 @@ extension StartEntity {
     @NSManaged public var date: Date
     @NSManaged public var totalTime: Double
     @NSManaged public var laps: NSSet?
+    @NSManaged public var recommendation: String?
 }
 
 extension StartEntity {

@@ -257,6 +257,15 @@ extension CoreDataManager {
         start.totalTime = totalTime
         _ = saveContext()
     }
+    
+    func updateStartRecommendation(_ start: StartEntity, recommendation: String) {
+        start.recommendation = recommendation
+        _ = saveContext()
+    }
+    
+    func startHasRecommendation(_ start: StartEntity) -> Bool {
+        return start.recommendation != nil && !start.recommendation!.isEmpty
+    }
 }
 
 

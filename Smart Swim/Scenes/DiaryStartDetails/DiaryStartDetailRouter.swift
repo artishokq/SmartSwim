@@ -8,7 +8,7 @@
 import Foundation
 
 protocol DiaryStartDetailRoutingLogic {
-    // Add routing methods as needed
+
 }
 
 protocol DiaryStartDetailDataPassing {

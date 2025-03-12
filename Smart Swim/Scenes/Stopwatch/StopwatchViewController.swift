@@ -152,11 +152,6 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
         mainButton.setTitle(viewModel.buttonTitle, for: .normal)
         mainButton.backgroundColor = viewModel.buttonColor
         mainButton.isEnabled = false
-        
-        // Показываем уведомление об успешном сохранении если данные были сохранены
-        if viewModel.showSaveSuccessAlert {
-            showSaveSuccessAlert()
-        }
     }
     
     func displayPulseUpdate(viewModel: StopwatchModels.PulseUpdate.ViewModel) {
@@ -169,21 +164,6 @@ final class StopwatchViewController: UIViewController, StopwatchDisplayLogic {
     
     func displayWatchStatusUpdate(viewModel: StopwatchModels.WatchStatusUpdate.ViewModel) {
         
-    }
-    
-    // MARK: - Helper Methods
-    private func showSaveSuccessAlert() {
-        let alert = UIAlertController(
-            title: "Тренировка завершена",
-            message: "Данные успешно сохранены",
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
-            self?.router?.routeToBack()
-        })
-        
-        present(alert, animated: true)
     }
     
     // MARK: - Public Methods

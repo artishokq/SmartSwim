@@ -81,7 +81,7 @@ final class StopwatchPresenter: StopwatchPresentationLogic {
     private func formatTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
-        let centiseconds = Int((time - floor(time)) * 100)
-        return String(format: "%02d:%02d,%02d", minutes, seconds, centiseconds)
+        let milliseconds = Int(round((time - floor(time)) * 100))
+        return String(format: "%02d:%02d,%02d", minutes, seconds, milliseconds)
     }
 }

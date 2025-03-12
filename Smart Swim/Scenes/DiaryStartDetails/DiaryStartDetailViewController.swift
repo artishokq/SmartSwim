@@ -10,6 +10,8 @@ import CoreData
 
 protocol DiaryStartDetailDisplayLogic: AnyObject {
     func displayStartDetails(viewModel: DiaryStartDetailModels.FetchStartDetails.ViewModel)
+    func displayRecommendationLoading(viewModel: DiaryStartDetailModels.RecommendationLoading.ViewModel)
+    func displayRecommendationReceived(viewModel: DiaryStartDetailModels.RecommendationReceived.ViewModel)
 }
 
 final class DiaryStartDetailViewController: UIViewController {
@@ -50,6 +52,7 @@ final class DiaryStartDetailViewController: UIViewController {
     var interactor: DiaryStartDetailBusinessLogic?
     var router: (NSObjectProtocol & DiaryStartDetailRoutingLogic & DiaryStartDetailDataPassing)?
     var startID: NSManagedObjectID?
+    private let recommendationLoadingIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .medium)
     
     private let scrollView: UIScrollView = UIScrollView()
     private let contentView: UIView = UIView()
@@ -189,7 +192,7 @@ final class DiaryStartDetailViewController: UIViewController {
         tableView.pinLeft(to: tableContainerView.leadingAnchor)
         tableView.pinRight(to: tableContainerView.trailingAnchor)
         tableView.pinBottom(to: tableContainerView.bottomAnchor)
-    
+        
         tableContainerView.clipsToBounds = true
     }
     
@@ -250,7 +253,6 @@ final class DiaryStartDetailViewController: UIViewController {
         let numberOfRows = lapDetails.count
         let tableHeight = CGFloat(numberOfRows) * Constants.tableCellHeight + Constants.tableHeaderHeight
         
-        // Remove existing height constraints on the tableContainerView
         for constraint in contentView.constraints {
             if let firstItem = constraint.firstItem as? NSObject,
                firstItem == tableContainerView,
@@ -285,6 +287,39 @@ extension DiaryStartDetailViewController: DiaryStartDetailDisplayLogic {
         
         // Обновляем рекомендацию
         recommendationTextLabel.text = viewModel.recommendationText
+        
+        // Показываем или скрываем индикатор загрузки
+        if viewModel.isLoadingRecommendation {
+            recommendationLoadingIndicator.startAnimating()
+            recommendationLoadingIndicator.isHidden = false
+        } else {
+            recommendationLoadingIndicator.stopAnimating()
+            recommendationLoadingIndicator.isHidden = true
+        }
+    }
+    
+    func displayRecommendationLoading(viewModel: DiaryStartDetailModels.RecommendationLoading.ViewModel) {
+        if viewModel.isLoading {
+            recommendationLoadingIndicator.startAnimating()
+            recommendationLoadingIndicator.isHidden = false
+        } else {
+            recommendationLoadingIndicator.stopAnimating()
+            recommendationLoadingIndicator.isHidden = true
+        }
+    }
+    
+    func displayRecommendationReceived(viewModel: DiaryStartDetailModels.RecommendationReceived.ViewModel) {
+        // Анимируем появление текста рекомендации
+        UIView.transition(with: recommendationTextLabel,
+                          duration: 0.3,
+                          options: .transitionCrossDissolve,
+                          animations: { [weak self] in
+            self?.recommendationTextLabel.text = viewModel.recommendationText
+        })
+        
+        // Скрываем индикатор загрузки
+        recommendationLoadingIndicator.stopAnimating()
+        recommendationLoadingIndicator.isHidden = true
     }
 }
 

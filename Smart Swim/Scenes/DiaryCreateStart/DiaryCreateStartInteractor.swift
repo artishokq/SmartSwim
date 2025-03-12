@@ -166,7 +166,7 @@ final class DiaryCreateStartInteractor: DiaryCreateStartBusinessLogic, DiaryCrea
         
         // Проверяем, что сумма времени отрезков равна общему времени
         let sumOfLapTimes = lapTimes.reduce(0, +)
-        if abs(sumOfLapTimes - totalTime) > 0.01 {
+        if abs(sumOfLapTimes - totalTime) > 0.001 {
             let formattedTotal = durationToTimeString(totalTime)
             let formattedSum = durationToTimeString(sumOfLapTimes)
             let message = "\(Constants.lapTimeMismatchMessage)\nОбщее время: \(formattedTotal)\nСумма отрезков: \(formattedSum)"
@@ -217,8 +217,7 @@ final class DiaryCreateStartInteractor: DiaryCreateStartBusinessLogic, DiaryCrea
     private func durationToTimeString(_ duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
-        let milliseconds = Int((duration.truncatingRemainder(dividingBy: 1)) * 100)
-        
+        let milliseconds = Int(round((duration.truncatingRemainder(dividingBy: 1)) * 100))
         return String(format: "%02d:%02d,%02d", minutes, seconds, milliseconds)
     }
 }

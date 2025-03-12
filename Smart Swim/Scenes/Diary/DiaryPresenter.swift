@@ -81,8 +81,7 @@ final class DiaryPresenter: DiaryPresentationLogic {
     private func formatTime(_ totalSeconds: Double) -> String {
         let minutes = Int(totalSeconds) / 60
         let seconds = Int(totalSeconds) % 60
-        let milliseconds = Int((totalSeconds.truncatingRemainder(dividingBy: 1)) * 100)
-        
+        let milliseconds = Int(round((totalSeconds.truncatingRemainder(dividingBy: 1)) * 100))
         return String(format: "%02d:%02d,%02d", minutes, seconds, milliseconds)
     }
 }
