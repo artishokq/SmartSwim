@@ -86,9 +86,7 @@ final class WorkoutService: ObservableObject {
             data: ["totalMeters": workout.totalMeters]
         )
         
-        // Отправляем информацию о начале тренировки
         workoutKit.startWorkout(workoutId: workout.id)
-        
         return true
     }
     

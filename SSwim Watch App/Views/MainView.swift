@@ -3,7 +3,6 @@
 //  SSwim Watch App
 //
 //  Created by Artem Tkachuk on 26.02.2025.
-//  Updated by Artem Tkachuk on 27.03.2025.
 //
 
 import SwiftUI
@@ -45,7 +44,7 @@ struct MainView: View {
                         .padding(.top, Constants.topPadding)
                     
                     VStack(spacing: Constants.itemsStackSpacing) {
-                        // Кнопка "Старты"
+                        // MARK: - Кнопка "Старты"
                         Button(action: {
                             viewModel.startNewWorkout()
                         }) {
@@ -63,7 +62,7 @@ struct MainView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         
-                        // Секция тренировок
+                        // MARK: - Секция тренировок
                         VStack(alignment: .leading, spacing: 8) {
                             Text(Constants.workoutsTitle)
                                 .font(.headline)
@@ -82,12 +81,14 @@ struct MainView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
-            let isPhoneReachable = ServiceLocator.shared.communicationService.checkPhoneReachability()
             workoutService.loadWorkouts()
             
+            // Принудительно обновляем UI через определенные интервалы
             for delay in [0.5, 1.5, 3.0, 5.0] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
                     refreshTrigger.toggle()
+                    
+                    // Также пробуем загрузить тренировки еще раз, если их еще нет
                     if workoutService.workouts.isEmpty && !workoutService.isLoading {
                         workoutService.loadWorkouts()
                     }
@@ -95,6 +96,7 @@ struct MainView: View {
             }
         }
         .onChange(of: refreshTrigger) { _, _ in
+            // Пустое действие, нужно только для обновления View
         }
     }
 }

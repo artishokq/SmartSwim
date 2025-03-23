@@ -28,7 +28,7 @@ struct SSwim_Watch_AppApp: App {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReturnToRootView"))) { _ in
             }
         }
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .active {
                 // Запрашиваем тренировки при переходе приложения в активное состояние
                 ServiceLocator.shared.workoutService.loadWorkouts()

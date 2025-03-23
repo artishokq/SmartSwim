@@ -83,10 +83,7 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
         var messageData = data
         messageData["messageType"] = type.rawValue
         
-        WCSession.default.sendMessage(messageData, replyHandler: nil) { error in
-            print("[WatchCommunication] Ошибка отправки \(type.rawValue): \(error.localizedDescription)")
-        }
-        
+        WCSession.default.sendMessage(messageData, replyHandler: nil) { _ in }
         return true
     }
     
@@ -104,7 +101,7 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
         WCSession.default.sendMessage(messageData, replyHandler: { response in
             hasCompleted = true
             completion(response)
-        }, errorHandler: { error in
+        }, errorHandler: { _ in
             if !hasCompleted {
                 hasCompleted = true
                 completion(nil)
@@ -142,25 +139,12 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
         subscriptions[id] = nil
     }
     
-    func checkPhoneReachability() -> Bool {
-        let isReachable = WCSession.default.isReachable
-        
-        if isReachable {
-            sendMessage(type: .error, data: ["testMessage": "Проверка связи с часов"])
-        }
-        return isReachable
-    }
-    
     // MARK: - WCSessionDelegate Methods
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
             let isActive = activationState == .activated
             self.isReachable = isActive
             self.isConnectedPublisher.send(isActive)
-            
-            if let error = error {
-                
-            }
         }
     }
     

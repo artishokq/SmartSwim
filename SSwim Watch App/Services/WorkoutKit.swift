@@ -54,7 +54,12 @@ final class WorkoutKit {
     init(communicationService: WatchCommunicationService) {
         self.communicationService = communicationService
         subscribeToMessages()
-        loadWorkoutsFromLocalStorage()
+        
+        // Загружаем кэшированные тренировки и устанавливаем их
+        let cachedWorkouts = loadWorkoutsFromLocalStorage()
+        if !cachedWorkouts.isEmpty {
+            self.workouts = cachedWorkouts
+        }
     }
     
     deinit {
@@ -87,7 +92,7 @@ final class WorkoutKit {
             if self.pendingWorkoutsRequest {
                 self.pendingWorkoutsRequest = false
                 
-                let retrySuccess = self.communicationService.sendMessage(
+                self.communicationService.sendMessage(
                     type: .requestWorkouts,
                     data: ["requestWorkouts": true, "isRetry": true, "requestId": UUID().uuidString]
                 )
@@ -142,7 +147,6 @@ final class WorkoutKit {
             
             if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                 let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
-                
                 try workoutsData.write(to: fileURL, options: .atomic)
             }
         } catch {
@@ -154,12 +158,8 @@ final class WorkoutKit {
             if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                 let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
                 
-                // Проверяем существование файла
                 if FileManager.default.fileExists(atPath: fileURL.path) {
-                    // Читаем данные из файла
                     let workoutsData = try Data(contentsOf: fileURL)
-                    
-                    // Декодируем данные
                     let decoder = JSONDecoder()
                     let cachedWorkouts = try decoder.decode([SwimWorkoutModels.SwimWorkout].self, from: workoutsData)
                     return cachedWorkouts
