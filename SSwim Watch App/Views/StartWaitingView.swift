@@ -10,27 +10,23 @@ import SwiftUI
 struct StartWaitingView: View {
     // MARK: - Constants
     private enum Constants {
-        // Строковые константы
         static let waitingTitle = "Ожидание старта"
         static let setupInstructions = "Настройте параметры на iPhone и нажмите Старт"
         static let parametersReceived = "Параметры получены!"
         
-        // Числовые константы
         static let stackSpacing: CGFloat = 15
         static let iconSize: CGFloat = 45
         static let textHorizontalPadding: CGFloat = 5
         static let successVerticalPadding: CGFloat = 8
         static let navigationDelay: TimeInterval = 0.2
         
-        // Цвета
         static let iconColor = Color.blue
         static let successColor = Color.green
     }
     
     // MARK: - Properties
     @StateObject private var viewModel = StartWaitingViewModel()
-    
-    // Разделяем состояние навигации и состояние получения команды
+    @EnvironmentObject private var startService: StartService
     @State private var shouldNavigate = false
     
     // MARK: - Body
@@ -57,9 +53,8 @@ struct StartWaitingView: View {
                         .padding(.vertical, Constants.successVerticalPadding)
                 }
                 
-                // Добавляем невидимую кнопку для обновления представления при необходимости
+
                 Button(action: {
-                    // Ничего не делаем, это просто для форсирования обновления UI
                 }) {
                     Color.clear
                         .frame(width: 1, height: 1)
@@ -73,20 +68,18 @@ struct StartWaitingView: View {
         .navigationDestination(isPresented: $shouldNavigate) {
             ActiveSwimmingView()
         }
-        .onChange(of: viewModel.command) { _, newCommand in
+        .onAppear {
+            viewModel.setupWithService(startService: startService)
+            viewModel.requestParameters(startService: startService)
+        }
+        .onChange(of: startService.command) { _, newCommand in
             if newCommand == "start" {
-                print("Получена команда старта, выполняем переход...")
-                
-                // Сначала убеждаемся, что находимся в основном потоке
                 DispatchQueue.main.async {
-                    // Добавляем небольшую задержку для надежности
                     DispatchQueue.main.asyncAfter(deadline: .now() + Constants.navigationDelay) {
                         shouldNavigate = true
                         
-                        // Дополнительно запускаем таймер для проверки, произошел ли переход
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             if !shouldNavigate {
-                                print("Таймаут ожидания перехода, форсируем...")
                                 shouldNavigate = false
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                     shouldNavigate = true
@@ -107,5 +100,6 @@ struct StartWaitingView: View {
 struct StartWaitingView_Previews: PreviewProvider {
     static var previews: some View {
         StartWaitingView()
+            .environmentObject(ServiceLocator.shared.startService)
     }
 }

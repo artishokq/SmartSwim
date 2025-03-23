@@ -252,6 +252,7 @@
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SSwim-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";
@@ -285,6 +286,7 @@
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SSwim-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";

@@ -14,23 +14,40 @@ class StartWaitingViewModel: ObservableObject {
     @Published var command = ""
     
     // MARK: - Private Properties
-    private let watchSession = WatchSessionService.shared
     private var cancellables = Set<AnyCancellable>()
+    private var startService: StartService?
     
     // MARK: - Initialization
     init() {
+    }
+    
+    // MARK: - Public Methods
+    func setupWithService(startService: StartService) {
+        self.startService = startService
         setupSubscriptions()
+    }
+    
+    func requestParameters(startService: StartService) {
+        if self.startService == nil {
+            setupWithService(startService: startService)
+        }
+        startService.resetAndRequestParameters()
+        isReadyToStart = startService.isReadyToStart
+    }
+    
+    func resetCommand() {
+        command = ""
+        startService?.resetCommand()
     }
     
     // MARK: - Private Methods
     private func setupSubscriptions() {
-        // Listen for ready state
-        watchSession.isReadyToStartPublisher
+        guard let startService = startService else { return }
+        startService.$isReadyToStart
             .receive(on: RunLoop.main)
             .sink { [weak self] isReady in
                 guard let self = self else { return }
                 
-                // Обновляем состояние и принудительно уведомляем наблюдателей
                 if self.isReadyToStart != isReady {
                     self.isReadyToStart = isReady
                     self.objectWillChange.send()
@@ -38,27 +55,18 @@ class StartWaitingViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Listen for commands
-        watchSession.commandPublisher
+        startService.$command
             .receive(on: RunLoop.main)
             .sink { [weak self] command in
                 guard let self = self else { return }
                 
-                print("StartWaitingViewModel: Получена команда: \(command)")
-                
-                // Используем DispatchQueue для надежного обновления UI
-                DispatchQueue.main.async {
-                    self.command = command
-                    
-                    // Принудительно уведомляем наблюдателей
-                    self.objectWillChange.send()
+                if !command.isEmpty {
+                    DispatchQueue.main.async {
+                        self.command = command
+                        self.objectWillChange.send()
+                    }
                 }
             }
             .store(in: &cancellables)
-    }
-    
-    // MARK: - Public Methods
-    func resetCommand() {
-        command = ""
     }
 }

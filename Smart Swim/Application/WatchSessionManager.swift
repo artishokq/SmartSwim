@@ -3,6 +3,7 @@
 //  Smart Swim
 //
 //  Created by Artem Tkachuk on 19.02.2025.
+//  Updated by Artem Tkachuk on 27.03.2025.
 //
 
 import WatchConnectivity
@@ -73,6 +74,116 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
         sendParametersWithRetry()
     }
     
+    // MARK: - Работа с тренировками
+    
+    // Метод для отправки списка тренировок на Apple Watch
+    func sendWorkoutsToWatch() {
+        // Перед отправкой проверяем и пытаемся активировать соединение
+        if WCSession.default.activationState != .activated {
+            print("Соединение неактивно, активируем перед отправкой тренировок")
+            WCSession.default.activate()
+        }
+        
+        // Проверяем соединение с часами, даже если activationState = .activated
+        if !WCSession.default.isReachable {
+            print("Apple Watch недоступны, но всё равно пробуем отправить")
+        }
+        
+        if WCSession.default.isReachable {
+            // Получаем тренировки из CoreData
+            let workoutEntities = CoreDataManager.shared.fetchAllWorkouts()
+            print("Загружено \(workoutEntities.count) тренировок из CoreData")
+            
+            if workoutEntities.isEmpty {
+                print("⚠️ Предупреждение: В CoreData нет ни одной тренировки")
+                return
+            }
+            
+            // Вывод отладочной информации о каждой тренировке
+            for (index, workout) in workoutEntities.enumerated() {
+                let exerciseCount = (workout.exercises?.count ?? 0)
+                print("Тренировка #\(index + 1): \(workout.name ?? "Без имени"), упражнений: \(exerciseCount), бассейн: \(workout.poolSize)м")
+            }
+            
+            // Преобразуем в словари для передачи
+            let workoutsData = workoutEntities.map { entity -> [String: Any] in
+                // Получаем упражнения для этой тренировки и сортируем их по порядку
+                let exerciseEntities = entity.exercises?.allObjects as? [ExerciseEntity] ?? []
+                let sortedExercises = exerciseEntities.sorted { ($0.orderIndex < $1.orderIndex) }
+                
+                // Преобразуем упражнения в словари
+                let exercises = sortedExercises.map { exercise -> [String: Any] in
+                    return [
+                        "id": exercise.objectID.uriRepresentation().absoluteString,
+                        "description": exercise.exerciseDescription ?? "",
+                        "style": Int(exercise.style),
+                        "type": Int(exercise.type),
+                        "hasInterval": exercise.hasInterval,
+                        "intervalMinutes": Int(exercise.intervalMinutes),
+                        "intervalSeconds": Int(exercise.intervalSeconds),
+                        "meters": Int(exercise.meters),
+                        "orderIndex": Int(exercise.orderIndex),
+                        "repetitions": Int(exercise.repetitions)
+                    ]
+                }
+                
+                // Создаем словарь тренировки
+                return [
+                    "id": entity.objectID.uriRepresentation().absoluteString,
+                    "name": entity.name ?? "Без названия",
+                    "poolSize": Int(entity.poolSize),
+                    "exercises": exercises
+                ]
+            }
+            
+            print("Отправка \(workoutsData.count) тренировок на Apple Watch")
+            
+            // Отправляем данные тренировок на часы
+            WCSession.default.sendMessage(["workoutsData": workoutsData], replyHandler: { reply in
+                print("Данные тренировок успешно отправлены: \(reply)")
+            }, errorHandler: { error in
+                print("Ошибка отправки данных тренировок: \(error.localizedDescription)")
+                
+                // Пробуем отправить еще раз через небольшую задержку
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    print("Повторная попытка отправки тренировок после ошибки")
+                    self?.sendWorkoutsToWatch()
+                }
+            })
+        } else {
+            print("Apple Watch недоступны для отправки тренировок")
+            
+            // Вторая попытка с задержкой
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                if WCSession.default.isReachable {
+                    print("Apple Watch стал доступен, повторяем отправку тренировок")
+                    self?.sendWorkoutsToWatch()
+                } else {
+                    print("Apple Watch все еще недоступен. Дальнейшие попытки отменены.")
+                }
+            }
+        }
+    }
+    
+    func activateSessionAndSendWorkouts() {
+        print("Активация сессии при запуске приложения")
+        
+        // Если сессия не активна, активируем её
+        if WCSession.default.activationState != .activated {
+            WCSession.default.activate()
+        }
+        
+        // Независимо от состояния сессии, пробуем отправить тренировки через короткие промежутки времени
+        for delay in [0.5, 2.0, 5.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                print("Попытка отправки тренировок после задержки \(delay) сек")
+                self?.sendWorkoutsToWatch()
+            }
+        }
+    }
+    
+    // MARK: - Private Methods
+    
     // Метод для отправки параметров с возможностью повторных попыток
     private func sendParametersWithRetry() {
         if WCSession.default.isReachable {
@@ -121,10 +232,15 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
     }
     
     // MARK: - WCSessionDelegate methods
+    
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
             self.isSessionActive = activationState == .activated
             print("Watch Session активирована: \(self.isSessionActive)")
+            
+            if let error = error {
+                print("Ошибка при активации сессии Watch: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -150,6 +266,20 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
                 print("Получено подтверждение получения параметров")
                 self.parametersConfirmed = true
             }
+            
+            if message["requestWorkouts"] != nil {
+                print("Получен запрос тренировок от Apple Watch - ВЫСОКИЙ ПРИОРИТЕТ")
+                
+                // Отправляем немедленно и несколько раз с интервалами для надежности
+                DispatchQueue.global(qos: .userInteractive).async {
+                    self.sendWorkoutsToWatch()
+                    
+                    // Повторная отправка через короткий промежуток
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.sendWorkoutsToWatch()
+                    }
+                }
+            }
         }
     }
     
@@ -166,6 +296,8 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
             // Обработка запроса всех параметров тренировки
             else if message["requestAllParameters"] != nil {
                 print("Запрос всех параметров тренировки от Apple Watch")
+                
+                // Всегда отправляем текущие параметры, не зависимо от того, запрашивались ли они ранее
                 let responseParams: [String: Any] = [
                     "poolSize": self.currentPoolSize,
                     "swimmingStyle": self.currentSwimmingStyle,
@@ -174,12 +306,99 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
                 print("Отправляем параметры: \(responseParams)")
                 replyHandler(responseParams)
             }
+            // Обработка запроса для списка тренировок
+            else if message["requestWorkouts"] != nil {
+                print("Получен запрос тренировок от Apple Watch")
+                
+                // Подтверждаем получение запроса
+                replyHandler(["received": true, "processing": true])
+                
+                // Отправляем список тренировок с высоким приоритетом
+                DispatchQueue.global(qos: .userInitiated).async {
+                    print("Начинаем обработку запроса тренировок в фоновом потоке")
+                    
+                    // Получаем тренировки из CoreData
+                    let workoutEntities = CoreDataManager.shared.fetchAllWorkouts()
+                    print("Загружено \(workoutEntities.count) тренировок из CoreData для ответа на запрос")
+                    
+                    if workoutEntities.isEmpty {
+                        print("⚠️ Предупреждение: В CoreData нет ни одной тренировки для отправки на часы")
+                        return
+                    }
+                    
+                    // Преобразуем в словари для передачи
+                    let workoutsData = workoutEntities.map { entity -> [String: Any] in
+                        // Получаем упражнения для этой тренировки и сортируем их по порядку
+                        let exerciseEntities = entity.exercises?.allObjects as? [ExerciseEntity] ?? []
+                        let sortedExercises = exerciseEntities.sorted { ($0.orderIndex < $1.orderIndex) }
+                        
+                        // Преобразуем упражнения в словари
+                        let exercises = sortedExercises.map { exercise -> [String: Any] in
+                            return [
+                                "id": exercise.objectID.uriRepresentation().absoluteString,
+                                "description": exercise.exerciseDescription ?? "",
+                                "style": Int(exercise.style),
+                                "type": Int(exercise.type),
+                                "hasInterval": exercise.hasInterval,
+                                "intervalMinutes": Int(exercise.intervalMinutes),
+                                "intervalSeconds": Int(exercise.intervalSeconds),
+                                "meters": Int(exercise.meters),
+                                "orderIndex": Int(exercise.orderIndex),
+                                "repetitions": Int(exercise.repetitions)
+                            ]
+                        }
+                        
+                        // Создаем словарь тренировки
+                        return [
+                            "id": entity.objectID.uriRepresentation().absoluteString,
+                            "name": entity.name ?? "Без названия",
+                            "poolSize": Int(entity.poolSize),
+                            "exercises": exercises
+                        ]
+                    }
+                    
+                    print("Отправка \(workoutsData.count) тренировок на Apple Watch в ответ на запрос")
+                    
+                    // Отправляем данные тренировок на часы
+                    WCSession.default.sendMessage(["workoutsData": workoutsData], replyHandler: { reply in
+                        print("Данные тренировок успешно отправлены в ответ на запрос: \(reply)")
+                    }, errorHandler: { error in
+                        print("Ошибка отправки данных тренировок в ответ на запрос: \(error.localizedDescription)")
+                        
+                        // Пробуем отправить еще раз через небольшую задержку
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            print("Повторная попытка отправки тренировок после ошибки")
+                            
+                            WCSession.default.sendMessage(["workoutsData": workoutsData], replyHandler: { reply in
+                                print("Данные тренировок успешно отправлены после повторной попытки: \(reply)")
+                            }, errorHandler: { error in
+                                print("Ошибка повторной отправки данных тренировок: \(error.localizedDescription)")
+                            })
+                        }
+                    })
+                }
+            }
             else {
                 // Для других запросов
                 replyHandler(["received": true])
                 
                 // Также обрабатываем сообщение как обычное
                 self.session(session, didReceiveMessage: message)
+            }
+        }
+    }
+    
+    // Проверка доступности Watch
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        DispatchQueue.main.async {
+            print("Доступность Apple Watch изменилась: \(session.isReachable ? "доступны" : "недоступны")")
+            
+            // Если часы стали доступны, немедленно отправляем тренировки
+            if session.isReachable {
+                print("Apple Watch стали доступны, немедленно отправляем тренировки")
+                DispatchQueue.global(qos: .userInteractive).async {
+                    self.sendWorkoutsToWatch()
+                }
             }
         }
     }

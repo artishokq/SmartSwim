@@ -31,6 +31,7 @@ struct ActiveSwimmingView: View {
     
     // MARK: - Properties
     @StateObject private var viewModel = ActiveSwimmingViewModel()
+    @EnvironmentObject private var startService: StartService
     @Environment(\.presentationMode) var presentationMode
     @State private var shouldNavigateToRoot = false
     
@@ -41,7 +42,7 @@ struct ActiveSwimmingView: View {
                 .font(.headline)
                 .foregroundColor(Constants.activeTitleColor)
             
-            Text(String(format: Constants.poolLengthFormat, Int(viewModel.session.poolLength)))
+            Text(String(format: Constants.poolLengthFormat, Int(startService.session.poolLength)))
                 .font(.footnote)
                 .foregroundColor(Constants.poolInfoColor)
             
@@ -50,13 +51,13 @@ struct ActiveSwimmingView: View {
                 HStack {
                     Image(systemName: Constants.heartIcon)
                         .foregroundColor(Constants.heartIconColor)
-                    Text(String(format: Constants.heartRateFormat, Int(viewModel.session.heartRate)))
+                    Text(String(format: Constants.heartRateFormat, Int(startService.session.heartRate)))
                 }
                 
                 HStack {
                     Image(systemName: Constants.swimIcon)
                         .foregroundColor(Constants.swimIconColor)
-                    Text(String(format: Constants.strokeCountFormat, viewModel.session.strokeCount))
+                    Text(String(format: Constants.strokeCountFormat, startService.session.strokeCount))
                 }
             }
             .padding()
@@ -65,25 +66,19 @@ struct ActiveSwimmingView: View {
         .padding()
         .navigationBarBackButtonHidden(true)
         .onAppear {
-            // Чистим предыдущие команды при появлении экрана
+            viewModel.setupWithService(startService: startService)
             viewModel.clearCommands()
-            // Запускаем тренировку
             viewModel.startWorkout()
-            print("Плавание активно с длиной бассейна: \(viewModel.session.poolLength)м")
         }
-        // Используем новый синтаксис onChange начиная с watchOS 10
         .onChange(of: viewModel.command) { _, newCommand in
             if newCommand == Constants.stopCommand {
-                print("Получена команда остановки")
                 viewModel.stopWorkout()
                 
-                // Используем более надежный механизм навигации
                 DispatchQueue.main.asyncAfter(deadline: .now() + Constants.rootNavigationDelay) {
                     shouldNavigateToRoot = true
                 }
             }
         }
-        // Используем современный подход к навигации
         .navigationDestination(isPresented: $shouldNavigateToRoot) {
             MainView()
                 .navigationBarBackButtonHidden(true)
@@ -95,5 +90,6 @@ struct ActiveSwimmingView: View {
 struct ActiveSwimmingView_Previews: PreviewProvider {
     static var previews: some View {
         ActiveSwimmingView()
+            .environmentObject(ServiceLocator.shared.startService)
     }
 }

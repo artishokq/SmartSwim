@@ -9,15 +9,29 @@ import SwiftUI
 
 @main
 struct SSwim_Watch_AppApp: App {
-    @State private var navigateToRoot = false
+    // Для отслеживания состояния приложения
+    @Environment(\.scenePhase) private var scenePhase
+    
+    // MARK: - Инициализация сервисов при запуске
+    init() {
+        ServiceLocator.shared.initializeServices()
+    }
     
     var body: some Scene {
         WindowGroup {
             NavigationView {
+                // Передаем нужные сервисы через environment
                 MainView()
+                    .environmentObject(ServiceLocator.shared.startService)
+                    .environmentObject(ServiceLocator.shared.workoutService)
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReturnToRootView"))) { _ in
-                self.navigateToRoot = true
+            }
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                // Запрашиваем тренировки при переходе приложения в активное состояние
+                ServiceLocator.shared.workoutService.loadWorkouts()
             }
         }
     }

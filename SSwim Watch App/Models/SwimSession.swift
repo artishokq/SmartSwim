@@ -8,10 +8,20 @@
 import Foundation
 
 struct SwimSession {
-    var poolLength: Double
-    var swimmingStyle: Int
-    var totalMeters: Int
-    var strokeCount: Int = 0
+    var poolLength: Double = 25.0
+    var swimmingStyle: Int = 0
+    var totalMeters: Int = 0
     var heartRate: Double = 0
+    var strokeCount: Int = 0
     var isActive: Bool = false
+    
+    init(poolLength: Double = 25.0, swimmingStyle: Int = 0, totalMeters: Int = 0,
+         heartRate: Double = 0, strokeCount: Int = 0, isActive: Bool = false) {
+        self.poolLength = poolLength
+        self.swimmingStyle = swimmingStyle
+        self.totalMeters = totalMeters
+        self.heartRate = heartRate
+        self.strokeCount = strokeCount
+        self.isActive = isActive
+    }
 }

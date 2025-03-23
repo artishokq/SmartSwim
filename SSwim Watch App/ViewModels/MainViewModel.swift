@@ -8,15 +8,21 @@
 import SwiftUI
 import Combine
 
-class MainViewModel: ObservableObject {
+final class MainViewModel: ObservableObject {
+    // MARK: - Published Properties
     @Published var navigateToStartView = false
     
+    // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
+    private let communicationService: WatchCommunicationService
     
-    init() {
-        WatchSessionService.shared.startSession()
+    // MARK: - Initialization
+    init(communicationService: WatchCommunicationService = ServiceLocator.shared.communicationService) {
+        self.communicationService = communicationService
+        communicationService.startSession()
     }
     
+    // MARK: - Public Methods
     func startNewWorkout() {
         navigateToStartView = true
     }
