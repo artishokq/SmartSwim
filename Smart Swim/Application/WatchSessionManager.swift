@@ -14,9 +14,14 @@ protocol WatchDataDelegate: AnyObject {
     func didReceiveWatchStatus(_ status: String)
 }
 
+protocol WorkoutCompletionDelegate: AnyObject {
+    func didReceiveCompletedWorkout(_ completedWorkout: TransferWorkoutModels.TransferWorkoutInfo)
+}
+
 final class WatchSessionManager: NSObject, WCSessionDelegate {
     static let shared = WatchSessionManager()
     weak var delegate: WatchDataDelegate?
+    weak var workoutCompletionDelegate: WorkoutCompletionDelegate?
     private var isSessionActive = false
     
     // Хранение текущих параметров тренировки
@@ -179,6 +184,78 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         }
     }
     
+    private func handleCompletedWorkoutData(_ data: [String: Any]) {
+        if let transferWorkout = TransferWorkoutModels.TransferWorkoutInfo.fromDictionary(data) {
+            // Сохраняем в CoreData
+            saveCompletedWorkout(transferWorkout)
+            
+            // Уведомляем делегата
+            workoutCompletionDelegate?.didReceiveCompletedWorkout(transferWorkout)
+            
+            // Отправляем подтверждение получения данных на часы
+            sendWorkoutDataReceivedConfirmation()
+        }
+    }
+    
+    // Сохранение данных о завершенной тренировке в CoreData
+    private func saveCompletedWorkout(_ transferWorkout: TransferWorkoutModels.TransferWorkoutInfo) {
+        // Преобразуем данные для CoreDataManager
+        CoreDataManager.shared.createWorkoutSession(
+            date: transferWorkout.startTime,
+            totalTime: transferWorkout.totalTime,
+            totalCalories: transferWorkout.totalCalories,
+            poolSize: Int16(transferWorkout.poolSize),
+            workoutOriginalId: transferWorkout.workoutId,
+            workoutName: transferWorkout.workoutName,
+            exercisesData: convertToCompletedExerciseData(transferWorkout.exercises)
+        )
+    }
+    
+    // Преобразование данных о упражнениях для CoreDataManager
+    private func convertToCompletedExerciseData(_ exercises: [TransferWorkoutModels.TransferExerciseInfo]) -> [CompletedExerciseData] {
+        return exercises.map { exercise in
+            // Преобразуем отрезки
+            let completedLapDataArray = exercise.laps.map { lap in
+                return CompletedLapData(
+                    lapNumber: lap.lapNumber,
+                    distance: lap.distance,
+                    lapTime: lap.lapTime,
+                    heartRate: lap.heartRate,
+                    strokes: Int(lap.strokes),
+                    timestamp: lap.timestamp
+                )
+            }
+            
+            // Создаем CompletedExerciseData
+            return CompletedExerciseData(
+                exerciseId: exercise.exerciseId,
+                orderIndex: exercise.orderIndex,
+                description: exercise.description,
+                style: exercise.style,
+                type: exercise.type,
+                hasInterval: exercise.hasInterval,
+                intervalMinutes: exercise.intervalMinutes,
+                intervalSeconds: exercise.intervalSeconds,
+                meters: exercise.meters,
+                repetitions: exercise.repetitions,
+                startTime: exercise.startTime,
+                endTime: exercise.endTime,
+                laps: completedLapDataArray
+            )
+        }
+    }
+    
+    // Отправка подтверждения получения данных на часы
+    private func sendWorkoutDataReceivedConfirmation() {
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(
+                ["workoutDataReceived": true],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
+    }
+    
     // MARK: - WCSessionDelegate methods
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
@@ -189,6 +266,7 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     // Обработка обычных сообщений
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         DispatchQueue.main.async {
+            // Существующие обработчики сообщений...
             if let heartRate = message["heartRate"] as? Int {
                 self.delegate?.didReceiveHeartRate(heartRate)
             }
@@ -201,16 +279,19 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
                 self.delegate?.didReceiveWatchStatus(watchStatus)
             }
             
+            // Обработка данных о завершенной тренировке
+            if let completedWorkoutData = message["completedWorkoutData"] as? [String: Any] {
+                self.handleCompletedWorkoutData(completedWorkoutData)
+            }
+            
             if let parametersReceived = message["parametersReceived"] as? Bool, parametersReceived {
                 self.parametersConfirmed = true
             }
             
             if message["requestWorkouts"] != nil {
-                // Отправляем немедленно и несколько раз с интервалами для надежности
                 DispatchQueue.global(qos: .userInteractive).async {
                     self.sendWorkoutsToWatch()
                     
-                    // Повторная отправка через короткий промежуток
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         self.sendWorkoutsToWatch()
                     }

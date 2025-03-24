@@ -58,9 +58,9 @@ enum SwimWorkoutModels {
             case 0:
                 return "Кроль"
             case 1:
-                return "На спине"
-            case 2:
                 return "Брасс"
+            case 2:
+                return "На спине"
             case 3:
                 return "Батт"
             case 4:
@@ -73,9 +73,9 @@ enum SwimWorkoutModels {
         func getTypeName() -> String {
             switch type {
             case 0:
-                return "Основная"
-            case 1:
                 return "Разминка"
+            case 1:
+                return "Основная"
             case 2:
                 return "Заминка"
             default:

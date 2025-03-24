@@ -210,6 +210,18 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         }
     }
     
+    func getWorkoutTotalCalories() -> Double {
+        guard let builder = workoutBuilder else { return 0 }
+        
+        let calorieType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
+        if let statistics = builder.statistics(for: calorieType),
+           let calories = statistics.sumQuantity() {
+            return calories.doubleValue(for: HKUnit.kilocalorie())
+        }
+        
+        return 0 // Возвращаем 0, если данные недоступны
+    }
+    
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
     }
 }

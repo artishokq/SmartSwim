@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24D60" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24D81" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="ExerciseEntity" representedClassName="ExerciseEntity" syncable="YES">
         <attribute name="exerciseDescription" optional="YES" attributeType="String"/>
         <attribute name="hasInterval" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -12,12 +12,39 @@
         <attribute name="type" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="workout" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="WorkoutEntity" inverseName="exercises" inverseEntity="WorkoutEntity"/>
     </entity>
+    <entity name="ExerciseSessionEntity" representedClassName="ExerciseSessionEntity" syncable="YES">
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="exerciseDescription" optional="YES" attributeType="String"/>
+        <attribute name="exerciseOriginalId" optional="YES" attributeType="String"/>
+        <attribute name="hasInterval" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="intervalMinutes" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="intervalSeconds" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="meters" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="orderIndex" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="repetitions" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="style" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="type" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="laps" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="LapSessionEntity" inverseName="exerciseSession" inverseEntity="LapSessionEntity"/>
+        <relationship name="workoutSession" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="WorkoutSessionEntity" inverseName="exerciseSessions" inverseEntity="WorkoutSessionEntity"/>
+    </entity>
     <entity name="LapEntity" representedClassName="LapEntity" syncable="YES">
         <attribute name="lapNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="lapTime" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="pulse" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="strokes" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="start" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="StartEntity" inverseName="laps" inverseEntity="StartEntity"/>
+    </entity>
+    <entity name="LapSessionEntity" representedClassName="LapSessionEntity" syncable="YES">
+        <attribute name="distance" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="heartRate" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lapNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lapTime" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="strokes" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="exerciseSession" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ExerciseSessionEntity" inverseName="laps" inverseEntity="ExerciseSessionEntity"/>
     </entity>
     <entity name="StartEntity" representedClassName="StartEntity" syncable="YES">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -32,5 +59,15 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="poolSize" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="exercises" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ExerciseEntity" inverseName="workout" inverseEntity="ExerciseEntity"/>
+    </entity>
+    <entity name="WorkoutSessionEntity" representedClassName="WorkoutSessionEntity" syncable="YES">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="poolSize" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalCalories" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="totalTime" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="workoutName" optional="YES" attributeType="String"/>
+        <attribute name="workoutOriginalId" optional="YES" attributeType="String"/>
+        <relationship name="exerciseSessions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ExerciseSessionEntity" inverseName="workoutSession" inverseEntity="ExerciseSessionEntity"/>
     </entity>
 </model>

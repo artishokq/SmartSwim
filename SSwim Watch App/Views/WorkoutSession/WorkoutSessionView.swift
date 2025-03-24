@@ -10,89 +10,76 @@ import SwiftUI
 struct WorkoutSessionView: View {
     @StateObject var viewModel: WorkoutSessionViewModel
     @Environment(\.presentationMode) var presentationMode
+    @State private var refreshTrigger = false
     
     init(workout: SwimWorkoutModels.SwimWorkout) {
         _viewModel = StateObject(wrappedValue: WorkoutSessionViewModel(workout: workout))
     }
     
     var body: some View {
-        ZStack {
-            // Превью упражнения
+        VStack {
             if viewModel.showingExercisePreview {
                 ExercisePreviewView(
-                    exercise: viewModel.sessionService.nextExercisePreview,
-                    onStart: { viewModel.startCurrentExercise() }
+                    exercise: viewModel.nextExercisePreviewData,
+                    onStart: {
+                        viewModel.startCurrentExercise()
+                        refreshTrigger.toggle()
+                    }
                 )
-            }
-            
-            // Активное упражнение
-            if viewModel.showingActiveExercise {
+            } else if viewModel.showingActiveExercise {
+                // Отдельные свойства, а не только объект упражнения чтобы обеспечить обновление представления при изменении свойств
                 ExerciseActiveView(
-                    exercise: viewModel.sessionService.currentExercise,
-                    onComplete: { viewModel.completeCurrentExercise() }
+                    exercise: viewModel.currentExerciseData,
+                    sessionTime: viewModel.totalSessionTime,
+                    repetitionTime: viewModel.currentRepetitionTime,
+                    heartRate: viewModel.heartRate,
+                    strokeCount: viewModel.strokeCount,
+                    currentRepetition: viewModel.currentRepetition,
+                    totalRepetitions: viewModel.totalRepetitions,
+                    intervalTimeRemaining: viewModel.intervalTimeRemaining,
+                    canCompleteExercise: viewModel.canCompleteExercise,
+                    shouldShowNextRepButton: viewModel.shouldShowNextRepButton,
+                    onComplete: {
+                        viewModel.completeCurrentExercise()
+                        refreshTrigger.toggle()
+                    }
                 )
-            }
-            
-            // Экран завершения
-            if viewModel.showingCompletionView {
+                .id("active-\(viewModel.totalSessionTime)-\(viewModel.heartRate)-\(viewModel.currentRepetition)-\(viewModel.canCompleteExercise)") // Force view updates
+            } else if viewModel.showingCompletionView {
                 WorkoutCompletionView(
-                    onComplete: { viewModel.completeSession() }
+                    onComplete: {
+                        viewModel.completeSession()
+                        refreshTrigger.toggle()
+                    }
                 )
+            } else {
+                ProgressView()
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            refreshTrigger.toggle()
+                        }
+                    }
             }
         }
+        .navigationBarBackButtonHidden(true)
         .onAppear {
-            // Начинаем сессию автоматически при показе экрана
+            // Начинаем сессию когда появляется view
             viewModel.startSession()
+            
+            // Заставляем несколько раз перезагрузиться
+            for delay in [0.5, 1.5, 3.0] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    refreshTrigger.toggle()
+                }
+            }
         }
         .onChange(of: viewModel.navigateBack) { _, newValue in
             if newValue {
                 presentationMode.wrappedValue.dismiss()
             }
         }
-    }
-}
-
-// MARK: - Previews
-struct WorkoutSessionView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Создаем тестовые данные для превью
-            let exercise = SwimWorkoutModels.SwimExercise(
-                id: "test-1",
-                description: nil,
-                style: 0,
-                type: 1,
-                hasInterval: true,
-                intervalMinutes: 1,
-                intervalSeconds: 0,
-                meters: 50,
-                orderIndex: 0,
-                repetitions: 20
-            )
-            
-            let activeExerciseData = SwimWorkoutModels.ActiveExerciseData(
-                from: exercise,
-                index: 2,
-                totalExercises: 3
-            )
-            
-            // Превью активного упражнения
-            ExerciseActiveView(
-                exercise: activeExerciseData,
-                onComplete: {}
-            )
-            .previewDisplayName("Активное упражнение")
-            
-            // Превью экрана упражнения
-            ExercisePreviewView(
-                exercise: activeExerciseData,
-                onStart: {}
-            )
-            .previewDisplayName("Превью упражнения")
-            
-            // Превью завершения
-            WorkoutCompletionView(onComplete: {})
-                .previewDisplayName("Завершение тренировки")
+        .onChange(of: refreshTrigger) { _, _ in
+            // Чтобы стригерить view refreshers
         }
     }
 }

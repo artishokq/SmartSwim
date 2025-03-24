@@ -313,3 +313,176 @@ extension CoreDataManager {
         _ = saveContext()
     }
 }
+
+// MARK: - WorkoutSession CRUD
+extension CoreDataManager {
+    // Создаёт запись о завершённой тренировке со всеми связанными данными
+    @discardableResult
+    func createWorkoutSession(
+        date: Date,
+        totalTime: Double,
+        totalCalories: Double,
+        poolSize: Int16,
+        workoutOriginalId: String,
+        workoutName: String,
+        exercisesData: [CompletedExerciseData]
+    ) -> WorkoutSessionEntity? {
+        
+        // Создаём основную запись о тренировке
+        let workoutSession = WorkoutSessionEntity(context: context)
+        workoutSession.id = UUID()
+        workoutSession.date = date
+        workoutSession.totalTime = totalTime
+        workoutSession.totalCalories = totalCalories
+        workoutSession.poolSize = poolSize
+        workoutSession.workoutOriginalId = workoutOriginalId
+        workoutSession.workoutName = workoutName
+        
+        // Создаём и добавляем упражнения
+        for exerciseData in exercisesData {
+            createExerciseSession(
+                for: workoutSession,
+                exerciseData: exerciseData
+            )
+        }
+        
+        if saveContext() {
+            return workoutSession
+        } else {
+            context.delete(workoutSession)
+            return nil
+        }
+    }
+    
+    // Создаёт запись об упражнении с данными об отрезках
+    @discardableResult
+    private func createExerciseSession(
+        for workoutSession: WorkoutSessionEntity,
+        exerciseData: CompletedExerciseData
+    ) -> ExerciseSessionEntity? {
+        
+        let exerciseSession = ExerciseSessionEntity(context: context)
+        exerciseSession.id = UUID()
+        exerciseSession.startTime = exerciseData.startTime
+        exerciseSession.endTime = exerciseData.endTime
+        exerciseSession.orderIndex = Int16(exerciseData.orderIndex)
+        
+        // Сохраняем свойства упражнения (снимок)
+        exerciseSession.exerciseOriginalId = exerciseData.exerciseId
+        exerciseSession.exerciseDescription = exerciseData.description
+        exerciseSession.style = Int16(exerciseData.style)
+        exerciseSession.type = Int16(exerciseData.type)
+        exerciseSession.hasInterval = exerciseData.hasInterval
+        exerciseSession.intervalMinutes = Int16(exerciseData.intervalMinutes)
+        exerciseSession.intervalSeconds = Int16(exerciseData.intervalSeconds)
+        exerciseSession.meters = Int16(exerciseData.meters)
+        exerciseSession.repetitions = Int16(exerciseData.repetitions)
+        
+        // Устанавливаем связь с тренировкой
+        exerciseSession.workoutSession = workoutSession
+        
+        // Создаём отрезки для этого упражнения
+        for lapData in exerciseData.laps {
+            createLapSessionForExercise(
+                exerciseSession: exerciseSession,
+                lapData: lapData
+            )
+        }
+        
+        return exerciseSession
+    }
+    
+    // Создаёт запись об отрезке для упражнения
+    @discardableResult
+    private func createLapSessionForExercise(
+        exerciseSession: ExerciseSessionEntity,
+        lapData: CompletedLapData
+    ) -> LapSessionEntity? {
+        
+        let lap = LapSessionEntity(context: context)
+        lap.id = UUID()
+        lap.lapNumber = Int16(lapData.lapNumber)
+        lap.distance = Int16(lapData.distance)
+        lap.lapTime = lapData.lapTime
+        lap.heartRate = lapData.heartRate
+        lap.strokes = Int16(lapData.strokes)
+        lap.timestamp = lapData.timestamp
+        
+        // Устанавливаем связь с упражнением
+        lap.exerciseSession = exerciseSession
+        
+        return lap
+    }
+    
+    // Получает все записи о тренировках
+    func fetchAllWorkoutSessions() -> [WorkoutSessionEntity] {
+        let request: NSFetchRequest<WorkoutSessionEntity> = WorkoutSessionEntity.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch workout sessions: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    // Получает запись о тренировке по ID
+    func fetchWorkoutSession(byID id: UUID) -> WorkoutSessionEntity? {
+        let request: NSFetchRequest<WorkoutSessionEntity> = WorkoutSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+        
+        do {
+            let results = try context.fetch(request)
+            return results.first
+        } catch {
+            print("Failed to fetch workout session by ID: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    // Удаляет запись о тренировке
+    func deleteWorkoutSession(_ workoutSession: WorkoutSessionEntity) {
+        context.delete(workoutSession)
+        _ = saveContext()
+    }
+    
+    // Получает все упражнения для записи о тренировке
+    func fetchExerciseSessions(for workoutSession: WorkoutSessionEntity) -> [ExerciseSessionEntity] {
+        let request: NSFetchRequest<ExerciseSessionEntity> = ExerciseSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "workoutSession == %@", workoutSession)
+        request.sortDescriptors = [NSSortDescriptor(key: "orderIndex", ascending: true)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch exercise sessions: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    // Получает все отрезки для упражнения
+    func fetchLapSessions(for exerciseSession: ExerciseSessionEntity) -> [LapSessionEntity] {
+        let request: NSFetchRequest<LapSessionEntity> = LapSessionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "exerciseSession == %@", exerciseSession)
+        request.sortDescriptors = [NSSortDescriptor(key: "lapNumber", ascending: true)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch lap sessions: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    // Получает статистику по тренировкам (количество, общее время, калории)
+    func getWorkoutSessionsStats() -> (count: Int, totalTime: Double, totalCalories: Double) {
+        let sessions = fetchAllWorkoutSessions()
+        let count = sessions.count
+        let totalTime = sessions.reduce(0) { $0 + $1.totalTime }
+        let totalCalories = sessions.reduce(0) { $0 + $1.totalCalories }
+        
+        return (count, totalTime, totalCalories)
+    }
+}

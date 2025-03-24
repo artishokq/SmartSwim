@@ -21,10 +21,11 @@ struct ExercisePreviewView: View {
         static let cooldownTypeValue: Int = 2
         static let mainExerciseTypeValue: Int = 0
         
-        static let displayNameFontSize: CGFloat = 28
-        static let styleNameFontSize: CGFloat = 22
+        static let displayNameFontSize: CGFloat = 24
+        static let styleNameFontSize: CGFloat = 20
+        static let headerFontSize: CGFloat = 16
         static let modeLabelFontSize: CGFloat = 20
-        static let modeValueFontSize: CGFloat = 28
+        static let modeValueFontSize: CGFloat = 22
         static let buttonTextFontSize: CGFloat = 18
         
         static let verticalSpacing: CGFloat = 0
@@ -46,48 +47,55 @@ struct ExercisePreviewView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Constants.verticalSpacing) {
             if let exercise = exercise {
-                // Заголовок
-                Text(Constants.exercisePrefix + "\(exercise.index)")
-                    .font(.headline)
-                    .foregroundColor(Constants.headerColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Номер задания вверху с дополнительным отступом
+                ZStack(alignment: .leading) {
+                    // Фоновый прямоугольник для лучшей видимости заголовка
+                    Rectangle()
+                        .fill(Color.black)
+                        .frame(height: 26)
+                    
+                    // Заголовок с номером задания
+                    Text(Constants.exercisePrefix + "\(exercise.index)")
+                        .font(.system(size: Constants.headerFontSize, weight: .medium))
+                        .foregroundColor(Constants.headerColor)
+                        .padding(.vertical, 4)
+                }
+                .padding(.top, 4) // Отступ сверху, чтобы избежать блюринга
                 
-                VStack(alignment: .leading, spacing: Constants.verticalSpacing) {
-                    // Данные упражнения
-                    
-                    // Проверяем тип упражнения для специального отображения
-                    if exercise.exerciseRef.type == Constants.warmupTypeValue {
-                        Text(Constants.warmupText)
-                            .font(.body)
-                    } else if exercise.exerciseRef.type == Constants.cooldownTypeValue {
-                        Text(Constants.cooldownText)
-                            .font(.body)
-                    } else if exercise.exerciseRef.type == Constants.mainExerciseTypeValue {
-                        Text(Constants.mainExerciseText)
-                            .font(.body)
-                    }
-                    
-                    // Метраж и повторения
-                    Text(exercise.exerciseRef.displayName)
-                        .font(.system(size: Constants.displayNameFontSize, weight: .bold))
-                        .foregroundColor(Constants.exerciseNameColor)
-                    
-                    // Стиль плавания
-                    Text(exercise.exerciseRef.getStyleName())
-                        .font(.system(size: Constants.styleNameFontSize, weight: .semibold))
-                    
-                    // Интервал (режим)
-                    if exercise.exerciseRef.hasInterval {
-                        HStack {
-                            Text(Constants.modeText)
-                                .font(.system(size: Constants.modeLabelFontSize, weight: .semibold))
-                            Text(exercise.formattedInterval)
-                                .font(.system(size: Constants.modeValueFontSize, weight: .bold))
-                                .foregroundColor(Constants.modeValueColor)
-                        }
+                // Проверяем тип упражнения для специального отображения
+                if exercise.exerciseRef.type == Constants.warmupTypeValue {
+                    Text(Constants.warmupText)
+                        .font(.body)
+                } else if exercise.exerciseRef.type == Constants.cooldownTypeValue {
+                    Text(Constants.cooldownText)
+                        .font(.body)
+                } else if exercise.exerciseRef.type == Constants.mainExerciseTypeValue {
+                    Text(Constants.mainExerciseText)
+                        .font(.body)
+                }
+                
+                // Метраж и повторения
+                Text(exercise.exerciseRef.displayName)
+                    .font(.system(size: Constants.displayNameFontSize, weight: .bold))
+                    .foregroundColor(Constants.exerciseNameColor)
+                
+                // Стиль плавания
+                Text(exercise.exerciseRef.getStyleName())
+                    .font(.system(size: Constants.styleNameFontSize, weight: .semibold))
+                
+                // Интервал (режим) с выравниванием значения справа
+                if exercise.exerciseRef.hasInterval {
+                    HStack {
+                        Text(Constants.modeText)
+                            .font(.system(size: Constants.modeLabelFontSize, weight: .semibold))
+                        Spacer()
+                        Text(exercise.formattedInterval)
+                            .font(.system(size: Constants.modeValueFontSize, weight: .bold))
+                            .foregroundColor(Constants.modeValueColor)
                     }
                 }
-                .padding(.vertical, Constants.verticalPadding)
+                
+                Spacer()
                 
                 // Кнопка "Начать"
                 HStack {
@@ -106,5 +114,36 @@ struct ExercisePreviewView: View {
                 ProgressView()
             }
         }
+        .padding(.bottom, Constants.verticalPadding)
+        .padding(.horizontal, 12)
+    }
+}
+
+// MARK: - Previews
+struct ExercisePreviewView_Previews: PreviewProvider {
+    static var previews: some View {
+        let exercise = SwimWorkoutModels.SwimExercise(
+            id: "test-1",
+            description: nil,
+            style: 0,
+            type: 1,
+            hasInterval: true,
+            intervalMinutes: 1,
+            intervalSeconds: 0,
+            meters: 50,
+            orderIndex: 0,
+            repetitions: 20
+        )
+        
+        let activeExerciseData = SwimWorkoutModels.ActiveExerciseData(
+            from: exercise,
+            index: 2,
+            totalExercises: 3
+        )
+        
+        ExercisePreviewView(
+            exercise: activeExerciseData,
+            onStart: {}
+        )
     }
 }
