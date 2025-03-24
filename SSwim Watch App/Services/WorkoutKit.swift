@@ -68,6 +68,56 @@ final class WorkoutKit {
         }
     }
     
+    // MARK: - Private Methods
+    private func subscribeToMessages() {
+        let workoutsDataId = communicationService.subscribe(to: .workoutsData) { [weak self] message in
+            if let workoutsData = message["workoutsData"] as? [[String: Any]] {
+                self?.processWorkoutsData(workoutsData)
+            }
+        }
+        subscriptionIds.append(workoutsDataId)
+    }
+    
+    private func processWorkoutsData(_ workoutsData: [[String: Any]]) {
+        let receivedWorkouts = workoutsData.compactMap { SwimWorkoutModels.SwimWorkout.fromDictionary($0) }
+        saveWorkoutsLocally(receivedWorkouts)
+        
+        DispatchQueue.main.async {
+            self.workouts = receivedWorkouts
+            self.pendingWorkoutsRequest = false
+        }
+    }
+    
+    private func saveWorkoutsLocally(_ workouts: [SwimWorkoutModels.SwimWorkout]) {
+        do {
+            let encoder = JSONEncoder()
+            let workoutsData = try encoder.encode(workouts)
+            
+            if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
+                try workoutsData.write(to: fileURL, options: .atomic)
+            }
+        } catch {
+        }
+    }
+    
+    private func loadWorkoutsFromLocalStorage() -> [SwimWorkoutModels.SwimWorkout] {
+        do {
+            if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
+                
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    let workoutsData = try Data(contentsOf: fileURL)
+                    let decoder = JSONDecoder()
+                    let cachedWorkouts = try decoder.decode([SwimWorkoutModels.SwimWorkout].self, from: workoutsData)
+                    return cachedWorkouts
+                }
+            }
+        } catch {
+        }
+        return []
+    }
+    
     // MARK: - Public Methods
     @discardableResult
     func requestWorkouts() -> Bool {
@@ -118,55 +168,5 @@ final class WorkoutKit {
     
     func getWorkoutById(_ id: String) -> SwimWorkoutModels.SwimWorkout? {
         return workouts.first { $0.id == id }
-    }
-    
-    // MARK: - Private Methods
-    private func subscribeToMessages() {
-        let workoutsDataId = communicationService.subscribe(to: .workoutsData) { [weak self] message in
-            if let workoutsData = message["workoutsData"] as? [[String: Any]] {
-                self?.processWorkoutsData(workoutsData)
-            }
-        }
-        subscriptionIds.append(workoutsDataId)
-    }
-    
-    private func processWorkoutsData(_ workoutsData: [[String: Any]]) {
-        let receivedWorkouts = workoutsData.compactMap { SwimWorkoutModels.SwimWorkout.fromDictionary($0) }
-        saveWorkoutsLocally(receivedWorkouts)
-        
-        DispatchQueue.main.async {
-            self.workouts = receivedWorkouts
-            self.pendingWorkoutsRequest = false
-        }
-    }
-    
-    private func saveWorkoutsLocally(_ workouts: [SwimWorkoutModels.SwimWorkout]) {
-        do {
-            let encoder = JSONEncoder()
-            let workoutsData = try encoder.encode(workouts)
-            
-            if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-                let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
-                try workoutsData.write(to: fileURL, options: .atomic)
-            }
-        } catch {
-        }
-    }
-    
-    private func loadWorkoutsFromLocalStorage() -> [SwimWorkoutModels.SwimWorkout] {
-        do {
-            if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-                let fileURL = docsDir.appendingPathComponent("cached_workouts.json")
-                
-                if FileManager.default.fileExists(atPath: fileURL.path) {
-                    let workoutsData = try Data(contentsOf: fileURL)
-                    let decoder = JSONDecoder()
-                    let cachedWorkouts = try decoder.decode([SwimWorkoutModels.SwimWorkout].self, from: workoutsData)
-                    return cachedWorkouts
-                }
-            }
-        } catch {
-        }
-        return []
     }
 }

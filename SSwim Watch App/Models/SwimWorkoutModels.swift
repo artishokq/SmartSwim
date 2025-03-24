@@ -89,9 +89,9 @@ enum SwimWorkoutModels {
             }
             
             if intervalMinutes > 0 {
-                return "режим \(intervalMinutes) мин \(intervalSeconds > 0 ? "\(intervalSeconds) сек" : "")"
+                return "Режим \(intervalMinutes) мин \(intervalSeconds > 0 ? "\(intervalSeconds) сек" : "")"
             } else if intervalSeconds > 0 {
-                return "режим \(intervalSeconds) сек"
+                return "Режим \(intervalSeconds) сек"
             }
             return ""
         }
@@ -123,6 +123,119 @@ enum SwimWorkoutModels {
                 orderIndex: orderIndex,
                 repetitions: repetitions
             )
+        }
+        
+        var displayName: String {
+            if repetitions > 1 {
+                return "\(repetitions)×\(meters)м"
+            } else {
+                return "\(meters)м"
+            }
+        }
+        
+        // Получение полного интервала в секундах
+        var intervalInSeconds: Int {
+            return (intervalMinutes * 60) + intervalSeconds
+        }
+    }
+    
+    // MARK: - Модели для активной тренировки
+    enum WorkoutSessionState {
+        case notStarted
+        case previewingExercise
+        case exerciseActive
+        case completed
+    }
+    
+    // Данные активного упражнения
+    struct ActiveExerciseData {
+        let exerciseId: String
+        let index: Int
+        let totalExercises: Int
+        let exerciseRef: SwimExercise
+        
+        // Данные во время тренировки
+        var currentRepetition: Int = 1
+        var totalSessionTime: TimeInterval = 0
+        var currentRepetitionTime: TimeInterval = 0
+        var heartRate: Double = 0
+        var strokeCount: Int = 0
+        
+        // Форматированное время
+        var formattedTotalTime: String {
+            return formatTimeInterval(totalSessionTime)
+        }
+        
+        var formattedRepetitionTime: String {
+            return formatTimeInterval(currentRepetitionTime)
+        }
+        
+        var formattedInterval: String {
+            let minutes = exerciseRef.intervalMinutes
+            let seconds = exerciseRef.intervalSeconds
+            return String(format: "%02d:%02d", minutes, seconds)
+        }
+        
+        // Вспомогательные методы
+        private func formatTimeInterval(_ interval: TimeInterval) -> String {
+            let hours = Int(interval) / 3600
+            let minutes = Int(interval) / 60 % 60
+            let seconds = Int(interval) % 60
+            
+            // Всегда отображаем в формате часы:минуты:секунды
+            return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        }
+        
+        // Инициализатор
+        init(from exercise: SwimExercise, index: Int, totalExercises: Int) {
+            self.exerciseId = exercise.id
+            self.index = index
+            self.totalExercises = totalExercises
+            self.exerciseRef = exercise
+        }
+    }
+    
+    // Данные о выполненном отрезке
+    struct LapData {
+        let timestamp: Date
+        let lapNumber: Int
+        let exerciseId: String
+        let distance: Int
+        let lapTime: TimeInterval
+        let heartRate: Double
+        let strokes: Int
+    }
+    
+    // Данные о выполненном упражнении
+    struct CompletedExerciseData {
+        let exerciseId: String
+        let startTime: Date
+        let endTime: Date
+        let laps: [LapData]
+        
+        var totalTime: TimeInterval {
+            return endTime.timeIntervalSince(startTime)
+        }
+        
+        var averageHeartRate: Double {
+            guard !laps.isEmpty else { return 0 }
+            return laps.reduce(0) { $0 + $1.heartRate } / Double(laps.count)
+        }
+        
+        var totalStrokes: Int {
+            return laps.reduce(0) { $0 + $1.strokes }
+        }
+    }
+    
+    // Данные о выполненной тренировке
+    struct CompletedWorkoutData {
+        let workoutId: String
+        let startTime: Date
+        let endTime: Date
+        let exercises: [CompletedExerciseData]
+        
+        var totalTime: TimeInterval {
+            return endTime.timeIntervalSince(startTime)
         }
     }
 }

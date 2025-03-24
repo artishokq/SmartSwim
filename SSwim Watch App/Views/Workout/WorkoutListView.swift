@@ -20,17 +20,19 @@ struct WorkoutListView: View {
     
     // MARK: - Body
     var body: some View {
-        VStack(spacing: Constants.itemSpacing) {
+        VStack(alignment: .leading, spacing: Constants.itemSpacing) {
             if workoutService.isLoading {
                 Text(Constants.loadingMessage)
                     .font(.footnote)
                     .foregroundColor(.gray)
-                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical)
             } else if workoutService.workouts.isEmpty {
                 Text(Constants.emptyMessage)
                     .font(.footnote)
                     .foregroundColor(.gray)
-                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical)
             } else {
                 workoutsList
             }
@@ -39,7 +41,7 @@ struct WorkoutListView: View {
     
     // MARK: - Views
     private var workoutsList: some View {
-        VStack(spacing: Constants.itemSpacing) {
+        VStack(alignment: .leading, spacing: Constants.itemSpacing) {
             ForEach(workoutService.workouts) { workout in
                 NavigationLink(destination: WorkoutDetailView(workout: workout)) {
                     WorkoutListItemView(workout: workout)

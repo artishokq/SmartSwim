@@ -15,6 +15,7 @@ struct MainView: View {
         static let workoutsTitle: String = "Тренировки"
         
         static let swimIcon: String = "figure.pool.swim"
+        static let swimIconSize: CGFloat = 22
         
         static let mainStackSpacing: CGFloat = 10
         static let itemsStackSpacing: CGFloat = 12
@@ -23,6 +24,11 @@ struct MainView: View {
         
         static let swimIconColor: Color = Color.blue
         static let buttonBackgroundColor: Color = Color.gray.opacity(0.2)
+        
+        static let startsButtonMinHeight: CGFloat = 60
+        static let startsButtonPadding: CGFloat = 14
+        
+        static let workoutSectionSpace: CGFloat = 8
     }
     
     // MARK: - Properties
@@ -51,11 +57,13 @@ struct MainView: View {
                             HStack {
                                 Image(systemName: Constants.swimIcon)
                                     .foregroundColor(Constants.swimIconColor)
+                                    .font(.system(size: Constants.swimIconSize))
                                 Text(Constants.startsButtonText)
                                     .font(.headline)
                                 Spacer()
                             }
-                            .padding()
+                            .padding(.vertical, Constants.startsButtonPadding)
+                            .padding(.horizontal)
                             .frame(maxWidth: .infinity)
                             .background(Constants.buttonBackgroundColor)
                             .cornerRadius(Constants.cornerRadius)
@@ -63,10 +71,9 @@ struct MainView: View {
                         .buttonStyle(PlainButtonStyle())
                         
                         // MARK: - Секция тренировок
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Constants.workoutSectionSpace) {
                             Text(Constants.workoutsTitle)
                                 .font(.headline)
-                            
                             // Встроенный список тренировок
                             WorkoutListView()
                         }

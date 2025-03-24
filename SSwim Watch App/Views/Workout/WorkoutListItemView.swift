@@ -13,6 +13,8 @@ struct WorkoutListItemView: View {
         static let cornerRadius: CGFloat = 8
         static let padding: CGFloat = 12
         static let backgroundColor = Color.gray.opacity(0.2)
+        static let itemSpacing: CGFloat = 2
+        static let poolSizeFormat = "Бассейн: %dм"
     }
     
     // MARK: - Properties
@@ -21,11 +23,18 @@ struct WorkoutListItemView: View {
     // MARK: - Body
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Constants.itemSpacing) {
+                // Название тренировки
                 Text(workout.name)
                     .font(.subheadline)
                     .foregroundColor(.primary)
                 
+                // Размер бассейна
+                Text(String(format: Constants.poolSizeFormat, workout.poolSize))
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                // Общий метраж тренировки
                 Text("\(workout.totalMeters)м")
                     .font(.caption)
                     .foregroundColor(.gray)

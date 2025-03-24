@@ -14,6 +14,8 @@ struct StartWaitingView: View {
         static let setupInstructions = "Настройте параметры на iPhone и нажмите Старт"
         static let parametersReceived = "Параметры получены!"
         
+        static let iphoneIconName: String = "iphone.circle"
+        
         static let stackSpacing: CGFloat = 15
         static let iconSize: CGFloat = 45
         static let textHorizontalPadding: CGFloat = 5
@@ -36,7 +38,7 @@ struct StartWaitingView: View {
                 Text(Constants.waitingTitle)
                     .font(.headline)
                 
-                Image(systemName: "iphone.circle")
+                Image(systemName: Constants.iphoneIconName)
                     .font(.system(size: Constants.iconSize))
                     .foregroundColor(Constants.iconColor)
                 
@@ -53,7 +55,7 @@ struct StartWaitingView: View {
                         .padding(.vertical, Constants.successVerticalPadding)
                 }
                 
-
+                
                 Button(action: {
                 }) {
                     Color.clear

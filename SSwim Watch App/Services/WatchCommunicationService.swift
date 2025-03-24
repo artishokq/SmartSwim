@@ -66,6 +66,79 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
         startSession()
     }
     
+    // MARK: - Private Methods
+    private func handleMessage(_ message: [String: Any]) {
+        if let command = message["command"] as? String {
+            let messageWithType = addMessageType(to: message, type: .command)
+            notifyHandlers(type: .command, message: messageWithType)
+            return
+        }
+        
+        if message["poolSize"] != nil {
+            let messageWithType = addMessageType(to: message, type: .poolLength)
+            notifyHandlers(type: .poolLength, message: messageWithType)
+            return
+        }
+        
+        if message["swimmingStyle"] != nil {
+            let messageWithType = addMessageType(to: message, type: .swimmingStyle)
+            notifyHandlers(type: .swimmingStyle, message: messageWithType)
+            return
+        }
+        
+        if message["totalMeters"] != nil {
+            let messageWithType = addMessageType(to: message, type: .totalMeters)
+            notifyHandlers(type: .totalMeters, message: messageWithType)
+            return
+        }
+        
+        if message["requestAllParameters"] != nil {
+            let messageWithType = addMessageType(to: message, type: .requestAllParameters)
+            notifyHandlers(type: .requestAllParameters, message: messageWithType)
+            return
+        }
+        
+        if message["requestPoolLength"] != nil {
+            let messageWithType = addMessageType(to: message, type: .poolLength)
+            notifyHandlers(type: .poolLength, message: messageWithType)
+            return
+        }
+        
+        if message["workoutsData"] != nil {
+            let messageWithType = addMessageType(to: message, type: .workoutsData)
+            notifyHandlers(type: .workoutsData, message: messageWithType)
+            return
+        }
+        
+        if message["requestWorkouts"] != nil {
+            let messageWithType = addMessageType(to: message, type: .requestWorkouts)
+            notifyHandlers(type: .requestWorkouts, message: messageWithType)
+            return
+        }
+        
+        if let typeString = message["messageType"] as? String,
+           let type = MessageType(rawValue: typeString) {
+            notifyHandlers(type: type, message: message)
+            return
+        }
+    }
+    
+    private func notifyHandlers(type: MessageType, message: [String: Any]) {
+        messagePublisher.send((type, message))
+        
+        if let typeHandlers = handlers[type] {
+            for (_, handler) in typeHandlers {
+                handler(message)
+            }
+        }
+    }
+    
+    private func addMessageType(to message: [String: Any], type: MessageType) -> [String: Any] {
+        var newMessage = message
+        newMessage["messageType"] = type.rawValue
+        return newMessage
+    }
+    
     // MARK: - Public Methods
     func startSession() {
         if WCSession.isSupported() {
@@ -176,78 +249,5 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
             }
             replyHandler(response)
         }
-    }
-    
-    // MARK: - Private Methods
-    private func handleMessage(_ message: [String: Any]) {
-        if let command = message["command"] as? String {
-            let messageWithType = addMessageType(to: message, type: .command)
-            notifyHandlers(type: .command, message: messageWithType)
-            return
-        }
-        
-        if message["poolSize"] != nil {
-            let messageWithType = addMessageType(to: message, type: .poolLength)
-            notifyHandlers(type: .poolLength, message: messageWithType)
-            return
-        }
-        
-        if message["swimmingStyle"] != nil {
-            let messageWithType = addMessageType(to: message, type: .swimmingStyle)
-            notifyHandlers(type: .swimmingStyle, message: messageWithType)
-            return
-        }
-        
-        if message["totalMeters"] != nil {
-            let messageWithType = addMessageType(to: message, type: .totalMeters)
-            notifyHandlers(type: .totalMeters, message: messageWithType)
-            return
-        }
-        
-        if message["requestAllParameters"] != nil {
-            let messageWithType = addMessageType(to: message, type: .requestAllParameters)
-            notifyHandlers(type: .requestAllParameters, message: messageWithType)
-            return
-        }
-        
-        if message["requestPoolLength"] != nil {
-            let messageWithType = addMessageType(to: message, type: .poolLength)
-            notifyHandlers(type: .poolLength, message: messageWithType)
-            return
-        }
-        
-        if message["workoutsData"] != nil {
-            let messageWithType = addMessageType(to: message, type: .workoutsData)
-            notifyHandlers(type: .workoutsData, message: messageWithType)
-            return
-        }
-        
-        if message["requestWorkouts"] != nil {
-            let messageWithType = addMessageType(to: message, type: .requestWorkouts)
-            notifyHandlers(type: .requestWorkouts, message: messageWithType)
-            return
-        }
-        
-        if let typeString = message["messageType"] as? String,
-           let type = MessageType(rawValue: typeString) {
-            notifyHandlers(type: type, message: message)
-            return
-        }
-    }
-    
-    private func notifyHandlers(type: MessageType, message: [String: Any]) {
-        messagePublisher.send((type, message))
-        
-        if let typeHandlers = handlers[type] {
-            for (_, handler) in typeHandlers {
-                handler(message)
-            }
-        }
-    }
-    
-    private func addMessageType(to message: [String: Any], type: MessageType) -> [String: Any] {
-        var newMessage = message
-        newMessage["messageType"] = type.rawValue
-        return newMessage
     }
 }

@@ -14,7 +14,7 @@ protocol WatchDataDelegate: AnyObject {
     func didReceiveWatchStatus(_ status: String)
 }
 
-class WatchSessionManager: NSObject, WCSessionDelegate {
+final class WatchSessionManager: NSObject, WCSessionDelegate {
     static let shared = WatchSessionManager()
     weak var delegate: WatchDataDelegate?
     private var isSessionActive = false

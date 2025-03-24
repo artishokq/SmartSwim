@@ -15,42 +15,53 @@ struct WorkoutDetailView: View {
         static let startButton = "Начать"
         
         static let mainStackSpacing: CGFloat = 12
+        static let titleStackSpacing: CGFloat = 2
         static let exerciseStackSpacing: CGFloat = 8
         static let cornerRadius: CGFloat = 8
         static let buttonHeight: CGFloat = 44
+        static let vstackTopPadding: CGFloat = 8
+        static let totalMetersTopPadding: CGFloat = 4
+        static let buttonBottomPadding: CGFloat = 12
         
-        static let primaryColor = Color.blue
+        static let primaryColor = Color.green
     }
     
     // MARK: - Properties
     let workout: SwimWorkoutModels.SwimWorkout
+    @State private var showingWorkoutSession = false
+    @EnvironmentObject private var workoutService: WorkoutService
     
     // MARK: - Body
     var body: some View {
         ScrollView {
             VStack(spacing: Constants.mainStackSpacing) {
-                // Заголовок тренировки
-                Text(workout.name)
-                    .font(.headline)
-                    .padding(.top, 8)
-                
-                // Информация о бассейне
-                Text(String(format: Constants.poolLengthFormat, workout.poolSize))
-                    .font(.footnote)
-                    .foregroundColor(.gray)
+                VStack(spacing: Constants.titleStackSpacing) {
+                    Text(workout.name)
+                        .font(.headline)
+                    
+                    Text(String(format: Constants.poolLengthFormat, workout.poolSize))
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, Constants.vstackTopPadding)
                 
                 // Список упражнений
                 exercisesList
                 
                 // Общая информация и кнопка старта
                 Text(String(format: Constants.totalFormat, workout.totalMeters))
-                    .font(.footnote)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal)
+                    .padding(.top, Constants.totalMetersTopPadding)
                 
-                // Кнопка "Начать"
+                // Кнопка Начать
                 Button(action: {
-
+                    // Выбираем эту тренировку
+                    workoutService.selectWorkout(workout)
+                    // Показываем экран сессии
+                    showingWorkoutSession = true
                 }) {
                     Text(Constants.startButton)
                         .font(.headline)
@@ -62,8 +73,11 @@ struct WorkoutDetailView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .padding(.horizontal)
-                .padding(.bottom, 12)
+                .padding(.bottom, Constants.buttonBottomPadding)
             }
+        }
+        .navigationDestination(isPresented: $showingWorkoutSession) {
+            WorkoutSessionView(workout: workout)
         }
     }
     
@@ -91,7 +105,7 @@ struct WorkoutDetailView_Previews: PreviewProvider {
                 exercises: [
                     SwimWorkoutModels.SwimExercise(
                         id: "1-1",
-                        description: nil,
+                        description: "плыть спокойно",
                         style: 0,
                         type: 1,
                         hasInterval: false,
@@ -108,7 +122,7 @@ struct WorkoutDetailView_Previews: PreviewProvider {
                         type: 0,
                         hasInterval: true,
                         intervalMinutes: 1,
-                        intervalSeconds: 0,
+                        intervalSeconds: 30,
                         meters: 50,
                         orderIndex: 1,
                         repetitions: 20
@@ -116,5 +130,6 @@ struct WorkoutDetailView_Previews: PreviewProvider {
                 ]
             )
         )
+        .environmentObject(ServiceLocator.shared.workoutService)
     }
 }

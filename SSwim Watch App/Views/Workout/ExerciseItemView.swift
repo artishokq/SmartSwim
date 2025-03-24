@@ -14,6 +14,14 @@ struct ExerciseItemView: View {
         static let padding: CGFloat = 10
         static let spacingV: CGFloat = 4
         static let backgroundColor = Color.gray.opacity(0.15)
+        
+        static let typeHorizontalPadding: CGFloat = 5
+        static let typeTetxColor: Color = .blue
+        
+        static let intervalTextColor: Color = .gray
+        
+        static let descriptionTextColor: Color = .secondary
+        static let descriptionTopPadding: CGFloat = 2
     }
     
     // MARK: - Properties
@@ -27,19 +35,35 @@ struct ExerciseItemView: View {
                 Text("\(index).")
                     .font(.subheadline)
                 
-                if exercise.repetitions > 1 {
-                    Text("\(exercise.repetitions)×\(exercise.meters)м \(exercise.getStyleName())")
-                        .font(.subheadline)
-                } else {
-                    Text("\(exercise.meters)м \(exercise.getStyleName())")
-                        .font(.subheadline)
-                }
+                // Тип упражнения
+                Text(exercise.getTypeName())
+                    .font(.caption)
+                    .foregroundColor(Constants.typeTetxColor)
+                    .padding(.horizontal, Constants.typeHorizontalPadding)
             }
             
+            // Метры, повторения, стиль
+            if exercise.repetitions > 1 {
+                Text("\(exercise.repetitions)×\(exercise.meters)м \(exercise.getStyleName())")
+                    .font(.subheadline)
+            } else {
+                Text("\(exercise.meters)м \(exercise.getStyleName())")
+                    .font(.subheadline)
+            }
+            
+            // Режим (интервал)
             if !exercise.getFormattedInterval().isEmpty {
                 Text(exercise.getFormattedInterval())
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(Constants.intervalTextColor)
+            }
+            
+            // Описание
+            if let description = exercise.description, !description.isEmpty {
+                Text(description)
+                    .font(.caption2)
+                    .foregroundColor(Constants.descriptionTextColor)
+                    .padding(.top, Constants.descriptionTopPadding)
             }
         }
         .padding(Constants.padding)
@@ -55,9 +79,9 @@ struct ExerciseItemView_Previews: PreviewProvider {
         ExerciseItemView(
             exercise: SwimWorkoutModels.SwimExercise(
                 id: "1",
-                description: nil,
+                description: "Плыть с хорошей техникой, фокус на гребок",
                 style: 0,
-                type: 1,
+                type: 0,
                 hasInterval: true,
                 intervalMinutes: 1,
                 intervalSeconds: 0,

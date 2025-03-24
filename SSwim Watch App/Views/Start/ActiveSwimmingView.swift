@@ -10,16 +10,16 @@ import SwiftUI
 struct ActiveSwimmingView: View {
     // MARK: - Constants
     private enum Constants {
-        static let activeTitle = "Плавание активно"
-        static let poolLengthFormat = "Бассейн: %dм"
-        static let heartRateFormat = "Пульс: %d уд/м"
-        static let strokeCountFormat = "Гребки: %d"
-        static let stopCommand = "stop"
+        static let activeTitle: String = "Плавание активно"
+        static let poolLengthFormat: String = "Бассейн: %dм"
+        static let heartRateFormat: String = "Пульс: %d уд/м"
+        static let strokeCountFormat: String = "Гребки: %d"
+        static let stopCommand: String = "stop"
         
         static let heartIcon = "heart.fill"
         static let swimIcon = "figure.pool.swim"
         
-        static let mainStackSpacing: CGFloat = 15
+        static let mainStackSpacing: CGFloat = 12
         static let metricsStackSpacing: CGFloat = 12
         static let rootNavigationDelay: TimeInterval = 0.5
         
@@ -43,7 +43,7 @@ struct ActiveSwimmingView: View {
                 .foregroundColor(Constants.activeTitleColor)
             
             Text(String(format: Constants.poolLengthFormat, Int(startService.session.poolLength)))
-                .font(.footnote)
+                .font(.headline)
                 .foregroundColor(Constants.poolInfoColor)
             
             // MARK: - Metrics
