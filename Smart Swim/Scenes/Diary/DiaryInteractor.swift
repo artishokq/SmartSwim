@@ -13,13 +13,18 @@ protocol DiaryBusinessLogic {
     func deleteStart(request: DiaryModels.DeleteStart.Request)
     func showStartDetail(request: DiaryModels.ShowStartDetail.Request)
     func createStart(request: DiaryModels.CreateStart.Request)
+    func fetchWorkoutSessions(request: DiaryModels.FetchWorkoutSessions.Request)
+    func deleteWorkoutSession(request: DiaryModels.DeleteWorkoutSession.Request)
+    func showWorkoutSessionDetail(request: DiaryModels.ShowWorkoutSessionDetail.Request)
 }
 
 protocol DiaryDataStore {
     var starts: [StartEntity]? { get set }
+    var workoutSessions: [WorkoutSessionEntity]? { get set }
 }
 
 final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
+    var workoutSessions: [WorkoutSessionEntity]?
     var presenter: DiaryPresentationLogic?
     var starts: [StartEntity]?
     
@@ -69,6 +74,65 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
         presenter?.presentCreateStart(response: response)
     }
     
+    // MARK: - Fetch Workout Sessions
+    func fetchWorkoutSessions(request: DiaryModels.FetchWorkoutSessions.Request) {
+        let workoutSessionEntities = CoreDataManager.shared.fetchAllWorkoutSessions()
+        self.workoutSessions = workoutSessionEntities
+        
+        let sessionData = workoutSessionEntities.map { entity -> DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData in
+
+            let exerciseEntities = CoreDataManager.shared.fetchExerciseSessions(for: entity)
+            
+            let exercises = exerciseEntities.sorted(by: { $0.orderIndex < $1.orderIndex }).map { exercise -> DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData.ExerciseData in
+                return DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData.ExerciseData(
+                    orderIndex: Int(exercise.orderIndex),
+                    description: exercise.exerciseDescription,
+                    style: exercise.style,
+                    type: exercise.type,
+                    meters: exercise.meters,
+                    repetitions: exercise.repetitions,
+                    hasInterval: exercise.hasInterval,
+                    intervalMinutes: exercise.intervalMinutes,
+                    intervalSeconds: exercise.intervalSeconds
+                )
+            }
+            
+            return DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData(
+                id: entity.id ?? UUID(),
+                date: entity.date ?? Date(),
+                totalMeters: calculateTotalMeters(entity),
+                totalTime: entity.totalTime,
+                poolSize: entity.poolSize,
+                workoutName: entity.workoutName ?? "Тренировка",
+                exercises: exercises
+            )
+        }
+        
+        let response = DiaryModels.FetchWorkoutSessions.Response(workoutSessions: sessionData)
+        presenter?.presentWorkoutSessions(response: response)
+    }
+    
+    // MARK: - Delete Workout Session
+    func deleteWorkoutSession(request: DiaryModels.DeleteWorkoutSession.Request) {
+        if let session = CoreDataManager.shared.fetchWorkoutSession(byID: request.id) {
+            CoreDataManager.shared.deleteWorkoutSession(session)
+            
+            // Удаляем из локального массива
+            if let index = workoutSessions?.firstIndex(where: { $0.id == request.id }) {
+                workoutSessions?.remove(at: index)
+            }
+            
+            let response = DiaryModels.DeleteWorkoutSession.Response(index: request.index)
+            presenter?.presentDeleteWorkoutSession(response: response)
+        }
+    }
+    
+    // MARK: - Show Workout Session Detail
+    func showWorkoutSessionDetail(request: DiaryModels.ShowWorkoutSessionDetail.Request) {
+        let response = DiaryModels.ShowWorkoutSessionDetail.Response(sessionID: request.sessionID)
+        presenter?.presentWorkoutSessionDetail(response: response)
+    }
+    
     // MARK: - Helper Methods
     private func getSwimStyleDescription(_ styleRawValue: Int16) -> String {
         let style = SwimStyle(rawValue: styleRawValue) ?? .freestyle
@@ -79,6 +143,16 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
         case .butterfly: return "баттерфляй"
         case .medley: return "комплекс"
         case .any: return "любой стиль"
+        }
+    }
+    
+    private func calculateTotalMeters(_ session: WorkoutSessionEntity) -> Int {
+        guard let exercises = session.exerciseSessions?.allObjects as? [ExerciseSessionEntity] else {
+            return 0
+        }
+        
+        return exercises.reduce(0) { sum, exercise in
+            return sum + Int(exercise.meters * exercise.repetitions)
         }
     }
 }

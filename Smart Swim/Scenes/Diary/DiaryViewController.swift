@@ -13,6 +13,9 @@ protocol DiaryDisplayLogic: AnyObject {
     func displayDeleteStart(viewModel: DiaryModels.DeleteStart.ViewModel)
     func displayStartDetail(viewModel: DiaryModels.ShowStartDetail.ViewModel)
     func displayCreateStart(viewModel: DiaryModels.CreateStart.ViewModel)
+    func displayWorkoutSessions(viewModel: DiaryModels.FetchWorkoutSessions.ViewModel)
+    func displayDeleteWorkoutSession(viewModel: DiaryModels.DeleteWorkoutSession.ViewModel)
+    func displayWorkoutSessionDetail(viewModel: DiaryModels.ShowWorkoutSessionDetail.ViewModel)
 }
 
 final class DiaryViewController: UIViewController, DiaryDisplayLogic {
@@ -28,6 +31,7 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         static let sectionHeaderTopPadding: CGFloat = 0
         
         static let deleteAlertTitle: String = "Удалить старт?"
+        static let deleteWorkoutAlertTitle: String = "Удалить тренировку?"
         static let deleteAlertMessage: String = "Данное действие нельзя отменить."
         static let deleteAlertConfirm: String = "Удалить"
         static let deleteAlertCancel: String = "Отмена"
@@ -44,6 +48,7 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
     var router: (NSObjectProtocol & DiaryRoutingLogic & DiaryDataPassing)?
     
     private var displayedStarts: [DiaryModels.FetchStarts.ViewModel.DisplayedStart] = []
+    private var displayedWorkoutSessions: [DiaryModels.FetchWorkoutSessions.ViewModel.DisplayedWorkoutSession] = []
     private var displayMode: DisplayMode = .starts {
         didSet {
             updateUIForDisplayMode()
@@ -89,6 +94,8 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         
         if displayMode == .starts {
             fetchStarts()
+        } else if displayMode == .workouts {
+            fetchWorkoutSessions()
         }
     }
     
@@ -149,6 +156,7 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(DiaryStartCell.self, forCellReuseIdentifier: DiaryStartCell.identifier)
+        tableView.register(DiaryWorkoutCell.self, forCellReuseIdentifier: DiaryWorkoutCell.identifier)
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.sectionHeaderTopPadding = Constants.sectionHeaderTopPadding
@@ -165,15 +173,17 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         case .workouts:
             workoutButton.setImage(UIImage(named: "workoutOn"), for: .normal)
             startButton.setImage(UIImage(named: "startOff"), for: .normal)
-            tableView.isHidden = true
+            tableView.isHidden = false
+            createButton.isHidden = true
+            fetchWorkoutSessions()
             
         case .starts:
             workoutButton.setImage(UIImage(named: "workoutOff"), for: .normal)
             startButton.setImage(UIImage(named: "startOn"), for: .normal)
             tableView.isHidden = false
+            createButton.isHidden = false
             fetchStarts()
         }
-        createButton.isHidden = displayMode != .starts
     }
     
     // MARK: - Actions
@@ -202,6 +212,11 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
         interactor?.fetchStarts(request: request)
     }
     
+    private func fetchWorkoutSessions() {
+        let request = DiaryModels.FetchWorkoutSessions.Request()
+        interactor?.fetchWorkoutSessions(request: request)
+    }
+    
     // MARK: - Display Logic
     func displayStarts(viewModel: DiaryModels.FetchStarts.ViewModel) {
         displayedStarts = viewModel.starts
@@ -220,12 +235,31 @@ final class DiaryViewController: UIViewController, DiaryDisplayLogic {
     func displayCreateStart(viewModel: DiaryModels.CreateStart.ViewModel) {
         router?.routeToCreateStart()
     }
+    
+    func displayWorkoutSessions(viewModel: DiaryModels.FetchWorkoutSessions.ViewModel) {
+        displayedWorkoutSessions = viewModel.workoutSessions
+        tableView.reloadData()
+    }
+    
+    func displayDeleteWorkoutSession(viewModel: DiaryModels.DeleteWorkoutSession.ViewModel) {
+        displayedWorkoutSessions.remove(at: viewModel.index)
+        tableView.deleteSections(IndexSet(integer: viewModel.index), with: .automatic)
+    }
+    
+    func displayWorkoutSessionDetail(viewModel: DiaryModels.ShowWorkoutSessionDetail.ViewModel) {
+        router?.routeToWorkoutSessionDetail(sessionID: viewModel.sessionID)
+    }
 }
 
 // MARK: - UITableViewDelegate & UITableViewDataSource
 extension DiaryViewController: UITableViewDelegate, UITableViewDataSource {
     func numberOfSections(in tableView: UITableView) -> Int {
-        return displayedStarts.count
+        switch displayMode {
+        case .starts:
+            return displayedStarts.count
+        case .workouts:
+            return displayedWorkoutSessions.count
+        }
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -243,23 +277,47 @@ extension DiaryViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: DiaryStartCell.identifier,
-            for: indexPath
-        ) as? DiaryStartCell else {
-            return UITableViewCell()
+        switch displayMode {
+        case .starts:
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: DiaryStartCell.identifier,
+                for: indexPath
+            ) as? DiaryStartCell else {
+                return UITableViewCell()
+            }
+            
+            let start = displayedStarts[indexPath.section]
+            cell.configure(with: start)
+            cell.delegate = self
+            return cell
+            
+        case .workouts:
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: DiaryWorkoutCell.identifier,
+                for: indexPath
+            ) as? DiaryWorkoutCell else {
+                return UITableViewCell()
+            }
+            
+            let session = displayedWorkoutSessions[indexPath.section]
+            cell.configure(with: session)
+            cell.delegate = self
+            return cell
         }
-        
-        let start = displayedStarts[indexPath.section]
-        cell.configure(with: start)
-        cell.delegate = self
-        return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let start = displayedStarts[indexPath.section]
-        let request = DiaryModels.ShowStartDetail.Request(startID: start.id)
-        interactor?.showStartDetail(request: request)
+        switch displayMode {
+        case .starts:
+            let start = displayedStarts[indexPath.section]
+            let request = DiaryModels.ShowStartDetail.Request(startID: start.id)
+            interactor?.showStartDetail(request: request)
+            
+        case .workouts:
+            let session = displayedWorkoutSessions[indexPath.section]
+            let request = DiaryModels.ShowWorkoutSessionDetail.Request(sessionID: session.id)
+            interactor?.showWorkoutSessionDetail(request: request)
+        }
     }
 }
 
@@ -280,6 +338,34 @@ extension DiaryViewController: DiaryStartCellDelegate {
             let startID = self.displayedStarts[indexPath.section].id
             let request = DiaryModels.DeleteStart.Request(id: startID, index: indexPath.section)
             self.interactor?.deleteStart(request: request)
+        }
+        
+        let cancelAction = UIAlertAction(title: Constants.deleteAlertCancel, style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+}
+
+// MARK: - DiaryWorkoutCellDelegate
+extension DiaryViewController: DiaryWorkoutCellDelegate {
+    func workoutCellDidRequestDeletion(_ cell: DiaryWorkoutCell) {
+        guard let indexPath = tableView.indexPath(for: cell) else { return }
+        
+        let alert = UIAlertController(
+            title: Constants.deleteWorkoutAlertTitle,
+            message: Constants.deleteAlertMessage,
+            preferredStyle: .alert
+        )
+        
+        let deleteAction = UIAlertAction(title: Constants.deleteAlertConfirm, style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            
+            let sessionID = self.displayedWorkoutSessions[indexPath.section].id
+            let request = DiaryModels.DeleteWorkoutSession.Request(id: sessionID, index: indexPath.section)
+            self.interactor?.deleteWorkoutSession(request: request)
         }
         
         let cancelAction = UIAlertAction(title: Constants.deleteAlertCancel, style: .cancel)

@@ -28,7 +28,7 @@ final class WorkoutEditionViewController: UIViewController, WorkoutEditionDispla
         static let sectionSpacing: CGFloat = 14
         static let sectionHeaderTopPadding: CGFloat = 0
         
-        static let constructorTitle: String = "Редактирование"
+        static let constructorTitle: String = "Редактор"
         static let addButtonTitle: String = "Добавить"
         static let saveButtonTitle: String = "Сохранить"
         static let alertTitle: String = "Ошибка"

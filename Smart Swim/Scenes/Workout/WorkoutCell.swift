@@ -26,9 +26,15 @@ final class WorkoutCell: UITableViewCell {
         static let nameHeaderHeight: CGFloat = 50
         static let nameLabelLeftPadding: CGFloat = 12
         
-        static let exercisesLabelTopPadding: CGFloat = 12
-        static let exercisesLabelRightPadding: CGFloat = 12
-        static let exercisesLabelLeftPadding: CGFloat = 12
+        static let exercisePadding: CGFloat = 12
+        static let firstExercisePadding: CGFloat = 6
+        static let exerciseStackViewTopPadding: CGFloat = 12
+        static let exerciseStackViewLeftPadding: CGFloat = 12
+        static let exerciseStackViewRightPadding: CGFloat = 12
+        static let exerciseStackSpacing: CGFloat = 0
+        
+        static let separatorColor = UIColor(hexString: "#4C507B")
+        static let separatorHeight: CGFloat = 1
         
         static let volumeLabelTopPadding: CGFloat = 12
         static let volumeLabelBottomPadding: CGFloat = 12
@@ -51,7 +57,8 @@ final class WorkoutCell: UITableViewCell {
     
     private let nameHeaderView: UIView = UIView()
     private let nameLabel: UILabel = UILabel()
-    private let exercisesLabel: UILabel = UILabel()
+    private let exercisesStackView: UIStackView = UIStackView()
+    private let finalSeparator: UIView = UIView()
     private let volumeLabel: UILabel = UILabel()
     private let deleteButton: UIButton = UIButton()
     private let editButton: UIButton = UIButton()
@@ -77,14 +84,16 @@ final class WorkoutCell: UITableViewCell {
         nameHeaderView.addSubview(nameLabel)
         nameHeaderView.addSubview(deleteButton)
         nameHeaderView.addSubview(editButton)
-        contentView.addSubview(exercisesLabel)
+        contentView.addSubview(exercisesStackView)
+        contentView.addSubview(finalSeparator)
         contentView.addSubview(volumeLabel)
         
         configureNameHeaderView()
         configureNameLabel()
         configureEditButton()
         configureDeleteButton()
-        configureExercisesLabel()
+        configureExercisesStackView()
+        configureFinalSeparator()
         configureVolumeLabel()
     }
     
@@ -111,7 +120,6 @@ final class WorkoutCell: UITableViewCell {
         nameLabel.pinLeft(to: nameHeaderView.leadingAnchor, Constants.nameLabelLeftPadding)
     }
     
-    
     private func configureEditButton() {
         editButton.setImage(Constants.editButtonImage, for: .normal)
         
@@ -132,16 +140,28 @@ final class WorkoutCell: UITableViewCell {
         deleteButton.pinBottom(to: nameHeaderView.bottomAnchor, Constants.deleteButtonBottomPadding)
     }
     
-    private func configureExercisesLabel() {
-        exercisesLabel.font = Constants.workoutExerciseFont
-        exercisesLabel.textColor = Constants.titleWhite
-        exercisesLabel.numberOfLines = 0
+    private func configureExercisesStackView() {
+        exercisesStackView.axis = .vertical
+        exercisesStackView.spacing = Constants.exerciseStackSpacing
+        exercisesStackView.distribution = .fill
+        exercisesStackView.alignment = .fill
         
         // Констрейнты
-        exercisesLabel.translatesAutoresizingMaskIntoConstraints = false
-        exercisesLabel.pinTop(to: nameHeaderView.bottomAnchor, Constants.exercisesLabelTopPadding)
-        exercisesLabel.pinLeft(to: contentView.leadingAnchor, Constants.exercisesLabelLeftPadding)
-        exercisesLabel.pinRight(to: contentView.trailingAnchor, Constants.exercisesLabelRightPadding)
+        exercisesStackView.translatesAutoresizingMaskIntoConstraints = false
+        exercisesStackView.pinTop(to: nameHeaderView.bottomAnchor, Constants.exerciseStackViewTopPadding)
+        exercisesStackView.pinLeft(to: contentView.leadingAnchor)
+        exercisesStackView.pinRight(to: contentView.trailingAnchor)
+    }
+    
+    private func configureFinalSeparator() {
+        finalSeparator.backgroundColor = Constants.separatorColor
+        
+        // Констрейнты
+        finalSeparator.translatesAutoresizingMaskIntoConstraints = false
+        finalSeparator.pinLeft(to: contentView.leadingAnchor)
+        finalSeparator.pinRight(to: contentView.trailingAnchor)
+        finalSeparator.setHeight(Constants.separatorHeight)
+        finalSeparator.pinTop(to: exercisesStackView.bottomAnchor)
     }
     
     private func configureVolumeLabel() {
@@ -152,13 +172,56 @@ final class WorkoutCell: UITableViewCell {
         volumeLabel.translatesAutoresizingMaskIntoConstraints = false
         volumeLabel.pinBottom(to: contentView.bottomAnchor, Constants.volumeLabelBottomPadding)
         volumeLabel.pinRight(to: contentView.trailingAnchor, Constants.volumeLabelRightPadding)
-        volumeLabel.pinTop(to: exercisesLabel.bottomAnchor, Constants.volumeLabelTopPadding)
+        volumeLabel.pinTop(to: finalSeparator.bottomAnchor, Constants.volumeLabelTopPadding)
+    }
+    
+    // MARK: - Helper Methods
+    private func createExerciseView(with exerciseText: String, isFirst: Bool, isLast: Bool) -> UIView {
+        let exerciseView = UIView()
+        
+        let exerciseLabel = UILabel()
+        exerciseLabel.font = Constants.workoutExerciseFont
+        exerciseLabel.textColor = Constants.titleWhite
+        exerciseLabel.numberOfLines = 0
+        exerciseLabel.text = exerciseText
+        
+        let separator = UIView()
+        separator.backgroundColor = Constants.separatorColor
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.setHeight(Constants.separatorHeight)
+        separator.isHidden = isLast
+        
+        exerciseView.addSubview(exerciseLabel)
+        exerciseView.addSubview(separator)
+        
+        exerciseLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let topPadding = isFirst ? Constants.firstExercisePadding : Constants.exercisePadding
+        
+        exerciseLabel.pinTop(to: exerciseView.topAnchor, topPadding)
+        exerciseLabel.pinLeft(to: exerciseView.leadingAnchor, Constants.exerciseStackViewLeftPadding)
+        exerciseLabel.pinRight(to: exerciseView.trailingAnchor, Constants.exerciseStackViewRightPadding)
+        
+        separator.pinTop(to: exerciseLabel.bottomAnchor, Constants.exercisePadding)
+        separator.pinLeft(to: exerciseView.leadingAnchor)
+        separator.pinRight(to: exerciseView.trailingAnchor)
+        separator.pinBottom(to: exerciseView.bottomAnchor)
+        
+        return exerciseView
     }
     
     // MARK: - Public Methods
     func configure(with displayedWorkout: WorkoutModels.FetchWorkouts.ViewModel.DisplayedWorkout) {
         nameLabel.text = displayedWorkout.name
-        exercisesLabel.text = displayedWorkout.exercises.joined(separator: "\n\n")
+        exercisesStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        for (index, exerciseText) in displayedWorkout.exercises.enumerated() {
+            let isFirst = index == 0
+            let isLast = index == displayedWorkout.exercises.count - 1
+            let exerciseView = createExerciseView(with: exerciseText, isFirst: isFirst, isLast: isLast)
+            exercisesStackView.addArrangedSubview(exerciseView)
+        }
+        
         volumeLabel.text = "Всего: \(displayedWorkout.totalVolume)м"
     }
     

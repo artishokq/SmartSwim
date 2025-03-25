@@ -10,6 +10,7 @@ import CoreData
 
 protocol DiaryRoutingLogic {
     func routeToStartDetail(startID: NSManagedObjectID)
+    func routeToWorkoutSessionDetail(sessionID: UUID)
     func routeToCreateStart()
 }
 
@@ -56,5 +57,25 @@ final class DiaryRouter: NSObject, DiaryRoutingLogic, DiaryDataPassing {
         
         let navigationController = UINavigationController(rootViewController: createStartVC)
         viewController?.present(navigationController, animated: true)
+    }
+    
+    // MARK: - Route to Workout Detail
+    func routeToWorkoutSessionDetail(sessionID: UUID) {
+        let detailVC = WorkoutSessionDetailViewController()
+        let interactor = WorkoutSessionDetailInteractor()
+        let presenter = WorkoutSessionDetailPresenter()
+        let router = WorkoutSessionDetailRouter()
+        
+        detailVC.interactor = interactor
+        detailVC.router = router
+        interactor.presenter = presenter
+        presenter.viewController = detailVC
+        router.viewController = detailVC
+        router.dataStore = interactor
+        
+        interactor.sessionID = sessionID
+        detailVC.sessionID = sessionID
+        
+        viewController?.navigationController?.pushViewController(detailVC, animated: true)
     }
 }
