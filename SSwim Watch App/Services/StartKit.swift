@@ -24,7 +24,7 @@ final class StartKit {
     
     // MARK: - Properties
     private let communicationService: WatchCommunicationService
-    private let healthManager: HealthKitManager
+    private let workoutKitManager: WorkoutKitManager
     private var subscriptionIds: [UUID] = []
     
     private var _poolLength: Double = Constants.defaultPoolLength
@@ -129,9 +129,9 @@ final class StartKit {
     }
     
     // MARK: - Initialization
-    init(communicationService: WatchCommunicationService, healthManager: HealthKitManager) {
+    init(communicationService: WatchCommunicationService, workoutKitManager: WorkoutKitManager) {
         self.communicationService = communicationService
-        self.healthManager = healthManager
+        self.workoutKitManager = workoutKitManager
         subscribeToMessages()
     }
     
@@ -225,11 +225,37 @@ final class StartKit {
     }
     
     func startWorkout() {
-        healthManager.startWorkout(poolLength: poolLength)
+        // Создаем базовую тренировку по плаванию
+        let workout = createBasicSwimWorkout()
+        workoutKitManager.startWorkout(workout: workout)
     }
     
     func stopWorkout() {
-        healthManager.stopWorkout()
+        workoutKitManager.stopWorkout()
+    }
+    
+    private func createBasicSwimWorkout() -> SwimWorkoutModels.SwimWorkout {
+        // Создаем простое упражнение для свободного плавания
+        let exercise = SwimWorkoutModels.SwimExercise(
+            id: UUID().uuidString,
+            description: "Свободное плавание",
+            style: swimmingStyle,
+            type: 1, // Основная
+            hasInterval: false,
+            intervalMinutes: 0,
+            intervalSeconds: 0,
+            meters: totalMeters > 0 ? totalMeters : 1000,
+            orderIndex: 0,
+            repetitions: 1
+        )
+        
+        // Создаем тренировку
+        return SwimWorkoutModels.SwimWorkout(
+            id: UUID().uuidString,
+            name: "Свободное плавание",
+            poolSize: Int(poolLength),
+            exercises: [exercise]
+        )
     }
     
     func sendHeartRate(_ heartRate: Int) {

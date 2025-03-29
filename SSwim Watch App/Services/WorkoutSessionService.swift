@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import HealthKit
 
 final class WorkoutSessionService: ObservableObject {
     // MARK: - Published Properties
@@ -22,6 +21,7 @@ final class WorkoutSessionService: ObservableObject {
     @Published var intervalTimeRemaining: TimeInterval = 0
     @Published var currentRepetitionNumber: Int = 1
     @Published var totalRepetitions: Int = 1
+    @Published var currentCalories: Double = 0
     @Published var isLastRepetition: Bool = true
     @Published var shouldShowNextRepButton: Bool = false
     
@@ -29,7 +29,7 @@ final class WorkoutSessionService: ObservableObject {
     let workout: SwimWorkoutModels.SwimWorkout
     
     // MARK: - Private Properties
-    private let healthManager: HealthKitManager
+    private let workoutKitManager: WorkoutKitManager
     private let communicationService: WatchCommunicationService
     
     private var exercises: [SwimWorkoutModels.SwimExercise] = []
@@ -48,10 +48,9 @@ final class WorkoutSessionService: ObservableObject {
     
     private var sessionTime: TimeInterval = 0
     private var exerciseTime: TimeInterval = 0
-    private var currentIntervalTime: TimeInterval = 0
     
-    // Track HealthKit workout state
-    private var healthKitWorkoutActive = false
+    // Track workout state
+    private var workoutActive = false
     
     // Флаг получения подтверждения от iPhone
     private var gotWorkoutDataConfirmation = false
@@ -65,14 +64,13 @@ final class WorkoutSessionService: ObservableObject {
     private var strokesInCurrentLap: Int = 0
     private var lastRecordedStrokeCount: Int = 0
     private var lastStrokeMetricTime: Date?
-    private var isFirstStrokeUpdate: Bool = true
     
     // MARK: - Initialization
     init(workout: SwimWorkoutModels.SwimWorkout,
-         healthManager: HealthKitManager = HealthKitManager.shared,
+         workoutKitManager: WorkoutKitManager = WorkoutKitManager.shared,
          communicationService: WatchCommunicationService = ServiceLocator.shared.communicationService) {
         self.workout = workout
-        self.healthManager = healthManager
+        self.workoutKitManager = workoutKitManager
         self.communicationService = communicationService
         
         // Сортируем упражнения по порядку
@@ -89,16 +87,16 @@ final class WorkoutSessionService: ObservableObject {
         stopAllTimers()
         manualRefreshTimer?.invalidate()
         
-        // Ensure HealthKit workout is stopped if still active
-        if healthKitWorkoutActive {
-            healthManager.stopWorkout()
+        // Ensure workout is stopped if still active
+        if workoutActive {
+            workoutKitManager.stopWorkout()
         }
     }
     
     // MARK: - Private Methods
     private func setupSubscriptions() {
         // Подписываемся на обновления пульса
-        healthManager.heartRatePublisher
+        workoutKitManager.heartRatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] heartRate in
                 guard let self = self else { return }
@@ -107,22 +105,32 @@ final class WorkoutSessionService: ObservableObject {
             .store(in: &cancellables)
         
         // Подписываемся на обновления гребков
-        healthManager.strokeCountPublisher
+        workoutKitManager.strokeCountPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] strokeCount in
                 guard let self = self else { return }
                 self.updateStrokeCount(strokeCount)
             }
             .store(in: &cancellables)
-            
+        // Подписываемся на обновления калорий
+        workoutKitManager.caloriesPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] calories in
+                guard let self = self else { return }
+                // Здесь вы можете обновлять UI или сохранять значение
+                // Например, сохранять в свойстве currentCalories
+                self.currentCalories = calories
+            }
+            .store(in: &cancellables)
+        
         // Подписываемся на статус тренировки
-        healthManager.workoutStatePublisher
+        workoutKitManager.workoutStatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isActive in
                 guard let self = self else { return }
                 print("Workout active state changed: \(isActive)")
                 
-                self.healthKitWorkoutActive = isActive
+                self.workoutActive = isActive
                 
                 if isActive {
                     // Когда тренировка активирована, убедимся что таймеры работают
@@ -130,15 +138,25 @@ final class WorkoutSessionService: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
-        // Подписываемся на ошибки
-        healthManager.errorPublisher
+        
+        // Подписываемся на события завершения отрезка
+        workoutKitManager.lapCompletedPublisher
             .receive(on: DispatchQueue.main)
-            .sink { errorMessage in
-                print("HealthKit error: \(errorMessage)")
+            .sink { [weak self] lapNumber in
+                guard let self = self else { return }
+                print("Lap completed: \(lapNumber)")
+                self.handleLapTransition()
             }
             .store(in: &cancellables)
-            
+        
+        // Подписываемся на ошибки
+        workoutKitManager.errorPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { errorMessage in
+                print("WorkoutKit error: \(errorMessage)")
+            }
+            .store(in: &cancellables)
+        
         // Подписываемся на сообщения через метод subscribe
         subscriptionId = communicationService.subscribe(to: .command) { [weak self] message in
             if message["workoutDataReceived"] != nil {
@@ -146,6 +164,15 @@ final class WorkoutSessionService: ObservableObject {
                 self?.gotWorkoutDataConfirmation = true
             }
         }
+    }
+    
+    private func handleLapTransition() {
+        // Записываем метрики завершенного отрезка
+        recordLapMetrics()
+        
+        // Сбрасываем счетчик для следующего отрезка
+        strokeCountAtLapStart = lastRecordedStrokeCount
+        strokesInCurrentLap = 0
     }
     
     private func startManualRefreshTimer() {
@@ -232,7 +259,6 @@ final class WorkoutSessionService: ObservableObject {
         if exercise.hasInterval && exercise.intervalInSeconds > 0 {
             // Запоминаем время начала интервала
             repetitionStartTime = Date()
-            currentIntervalTime = 0
             intervalTimeRemaining = TimeInterval(exercise.intervalInSeconds)
             isIntervalCompleted = false
             
@@ -298,7 +324,6 @@ final class WorkoutSessionService: ObservableObject {
         
         // Сбрасываем время текущего повторения
         exerciseTime = 0
-        currentIntervalTime = 0
         isIntervalCompleted = false
         repetitionStartTime = Date()
         
@@ -323,9 +348,6 @@ final class WorkoutSessionService: ObservableObject {
         // Сбрасываем счетчик для следующего отрезка
         strokeCountAtLapStart = lastRecordedStrokeCount
         strokesInCurrentLap = 0
-        isFirstStrokeUpdate = true
-        
-        print("Отрезок завершен: следующий отрезок начинается с количеством гребков = \(strokeCountAtLapStart)")
     }
     
     private func recordRepetitionCompletion() {
@@ -339,7 +361,7 @@ final class WorkoutSessionService: ObservableObject {
             distance: exercise.exerciseRef.meters / exercise.exerciseRef.repetitions,
             lapTime: exerciseTime,
             heartRate: exercise.heartRate,
-            strokes: strokesInCurrentLap // Используем гребки в текущем отрезке
+            strokes: strokesInCurrentLap
         )
         
         // Заменяем существующие промежуточные данные по этому отрезку
@@ -351,8 +373,6 @@ final class WorkoutSessionService: ObservableObject {
             // Или добавляем, если записи еще нет
             lapData.append(lapRecord)
         }
-        
-        print("Отрезок завершен: финальное количество гребков = \(lapRecord.strokes)")
     }
     
     private func updateButtonState() {
@@ -406,7 +426,7 @@ final class WorkoutSessionService: ObservableObject {
             if var exercise = self.currentExercise {
                 exercise.totalSessionTime = self.sessionTime
                 self.currentExercise = exercise
-                self.objectWillChange.send() // Явно сообщаем об изменении
+                self.objectWillChange.send()
             }
         }
     }
@@ -417,7 +437,7 @@ final class WorkoutSessionService: ObservableObject {
             if var exercise = self.currentExercise {
                 exercise.currentRepetitionTime = self.exerciseTime
                 self.currentExercise = exercise
-                self.objectWillChange.send() // Явно сообщаем об изменении
+                self.objectWillChange.send()
             }
         }
     }
@@ -451,13 +471,6 @@ final class WorkoutSessionService: ObservableObject {
         // Обновляем UI с использованием ObservableObject
         DispatchQueue.main.async {
             if var exercise = self.currentExercise {
-                // Учитываем начало нового отрезка
-                if self.isFirstStrokeUpdate {
-                    self.strokeCountAtLapStart = strokeCount
-                    self.isFirstStrokeUpdate = false
-                    print("Начат новый отрезок: исходное количество гребков = \(strokeCount)")
-                }
-                
                 // Рассчитываем фактическое количество гребков в текущем отрезке
                 self.strokesInCurrentLap = strokeCount - self.strokeCountAtLapStart
                 
@@ -469,12 +482,10 @@ final class WorkoutSessionService: ObservableObject {
                 self.objectWillChange.send()
                 
                 // Записываем данные о гребках только с интервалом
-                // чтобы избежать слишком частых записей
                 let now = Date()
                 if self.lastStrokeMetricTime == nil || now.timeIntervalSince(self.lastStrokeMetricTime!) > 5.0 {
                     self.recordLapMetrics()
                     self.lastStrokeMetricTime = now
-                    print("Метрики записаны: гребков в отрезке = \(self.strokesInCurrentLap)")
                 }
                 
                 self.lastRecordedStrokeCount = strokeCount
@@ -482,7 +493,7 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Новый метод для записи метрик отрезка
+    // Метод для записи метрик отрезка
     private func recordLapMetrics() {
         guard let exercise = currentExercise else { return }
         
@@ -494,7 +505,7 @@ final class WorkoutSessionService: ObservableObject {
             distance: exercise.exerciseRef.meters / exercise.exerciseRef.repetitions,
             lapTime: exerciseTime,
             heartRate: exercise.heartRate,
-            strokes: strokesInCurrentLap  // Используем количество гребков в текущем отрезке
+            strokes: strokesInCurrentLap
         )
         
         // Проверяем, есть ли уже метрики для этого отрезка и обновляем, если есть
@@ -514,8 +525,6 @@ final class WorkoutSessionService: ObservableObject {
         strokesInCurrentLap = 0
         lastRecordedStrokeCount = 0
         lastStrokeMetricTime = nil
-        isFirstStrokeUpdate = true
-        print("Счетчики гребков сброшены для нового упражнения")
     }
     
     // MARK: - Отправка данных о выполненной тренировке
@@ -563,7 +572,7 @@ final class WorkoutSessionService: ObservableObject {
             poolSize: workout.poolSize,
             startTime: sessionStartTime ?? Date(),
             endTime: Date(),
-            totalCalories: healthManager.getWorkoutTotalCalories(),
+            totalCalories: workoutKitManager.getWorkoutTotalCalories(),
             exercises: transferExercises
         )
     }
@@ -603,7 +612,7 @@ final class WorkoutSessionService: ObservableObject {
             self.retrySendOnce(transferWorkout: transferWorkout, sendId: sendId)
         }
     }
-
+    
     private func retrySendOnce(transferWorkout: TransferWorkoutModels.TransferWorkoutInfo, sendId: String) {
         guard !gotWorkoutDataConfirmation else { return }
         
@@ -650,7 +659,7 @@ final class WorkoutSessionService: ObservableObject {
     
     // Начать выполнение текущего упражнения
     func startCurrentExercise() {
-        guard sessionState == .previewingExercise,
+        guard (sessionState == .previewingExercise || sessionState == .countdown),
               let preview = nextExercisePreview else { return }
         
         print("Starting current exercise")
@@ -691,19 +700,18 @@ final class WorkoutSessionService: ObservableObject {
         // Запускаем таймеры
         self.startTimers()
         
-        // Start HealthKit workout if not already started
-        if !healthKitWorkoutActive {
-            // Запрашиваем разрешения HealthKit перед запуском
-            healthManager.requestAuthorization { [weak self] success, error in
+        // Если тренировка еще не активна, запускаем её
+        if !workoutActive {
+            workoutKitManager.requestAuthorization { [weak self] success, error in
                 guard let self = self, success else {
-                    print("Failed to get HealthKit authorization: \(String(describing: error))")
+                    print("Failed to get authorization: \(String(describing: error))")
                     return
                 }
                 
                 DispatchQueue.main.async {
-                    print("Starting HealthKit monitoring")
-                    // Запускаем HealthKit мониторинг
-                    self.healthManager.startWorkout(poolLength: Double(self.workout.poolSize))
+                    print("Starting WorkoutKit monitoring")
+                    // Запускаем тренировку WorkoutKit
+                    self.workoutKitManager.startWorkout(workout: self.workout)
                 }
             }
         }
@@ -803,10 +811,10 @@ final class WorkoutSessionService: ObservableObject {
         isCompletingSession = true
         print("Completing workout session")
         
-        // Останавливаем HealthKit-мониторинг только если он активен
-        if healthKitWorkoutActive {
-            healthManager.stopWorkout()
-            healthKitWorkoutActive = false
+        // Останавливаем WorkoutKit-мониторинг
+        if workoutActive {
+            workoutKitManager.stopWorkout()
+            workoutActive = false
         }
         
         // Останавливаем все таймеры
@@ -820,5 +828,16 @@ final class WorkoutSessionService: ObservableObject {
         
         // Отправляем данные на телефон с использованием более надежного механизма
         sendWorkoutDataWithConfirmation()
+    }
+    
+    func showCountdown() {
+        guard sessionState == .previewingExercise,
+              let _ = nextExercisePreview else { return }
+        
+        // Switch to countdown state
+        DispatchQueue.main.async {
+            self.sessionState = .countdown
+            self.objectWillChange.send()
+        }
     }
 }

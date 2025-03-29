@@ -17,7 +17,11 @@ struct WorkoutSessionView: View {
     }
     
     var body: some View {
-        VStack {
+        ZStack {
+            // Base content background
+            Color.black.edgesIgnoringSafeArea(.all)
+            
+            // Exercise Preview View
             if viewModel.showingExercisePreview {
                 ExercisePreviewView(
                     exercise: viewModel.nextExercisePreviewData,
@@ -26,8 +30,25 @@ struct WorkoutSessionView: View {
                         refreshTrigger.toggle()
                     }
                 )
-            } else if viewModel.showingActiveExercise {
-                // Отдельные свойства, а не только объект упражнения чтобы обеспечить обновление представления при изменении свойств
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 1.1)),
+                    removal: .opacity.combined(with: .scale(scale: 0.9))
+                ))
+                .animation(.easeInOut(duration: 0.5), value: viewModel.showingExercisePreview)
+            }
+            
+            // Countdown View
+            if viewModel.showingCountdown {
+                CountdownView(onComplete: {
+                    viewModel.startExerciseAfterCountdown()
+                    refreshTrigger.toggle()
+                })
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.showingCountdown)
+            }
+            
+            // Active Exercise View
+            if viewModel.showingActiveExercise {
                 ExerciseActiveView(
                     exercise: viewModel.currentExerciseData,
                     sessionTime: viewModel.totalSessionTime,
@@ -44,15 +65,29 @@ struct WorkoutSessionView: View {
                         refreshTrigger.toggle()
                     }
                 )
-                .id("active-\(viewModel.totalSessionTime)-\(viewModel.heartRate)-\(viewModel.currentRepetition)-\(viewModel.canCompleteExercise)") // Force view updates
-            } else if viewModel.showingCompletionView {
+                .id("active-\(viewModel.totalSessionTime)-\(viewModel.heartRate)-\(viewModel.currentRepetition)-\(viewModel.canCompleteExercise)")
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.9)),
+                    removal: .opacity.combined(with: .scale(scale: 0.9))
+                ))
+                .animation(.easeInOut(duration: 0.5), value: viewModel.showingActiveExercise)
+            }
+            
+            // Completion View
+            if viewModel.showingCompletionView {
                 WorkoutCompletionView(
                     onComplete: {
                         viewModel.completeSession()
                         refreshTrigger.toggle()
                     }
                 )
-            } else {
+                .transition(.opacity.combined(with: .scale(scale: 1.1)))
+                .animation(.easeInOut(duration: 0.5), value: viewModel.showingCompletionView)
+            }
+            
+            // Initial loading state
+            if !viewModel.showingExercisePreview && !viewModel.showingCountdown &&
+                !viewModel.showingActiveExercise && !viewModel.showingCompletionView {
                 ProgressView()
                     .onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

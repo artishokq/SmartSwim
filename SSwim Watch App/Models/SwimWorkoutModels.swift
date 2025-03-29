@@ -143,6 +143,7 @@ enum SwimWorkoutModels {
     enum WorkoutSessionState {
         case notStarted
         case previewingExercise
+        case countdown
         case exerciseActive
         case completed
     }

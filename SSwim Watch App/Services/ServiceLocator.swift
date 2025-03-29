@@ -16,13 +16,13 @@ final class ServiceLocator {
         return WatchCommunicationService.shared
     }()
     
-    private(set) lazy var healthManager: HealthKitManager = {
-        return HealthKitManager.shared
+    private(set) lazy var workoutKitManager: WorkoutKitManager = {
+        return WorkoutKitManager.shared
     }()
     
     // MARK: - Second layers
     private(set) lazy var startKit: StartKit = {
-        return StartKit(communicationService: communicationService, healthManager: healthManager)
+        return StartKit(communicationService: communicationService, workoutKitManager: workoutKitManager)
     }()
     
     private(set) lazy var workoutKit: WorkoutKit = {
@@ -31,7 +31,7 @@ final class ServiceLocator {
     
     // MARK: - UI Services
     private(set) lazy var startService: StartService = {
-        return StartService(startKit: startKit, healthManager: healthManager)
+        return StartService(startKit: startKit, workoutKitManager: workoutKitManager)
     }()
     
     private(set) lazy var workoutService: WorkoutService = {
@@ -42,7 +42,7 @@ final class ServiceLocator {
     func createWorkoutSessionService(for workout: SwimWorkoutModels.SwimWorkout) -> WorkoutSessionService {
         return WorkoutSessionService(
             workout: workout,
-            healthManager: healthManager,
+            workoutKitManager: workoutKitManager,
             communicationService: communicationService
         )
     }
@@ -54,18 +54,18 @@ final class ServiceLocator {
     func initializeServices() {
         // Просто обращаемся к lazy свойствам для их инициализации
         _ = communicationService
-        _ = healthManager
+        _ = workoutKitManager
         _ = startKit
         _ = workoutKit
         _ = startService
         _ = workoutService
     }
     
-    // Запрашиваем разрешения HealthKit при запуске
-    func requestHealthPermissions() {
-        healthManager.requestAuthorization { success, error in
+    // Запрашиваем разрешения при запуске
+    func requestWorkoutPermissions() {
+        workoutKitManager.requestAuthorization { success, error in
             if !success {
-                print("Failed to get HealthKit authorization: \(String(describing: error))")
+                print("Failed to get authorization: \(String(describing: error))")
             }
         }
     }

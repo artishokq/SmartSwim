@@ -28,6 +28,7 @@ final class WorkoutSessionViewModel: ObservableObject {
     @Published var strokeCount: Int = 0
     
     // New properties for interval and repetition control
+    @Published var showingCountdown = false
     @Published var currentRepetition: Int = 1
     @Published var totalRepetitions: Int = 1
     @Published var intervalTimeRemaining: TimeInterval = 0
@@ -64,6 +65,10 @@ final class WorkoutSessionViewModel: ObservableObject {
     }
     
     func startCurrentExercise() {
+        sessionService.showCountdown()
+    }
+    
+    func startExerciseAfterCountdown() {
         sessionService.startCurrentExercise()
     }
     
@@ -114,7 +119,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         // Observe interval and repetition state
         sessionService.$isIntervalCompleted
             .receive(on: DispatchQueue.main)
@@ -122,7 +127,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$intervalTimeRemaining
             .receive(on: DispatchQueue.main)
             .sink { [weak self] timeRemaining in
@@ -130,7 +135,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$canCompleteExercise
             .receive(on: DispatchQueue.main)
             .sink { [weak self] canComplete in
@@ -138,7 +143,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$currentRepetitionNumber
             .receive(on: DispatchQueue.main)
             .sink { [weak self] repetition in
@@ -146,7 +151,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$totalRepetitions
             .receive(on: DispatchQueue.main)
             .sink { [weak self] total in
@@ -154,7 +159,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$isLastRepetition
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isLast in
@@ -162,7 +167,7 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-            
+        
         sessionService.$shouldShowNextRepButton
             .receive(on: DispatchQueue.main)
             .sink { [weak self] shouldShow in
@@ -204,21 +209,31 @@ final class WorkoutSessionViewModel: ObservableObject {
             switch state {
             case .notStarted:
                 self.showingExercisePreview = false
+                self.showingCountdown = false
                 self.showingActiveExercise = false
                 self.showingCompletionView = false
                 
             case .previewingExercise:
                 self.showingExercisePreview = true
+                self.showingCountdown = false
+                self.showingActiveExercise = false
+                self.showingCompletionView = false
+                
+            case .countdown:
+                self.showingExercisePreview = false
+                self.showingCountdown = true
                 self.showingActiveExercise = false
                 self.showingCompletionView = false
                 
             case .exerciseActive:
                 self.showingExercisePreview = false
+                self.showingCountdown = false
                 self.showingActiveExercise = true
                 self.showingCompletionView = false
                 
             case .completed:
                 self.showingExercisePreview = false
+                self.showingCountdown = false
                 self.showingActiveExercise = false
                 self.showingCompletionView = true
             }

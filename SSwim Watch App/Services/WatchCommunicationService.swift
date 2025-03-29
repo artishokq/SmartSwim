@@ -68,7 +68,7 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
     
     // MARK: - Private Methods
     private func handleMessage(_ message: [String: Any]) {
-        if let command = message["command"] as? String {
+        if message["command"] is String {
             let messageWithType = addMessageType(to: message, type: .command)
             notifyHandlers(type: .command, message: messageWithType)
             return

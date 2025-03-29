@@ -1,86 +1,40 @@
 //
-//  HealthKitManager.swift
+//  WorkoutKitManager.swift
 //  SSwim Watch App
 //
-//  Created by Artem Tkachuk on 23.03.2025.
+//  Created by Artem Tkachuk on 29.03.2025.
 //
 
 import Foundation
 import HealthKit
 import Combine
 
-final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     // MARK: - Singleton
-    static let shared = HealthKitManager()
+    static let shared = WorkoutKitManager()
     
     // MARK: - Publishers
     let heartRatePublisher = PassthroughSubject<Double, Never>()
     let strokeCountPublisher = PassthroughSubject<Int, Never>()
+    let caloriesPublisher = PassthroughSubject<Double, Never>()
     let workoutStatePublisher = PassthroughSubject<Bool, Never>()
     let errorPublisher = PassthroughSubject<String, Never>()
+    let lapCompletedPublisher = PassthroughSubject<Int, Never>()
     
     // MARK: - Private Properties
     private let healthStore = HKHealthStore()
     private var workoutSession: HKWorkoutSession?
     private var workoutBuilder: HKLiveWorkoutBuilder?
-    private var heartRateQuery: HKQuery?
-    private var strokeCountQuery: HKQuery?
+    private var processedEventTimestamps = Set<TimeInterval>()
     
     private var lastStrokeCount: Double = 0
     private var currentPoolLength: Double = 25.0
-    
-    // Улучшенный подсчет гребков по упражнениям
     private var strokesByExercise: [String: Int] = [:]
+    private var lapCounter: Int = 0
     
     // MARK: - Initialization
     private override init() {
         super.init()
-    }
-    
-    // MARK: - Private Methods
-    private func startHeartRateMonitoring() {
-        if let query = heartRateQuery {
-            healthStore.stop(query)
-        }
-        
-        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return }
-        
-        let query = HKAnchoredObjectQuery(type: heartRateType, predicate: nil, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, _ in
-            guard let samples = samples as? [HKQuantitySample], let mostRecentSample = samples.last else {
-                return
-            }
-            
-            let heartRate = mostRecentSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            DispatchQueue.main.async {
-                self?.heartRatePublisher.send(heartRate)
-            }
-        }
-        
-        query.updateHandler = { [weak self] _, samples, _, _, _ in
-            guard let samples = samples as? [HKQuantitySample], let mostRecentSample = samples.last else {
-                return
-            }
-            
-            let heartRate = mostRecentSample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            DispatchQueue.main.async {
-                self?.heartRatePublisher.send(heartRate)
-            }
-        }
-        
-        healthStore.execute(query)
-        heartRateQuery = query
-    }
-    
-    private func stopMonitoring() {
-        if let query = heartRateQuery {
-            healthStore.stop(query)
-            heartRateQuery = nil
-        }
-        
-        if let query = strokeCountQuery {
-            healthStore.stop(query)
-            strokeCountQuery = nil
-        }
     }
     
     // MARK: - Public Methods
@@ -102,31 +56,40 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         return currentPoolLength
     }
     
-    // Метод для сброса счетчика гребков для конкретного упражнения
     func resetStrokeCountForExercise(_ exerciseId: String) {
         strokesByExercise[exerciseId] = Int(lastStrokeCount)
-        print("Счетчик гребков сброшен для упражнения: \(exerciseId)")
     }
     
-    // Метод для получения количества гребков для конкретного упражнения
     func getStrokeCountForExercise(_ exerciseId: String) -> Int {
         let baseCount = strokesByExercise[exerciseId] ?? 0
         let currentCount = Int(lastStrokeCount) - baseCount
-        return max(0, currentCount) // Обеспечиваем, что число не будет отрицательным
+        return max(0, currentCount)
     }
     
-    func startWorkout(poolLength: Double = 25.0) {
+    func getWorkoutTotalCalories() -> Double {
+        guard let builder = workoutBuilder else { return 0 }
+        
+        let calorieType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
+        if let statistics = builder.statistics(for: calorieType),
+           let calories = statistics.sumQuantity() {
+            return calories.doubleValue(for: HKUnit.kilocalorie())
+        }
+        
+        return 0
+    }
+    
+    func startWorkout(workout: SwimWorkoutModels.SwimWorkout) {
         // Останавливаем существующую сессию, если есть
         if workoutSession != nil {
             stopWorkout()
         }
         
-        currentPoolLength = poolLength
+        currentPoolLength = Double(workout.poolSize)
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .swimming
         configuration.locationType = .indoor
         configuration.swimmingLocationType = .pool
-        configuration.lapLength = HKQuantity(unit: HKUnit.meter(), doubleValue: poolLength)
+        configuration.lapLength = HKQuantity(unit: HKUnit.meter(), doubleValue: currentPoolLength)
         
         do {
             workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
@@ -136,7 +99,7 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
             workoutBuilder?.delegate = self
             
             workoutBuilder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore,
-                                                                 workoutConfiguration: configuration)
+                                                               workoutConfiguration: configuration)
             
             workoutSession?.startActivity(with: Date())
             workoutBuilder?.beginCollection(withStart: Date()) { (success, error) in
@@ -150,8 +113,6 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
                 }
             }
             
-            startHeartRateMonitoring()
-            
         } catch {
             errorPublisher.send("Ошибка создания сессии тренировки: \(error.localizedDescription)")
         }
@@ -162,7 +123,6 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
             return
         }
         
-        stopMonitoring()
         workoutSession.end()
         workoutBuilder?.endCollection(withEnd: Date()) { [weak self] (success, error) in
             guard let self = self, success else {
@@ -185,8 +145,9 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         }
     }
     
+    // MARK: - HKWorkoutSessionDelegate
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
-                        from fromState: HKWorkoutSessionState, date: Date) {
+                      from fromState: HKWorkoutSessionState, date: Date) {
         DispatchQueue.main.async {
             self.workoutStatePublisher.send(toState == .running)
         }
@@ -199,6 +160,7 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         }
     }
     
+    // MARK: - HKLiveWorkoutBuilderDelegate
     func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
         for type in collectedTypes {
             guard let quantityType = type as? HKQuantityType else { continue }
@@ -217,27 +179,58 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
                 let strokeUnit = HKUnit.count()
                 if let value = statistics?.sumQuantity()?.doubleValue(for: strokeUnit), value > self.lastStrokeCount {
                     let newCount = Int(value)
+                    
+                    // Определяем, был ли это новый отрезок
+                    let strokeDifference = value - self.lastStrokeCount
+                    if strokeDifference == 0 || self.lastStrokeCount == 0 {
+                        // Первое измерение или нет изменений
+                    } else if strokeDifference < 3 {
+                        // Малое количество гребков может означать завершение отрезка
+                        // и начало нового (остановка, разворот и продолжение)
+                        self.lapCounter += 1
+                        self.lapCompletedPublisher.send(self.lapCounter)
+                    }
+                    
                     DispatchQueue.main.async {
                         self.strokeCountPublisher.send(newCount)
                     }
                     self.lastStrokeCount = value
                 }
             }
+            else if quantityType.identifier == HKQuantityTypeIdentifier.activeEnergyBurned.rawValue {
+                let calorieUnit = HKUnit.kilocalorie()
+                if let value = statistics?.sumQuantity()?.doubleValue(for: calorieUnit) {
+                    DispatchQueue.main.async {
+                        self.caloriesPublisher.send(value)
+                    }
+                }
+            }
         }
     }
-    
-    func getWorkoutTotalCalories() -> Double {
-        guard let builder = workoutBuilder else { return 0 }
-        
-        let calorieType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
-        if let statistics = builder.statistics(for: calorieType),
-           let calories = statistics.sumQuantity() {
-            return calories.doubleValue(for: HKUnit.kilocalorie())
-        }
-        
-        return 0 // Возвращаем 0, если данные недоступны
-    }
-    
+
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
+        // Получаем массив событий тренировки
+        let workoutEvents = workoutBuilder.workoutEvents
+        
+        // Проверяем на наличие новых событий отрезка
+        for event in workoutEvents {
+            let eventTimeStamp = event.dateInterval.start.timeIntervalSince1970
+            
+            // Если событие уже обработано, пропускаем его
+            if processedEventTimestamps.contains(eventTimeStamp) {
+                continue
+            }
+            
+            // Обрабатываем событие отрезка
+            if event.type == .lap {
+                self.lapCounter += 1
+                DispatchQueue.main.async {
+                    self.lapCompletedPublisher.send(self.lapCounter)
+                }
+            }
+            
+            // Помечаем событие как обработанное
+            processedEventTimestamps.insert(eventTimeStamp)
+        }
     }
 }

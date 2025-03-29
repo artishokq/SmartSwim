@@ -16,15 +16,15 @@ class StartService: ObservableObject {
     
     // MARK: - Private Properties
     private let startKit: StartKit
-    private let healthManager: HealthKitManager
+    private let workoutKitManager: WorkoutKitManager
     private var cancellables = Set<AnyCancellable>()
     private var hasUpdatedPoolLength = false
     private var retryCount = 0
     
     // MARK: - Initialization
-    init(startKit: StartKit, healthManager: HealthKitManager) {
+    init(startKit: StartKit, workoutKitManager: WorkoutKitManager) {
         self.startKit = startKit
-        self.healthManager = healthManager
+        self.workoutKitManager = workoutKitManager
         session.poolLength = startKit.getCurrentPoolLength()
         setupSubscriptions()
     }
@@ -37,11 +37,6 @@ class StartService: ObservableObject {
                 guard let self = self else { return }
                 self.session.poolLength = poolLength
                 self.hasUpdatedPoolLength = true
-                
-                // Если тренировка уже активна и длина бассейна изменилась, перезапускаем тренировку
-                if self.session.isActive && poolLength != self.healthManager.getCurrentPoolLength() {
-                    self.restartWorkoutIfNeeded(with: poolLength)
-                }
             }
             .store(in: &cancellables)
         
@@ -76,7 +71,7 @@ class StartService: ObservableObject {
             }
             .store(in: &cancellables)
         
-        healthManager.heartRatePublisher
+        workoutKitManager.heartRatePublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] heartRate in
                 guard let self = self else { return }
@@ -85,7 +80,7 @@ class StartService: ObservableObject {
             }
             .store(in: &cancellables)
         
-        healthManager.strokeCountPublisher
+        workoutKitManager.strokeCountPublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] strokeCount in
                 guard let self = self else { return }
@@ -94,20 +89,12 @@ class StartService: ObservableObject {
             }
             .store(in: &cancellables)
         
-        healthManager.workoutStatePublisher
+        workoutKitManager.workoutStatePublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] isActive in
                 self?.session.isActive = isActive
             }
             .store(in: &cancellables)
-    }
-    
-    private func restartWorkoutIfNeeded(with poolLength: Double) {
-        healthManager.stopWorkout()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.healthManager.startWorkout(poolLength: poolLength)
-        }
     }
     
     private func ensurePoolLength(completion: @escaping () -> Void) {
@@ -152,7 +139,6 @@ class StartService: ObservableObject {
         
         ensurePoolLength { [weak self] in
             guard let self = self else { return }
-            let poolLength = self.session.poolLength
             self.startKit.startWorkout()
             self.startKit.sendStatus("started")
         }
