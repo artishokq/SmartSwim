@@ -7,6 +7,7 @@
 
 import WatchConnectivity
 import Foundation
+import CoreData
 
 protocol WatchDataDelegate: AnyObject {
     func didReceiveHeartRate(_ pulse: Int)
@@ -186,29 +187,64 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     
     private func handleCompletedWorkoutData(_ data: [String: Any]) {
         if let transferWorkout = TransferWorkoutModels.TransferWorkoutInfo.fromDictionary(data) {
+            // Extract the sendId if present
+            let sendId = data["sendId"] as? String ?? UUID().uuidString
+            
             // Сохраняем в CoreData
             saveCompletedWorkout(transferWorkout)
             
             // Уведомляем делегата
             workoutCompletionDelegate?.didReceiveCompletedWorkout(transferWorkout)
             
-            // Отправляем подтверждение получения данных на часы
-            sendWorkoutDataReceivedConfirmation()
+            // Immediately send confirmation back to the watch with the same sendId
+            // This is critical to prevent retries
+            sendWorkoutDataReceivedConfirmation(sendId: sendId)
         }
     }
     
     // Сохранение данных о завершенной тренировке в CoreData
     private func saveCompletedWorkout(_ transferWorkout: TransferWorkoutModels.TransferWorkoutInfo) {
-        // Преобразуем данные для CoreDataManager
-        CoreDataManager.shared.createWorkoutSession(
-            date: transferWorkout.startTime,
-            totalTime: transferWorkout.totalTime,
-            totalCalories: transferWorkout.totalCalories,
-            poolSize: Int16(transferWorkout.poolSize),
-            workoutOriginalId: transferWorkout.workoutId,
-            workoutName: transferWorkout.workoutName,
-            exercisesData: convertToCompletedExerciseData(transferWorkout.exercises)
+        // Check if a workout with the same workoutId and startTime already exists
+        let existingWorkouts = fetchExistingWorkoutSessions(
+            workoutId: transferWorkout.workoutId,
+            startTime: transferWorkout.startTime
         )
+        
+        if existingWorkouts.isEmpty {
+            // No duplicates, create a new workout session
+            CoreDataManager.shared.createWorkoutSession(
+                date: transferWorkout.startTime,
+                totalTime: transferWorkout.totalTime,
+                totalCalories: transferWorkout.totalCalories,
+                poolSize: Int16(transferWorkout.poolSize),
+                workoutOriginalId: transferWorkout.workoutId,
+                workoutName: transferWorkout.workoutName,
+                exercisesData: convertToCompletedExerciseData(transferWorkout.exercises)
+            )
+            print("New workout saved with time: \(transferWorkout.totalTime)")
+        } else {
+            // A duplicate exists, log and ignore
+            print("Duplicate workout found, ignoring. Time: \(transferWorkout.totalTime)")
+        }
+    }
+    
+    private func fetchExistingWorkoutSessions(workoutId: String, startTime: Date) -> [WorkoutSessionEntity] {
+        let request: NSFetchRequest<WorkoutSessionEntity> = WorkoutSessionEntity.fetchRequest()
+        let calendar = Calendar.current
+        let startRange = calendar.date(byAdding: .second, value: -10, to: startTime)!
+        let endRange = calendar.date(byAdding: .second, value: 10, to: startTime)!
+        
+        // Create a predicate to find sessions with the same workoutId and a startTime within the tolerance
+        let predicate = NSPredicate(format: "workoutOriginalId == %@ AND date >= %@ AND date <= %@",
+                                   workoutId, startRange as NSDate, endRange as NSDate)
+        request.predicate = predicate
+        
+        do {
+            return try CoreDataManager.shared.context.fetch(request)
+        } catch {
+            print("Error fetching existing workout sessions: \(error)")
+            return []
+        }
     }
     
     // Преобразование данных о упражнениях для CoreDataManager
@@ -246,12 +282,19 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     }
     
     // Отправка подтверждения получения данных на часы
-    private func sendWorkoutDataReceivedConfirmation() {
+    private func sendWorkoutDataReceivedConfirmation(sendId: String) {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(
-                ["workoutDataReceived": true],
-                replyHandler: nil,
-                errorHandler: nil
+                [
+                    "workoutDataReceived": true,
+                    "sendId": sendId
+                ],
+                replyHandler: { response in
+                    print("Watch confirmed receipt of our confirmation")
+                },
+                errorHandler: { error in
+                    print("Error sending confirmation to watch: \(error.localizedDescription)")
+                }
             )
         }
     }

@@ -40,9 +40,6 @@ final class WorkoutSessionDetailViewController: UIViewController, WorkoutSession
         static let maxPulseLabel: String = "Максимальный пульс: "
         static let minPulseLabel: String = "Минимальный пульс: "
         static let pulseZoneLabel: String = "Пульсовая зона: "
-        static let averageStrokesLabel: String = "Среднее кол-во гребков на 50м: "
-        static let maxStrokesLabel: String = "Макс. кол-во гребков на 50м: "
-        static let minStrokesLabel: String = "Мин. кол-во гребков на 50м: "
         static let totalStrokesLabel: String = "Всего гребков: "
         static let timeLabel: String = "Время: "
         static let intervalLabel: String = "Режим: "
@@ -455,14 +452,16 @@ final class WorkoutSessionDetailViewController: UIViewController, WorkoutSession
             backgroundColor: Constants.pulseBackgroundColor
         )
         
+        // Используем динамические метки на основе размера бассейна
+        let labels = getStrokeAnalysisLabels(poolSize: exercise.poolSize)
         let strokeAnalysisView = createAnalysisView(
             title: Constants.strokeAnalysisTitle,
             icon: Constants.strokeIcon,
             values: [
-                Constants.averageStrokesLabel + exercise.strokeAnalysis.averageStrokes,
-                Constants.maxStrokesLabel + exercise.strokeAnalysis.maxStrokes,
-                Constants.minStrokesLabel + exercise.strokeAnalysis.minStrokes,
-                Constants.totalStrokesLabel + exercise.strokeAnalysis.totalStrokes
+                labels.avg + exercise.strokeAnalysis.averageStrokes,
+                labels.max + exercise.strokeAnalysis.maxStrokes,
+                labels.min + exercise.strokeAnalysis.minStrokes
+                // Убрали totalStrokes из отображения
             ],
             backgroundColor: Constants.distanceBackgroundColor
         )
@@ -495,6 +494,15 @@ final class WorkoutSessionDetailViewController: UIViewController, WorkoutSession
         strokeAnalysisView.pinBottom(to: exerciseView.bottomAnchor, Constants.contentPadding)
         
         return exerciseView
+    }
+    
+    private func getStrokeAnalysisLabels(poolSize: Int16) -> (avg: String, max: String, min: String) {
+        let distance = poolSize == 25 ? "25м" : "50м"
+        return (
+            avg: "Среднее кол-во гребков на \(distance): ",
+            max: "Макс. кол-во гребков на \(distance): ",
+            min: "Мин. кол-во гребков на \(distance): "
+        )
     }
     
     private func createAnalysisView(title: String, icon: String, values: [String], backgroundColor: UIColor) -> UIView {

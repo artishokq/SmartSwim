@@ -106,7 +106,7 @@ final class WorkoutSessionDetailInteractor: WorkoutSessionDetailBusinessLogic, W
         
         // TBA
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            let recommendation = "Размещение рекомендации от ИИ. На основе анализа данных тренировки, предлагаем улучшить технику гребков и увеличить интенсивность на отрезках. Старайтесь поддерживать стабильный пульс и экономичную технику."
+            let recommendation = "TBA"
             
             let response = WorkoutSessionDetailModels.FetchRecommendation.Response(
                 recommendationText: recommendation,

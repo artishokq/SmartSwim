@@ -51,4 +51,3 @@ extension WorkoutSessionEntity {
 extension WorkoutSessionEntity : Identifiable {
 
 }
-

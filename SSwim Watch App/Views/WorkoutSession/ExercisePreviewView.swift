@@ -17,9 +17,9 @@ struct ExercisePreviewView: View {
         static let modeText: String = "Режим:"
         static let startButtonText: String = "Начать"
         
-        static let warmupTypeValue: Int = 1
+        static let warmupTypeValue: Int = 0
         static let cooldownTypeValue: Int = 2
-        static let mainExerciseTypeValue: Int = 0
+        static let mainExerciseTypeValue: Int = 1
         
         static let displayNameFontSize: CGFloat = 24
         static let styleNameFontSize: CGFloat = 20
@@ -66,11 +66,11 @@ struct ExercisePreviewView: View {
                 if exercise.exerciseRef.type == Constants.warmupTypeValue {
                     Text(Constants.warmupText)
                         .font(.body)
-                } else if exercise.exerciseRef.type == Constants.cooldownTypeValue {
-                    Text(Constants.cooldownText)
-                        .font(.body)
                 } else if exercise.exerciseRef.type == Constants.mainExerciseTypeValue {
                     Text(Constants.mainExerciseText)
+                        .font(.body)
+                }else if exercise.exerciseRef.type == Constants.cooldownTypeValue {
+                    Text(Constants.cooldownText)
                         .font(.body)
                 }
                 

@@ -124,11 +124,11 @@ struct TransferWorkoutModels {
         
         // Создание из словаря
         static func fromDictionary(_ dict: [String: Any]) -> TransferExerciseInfo? {
-            guard let data = try? JSONSerialization.data(withJSONObject: dict),
-                  let decoder = try? JSONDecoder() else {
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else {
                 return nil
             }
             
+            let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             
             do {
@@ -202,11 +202,11 @@ struct TransferWorkoutModels {
         
         // Создание из словаря
         static func fromDictionary(_ dict: [String: Any]) -> TransferWorkoutInfo? {
-            guard let data = try? JSONSerialization.data(withJSONObject: dict),
-                  let decoder = try? JSONDecoder() else {
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else {
                 return nil
             }
             
+            let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             
             do {

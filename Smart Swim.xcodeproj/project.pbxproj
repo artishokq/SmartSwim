@@ -311,7 +311,7 @@
 		16A823862D3006490084DADF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = 16A823742D3006480084DADF /* Smart Swim */;
-			baseConfigurationReferenceRelativePath = Scenes/DiaryStartDetails/APIkey.xcconfig;
+			baseConfigurationReferenceRelativePath = Application/APIkey.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

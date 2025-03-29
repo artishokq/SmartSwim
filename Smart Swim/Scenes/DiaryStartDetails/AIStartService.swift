@@ -39,7 +39,7 @@ class AIStartService {
         if let key = Bundle.main.object(forInfoDictionaryKey: "API_KEY") as? String, !key.isEmpty {
             return key
         }
-        print("Предупреждение: API_KEY не задан в Info.plist. Используйте дефолтное значение или настройте API_KEY.")
+        print("API_KEY не задан в Info.plist.")
         return ""
     }()
     

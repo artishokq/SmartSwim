@@ -68,6 +68,7 @@ enum WorkoutSessionDetailModels {
                 let poolSizeString: String
             }
             
+            
             struct ExerciseDetail {
                 let id: UUID
                 let orderIndex: Int16
@@ -79,6 +80,7 @@ enum WorkoutSessionDetailModels {
                 let intervalString: String
                 let metersString: String
                 let repetitionsString: String
+                let poolSize: Int16
                 
                 struct PulseAnalysis {
                     let averagePulse: String

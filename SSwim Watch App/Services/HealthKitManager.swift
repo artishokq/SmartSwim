@@ -29,6 +29,9 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     private var lastStrokeCount: Double = 0
     private var currentPoolLength: Double = 25.0
     
+    // Улучшенный подсчет гребков по упражнениям
+    private var strokesByExercise: [String: Int] = [:]
+    
     // MARK: - Initialization
     private override init() {
         super.init()
@@ -97,6 +100,19 @@ final class HealthKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     
     func getCurrentPoolLength() -> Double {
         return currentPoolLength
+    }
+    
+    // Метод для сброса счетчика гребков для конкретного упражнения
+    func resetStrokeCountForExercise(_ exerciseId: String) {
+        strokesByExercise[exerciseId] = Int(lastStrokeCount)
+        print("Счетчик гребков сброшен для упражнения: \(exerciseId)")
+    }
+    
+    // Метод для получения количества гребков для конкретного упражнения
+    func getStrokeCountForExercise(_ exerciseId: String) -> Int {
+        let baseCount = strokesByExercise[exerciseId] ?? 0
+        let currentCount = Int(lastStrokeCount) - baseCount
+        return max(0, currentCount) // Обеспечиваем, что число не будет отрицательным
     }
     
     func startWorkout(poolLength: Double = 25.0) {

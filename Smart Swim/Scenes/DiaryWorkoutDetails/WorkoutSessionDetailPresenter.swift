@@ -51,37 +51,66 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                 pulseZone: pulseZone
             )
             
-            // Данные для анализа гребков
-            var avgStrokes: Double = 0
-            var maxStrokes: Int16 = 0
-            var minStrokes: Int16 = Int16.max
-            var totalStrokes: Int = 0
+            // Данные для анализа гребков с учетом длины бассейна
+            // Получаем размер бассейна как делитель (50м бассейн должен делиться на 50, 25м на 25)
+            let poolSize = Int(response.headerData.poolSize)
+            let distanceDivisor = poolSize > 0 ? poolSize : 50 // По умолчанию 50, если размер бассейна недействителен
+            
+            // Рассчитываем гребки на длину бассейна
+            var avgStrokesPerPoolLength: Double = 0
+            var maxStrokesPerPoolLength: Int16 = 0
+            var minStrokesPerPoolLength: Int16 = Int16.max
             
             if !exerciseData.laps.isEmpty {
-                for lap in exerciseData.laps {
-                    if lap.strokes > maxStrokes {
-                        maxStrokes = lap.strokes
-                    }
-                    if lap.strokes < minStrokes {
-                        minStrokes = lap.strokes
-                    }
-                    totalStrokes += Int(lap.strokes)
+                // Подготовим массив валидированных гребков
+                let validatedLaps = exerciseData.laps.map { lap ->
+                    (strokes: Int16, distance: Int16) in
+                    let validatedStrokes = validateStrokeData(lap.strokes, forDistance: lap.distance)
+                    return (validatedStrokes, lap.distance)
                 }
                 
-                // Среднее количество гребков на 50м
-                let totalDistance = exerciseData.laps.reduce(0) { $0 + Int($1.distance) }
+                // Считаем общие гребки и дистанцию для среднего значения
+                let totalValidatedStrokes = validatedLaps.reduce(0) { $0 + Int($1.strokes) }
+                let totalDistance = validatedLaps.reduce(0) { $0 + Int($1.distance) }
+                
                 if totalDistance > 0 {
-                    avgStrokes = Double(totalStrokes) / Double(totalDistance) * 50.0
+                    avgStrokesPerPoolLength = Double(totalValidatedStrokes) / Double(totalDistance) * Double(distanceDivisor)
+                }
+                
+                // Для max/min рассчитываем на длину бассейна для каждого отрезка
+                if validatedLaps.count == 1 {
+                    // Если только один отрезок, max и min одинаковые
+                    let lap = validatedLaps[0]
+                    if lap.distance > 0 {
+                        let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
+                        maxStrokesPerPoolLength = Int16(strokesPerPoolLength.rounded())
+                        minStrokesPerPoolLength = maxStrokesPerPoolLength
+                    }
+                } else {
+                    // Несколько отрезков - считаем для каждого
+                    for lap in validatedLaps {
+                        if lap.distance > 0 {
+                            let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
+                            let roundedStrokes = Int16(strokesPerPoolLength.rounded())
+                            
+                            if roundedStrokes > maxStrokesPerPoolLength {
+                                maxStrokesPerPoolLength = roundedStrokes
+                            }
+                            if roundedStrokes < minStrokesPerPoolLength {
+                                minStrokesPerPoolLength = roundedStrokes
+                            }
+                        }
+                    }
                 }
             } else {
-                minStrokes = 0
+                minStrokesPerPoolLength = 0
             }
             
             let strokeAnalysis = WorkoutSessionDetailModels.FetchSessionDetails.ViewModel.ExerciseDetail.StrokeAnalysis(
-                averageStrokes: "\(Int(avgStrokes.rounded()))",
-                maxStrokes: "\(maxStrokes)",
-                minStrokes: "\(minStrokes)",
-                totalStrokes: "\(totalStrokes)"
+                averageStrokes: "\(Int(avgStrokesPerPoolLength.rounded()))",
+                maxStrokes: "\(maxStrokesPerPoolLength)",
+                minStrokes: "\(minStrokesPerPoolLength)",
+                totalStrokes: "" // Оставляем пустым, так как не используем
             )
             
             // Форматирование данных об упражнении
@@ -102,6 +131,7 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                 intervalString: intervalString,
                 metersString: "\(exerciseData.meters * exerciseData.repetitions)м",
                 repetitionsString: "\(exerciseData.repetitions)x\(exerciseData.meters)м",
+                poolSize: response.headerData.poolSize, // Добавляем размер бассейна
                 pulseAnalysis: pulseAnalysis,
                 strokeAnalysis: strokeAnalysis
             )
@@ -136,11 +166,7 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
         let minutes = (Int(totalSeconds) % 3600) / 60
         let seconds = Int(totalSeconds) % 60
         
-        if hours > 0 {
-            return String(format: "%d час %02d мин", hours, minutes)
-        } else {
-            return String(format: "%d час %02d мин", minutes, seconds)
-        }
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
     }
     
     private func getSwimStyleDescription(_ styleRawValue: Int16) -> String {
@@ -174,5 +200,27 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
         } else {
             return "Максимальная (172+)"
         }
+    }
+    
+    private func validateStrokeData(_ strokes: Int16, forDistance distance: Int16) -> Int16 {
+        let strokesInt = Int(strokes)
+        let distanceInt = Int(distance)
+        
+        if distanceInt <= 0 {
+            return 0
+        }
+        
+        let maxStrokesFor25m = 35
+        let expectedMaxStrokes = maxStrokesFor25m * (distanceInt / 25)
+        
+        if strokesInt > expectedMaxStrokes * 3 / 2 {
+            return Int16(expectedMaxStrokes)
+        }
+        
+        if strokesInt == 0 && distanceInt > 0 {
+            return Int16(max(distanceInt / 25 * 8, 1))
+        }
+        
+        return strokes
     }
 }
