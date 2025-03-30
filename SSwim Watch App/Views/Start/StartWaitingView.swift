@@ -12,18 +12,15 @@ struct StartWaitingView: View {
     private enum Constants {
         static let waitingTitle = "Ожидание старта"
         static let setupInstructions = "Настройте параметры на iPhone и нажмите Старт"
-        static let parametersReceived = "Параметры получены!"
         
         static let iphoneIconName: String = "iphone.circle"
         
         static let stackSpacing: CGFloat = 15
         static let iconSize: CGFloat = 45
         static let textHorizontalPadding: CGFloat = 5
-        static let successVerticalPadding: CGFloat = 8
         static let navigationDelay: TimeInterval = 0.2
         
         static let iconColor = Color.blue
-        static let successColor = Color.green
     }
     
     // MARK: - Properties
@@ -49,30 +46,18 @@ struct StartWaitingView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Constants.textHorizontalPadding)
                 
-                if viewModel.isReadyToStart {
-                    Text(Constants.parametersReceived)
-                        .foregroundColor(Constants.successColor)
-                        .padding(.vertical, Constants.successVerticalPadding)
-                }
-                
-                
-                Button(action: {
-                }) {
-                    Color.clear
-                        .frame(width: 1, height: 1)
-                }
-                .opacity(0)
-                .accessibilityHidden(true)
+                Spacer(minLength: 20)
             }
             .padding(.horizontal)
         }
-        .navigationBarBackButtonHidden(viewModel.isReadyToStart)
+        .navigationBarBackButtonHidden(false)
         .navigationDestination(isPresented: $shouldNavigate) {
             ActiveSwimmingView()
         }
         .onAppear {
             viewModel.setupWithService(startService: startService)
-            viewModel.requestParameters(startService: startService)
+            // Запрашиваем параметры при появлении
+            startService.resetAndRequestParameters()
         }
         .onChange(of: startService.command) { _, newCommand in
             if newCommand == "start" {

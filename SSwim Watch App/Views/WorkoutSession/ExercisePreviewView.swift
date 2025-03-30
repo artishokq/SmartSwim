@@ -60,9 +60,8 @@ struct ExercisePreviewView: View {
                         .foregroundColor(Constants.headerColor)
                         .padding(.vertical, 4)
                 }
-                .padding(.top, 4) // Отступ сверху, чтобы избежать блюринга
+                .padding(.top, 4)
                 
-                // Проверяем тип упражнения для специального отображения
                 if exercise.exerciseRef.type == Constants.warmupTypeValue {
                     Text(Constants.warmupText)
                         .font(.body)

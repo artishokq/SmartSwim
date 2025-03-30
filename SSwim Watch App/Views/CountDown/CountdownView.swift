@@ -26,12 +26,11 @@ struct CountdownView: View {
     
     var body: some View {
         ZStack {
-            // Background
             Constants.backgroundColor
                 .edgesIgnoringSafeArea(.all)
             
             ZStack {
-                // Track Circle (optional - for more visibility)
+                // Track Circle
                 Circle()
                     .stroke(Color.white.opacity(0.1), lineWidth: Constants.lineWidth)
                     .frame(width: Constants.circleSize, height: Constants.circleSize)
@@ -61,28 +60,25 @@ struct CountdownView: View {
     }
     
     private func startCountdownAnimation() {
-        // Reset state
         countdown = 3
         progress = 0
         
-        // Animation for each number from 3 to 1
+        // Анимация для каждого числа
         for i in 0..<3 {
             let numberDuration = Constants.countdownDuration / 3.0
             let startDelay = Double(i) * numberDuration
             
-            // Start point for this number
             DispatchQueue.main.asyncAfter(deadline: .now() + startDelay) {
                 countdown = 3 - i
                 
-                // Animate progress for this number
+                // Анимация прогресса
                 withAnimation(.linear(duration: numberDuration)) {
-                    // Calculate progress values for this segment
+                    // Считаем прогресс в зависимости от числа
                     progress = Double(i + 1) / 3.0
                 }
             }
         }
         
-        // Complete animation
         DispatchQueue.main.asyncAfter(deadline: .now() + Constants.countdownDuration) {
             onComplete()
         }

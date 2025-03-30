@@ -25,6 +25,7 @@ class StartService: ObservableObject {
     init(startKit: StartKit, workoutKitManager: WorkoutKitManager) {
         self.startKit = startKit
         self.workoutKitManager = workoutKitManager
+        self.isReadyToStart = false
         session.poolLength = startKit.getCurrentPoolLength()
         setupSubscriptions()
     }
@@ -134,6 +135,12 @@ class StartService: ObservableObject {
         startKit.requestAllParameters()
     }
     
+    func resetParameters() {
+        startKit.resetReadyState()
+        isReadyToStart = false
+        resetCommand()
+    }
+    
     func startWorkout() {
         retryCount = 0
         
@@ -147,6 +154,7 @@ class StartService: ObservableObject {
     func stopWorkout() {
         startKit.stopWorkout()
         startKit.sendStatus("stopped")
+        resetParameters()
     }
     
     func resetCommand() {

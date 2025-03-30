@@ -29,6 +29,7 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     private var currentPoolSize: Double = 25.0
     private var currentSwimmingStyle: Int = 0
     private var currentTotalMeters: Int = 0
+    private var parametersExplicitlySet = false
     
     // Индикатор подтверждения получения параметров
     private var parametersConfirmed = false
@@ -64,9 +65,16 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         self.currentTotalMeters = meters
         self.parametersConfirmed = false
         self.retryCount = 0
+        self.parametersExplicitlySet = true
         
         // Запускаем процесс отправки
         sendParametersWithRetry()
+    }
+    
+    // Метод для сброса параметров
+    func resetTrainingParameters() {
+        parametersExplicitlySet = false
+        parametersConfirmed = false
     }
     
     // Метод для отправки списка тренировок на Apple Watch
@@ -187,7 +195,6 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     
     private func handleCompletedWorkoutData(_ data: [String: Any]) {
         if let transferWorkout = TransferWorkoutModels.TransferWorkoutInfo.fromDictionary(data) {
-            // Extract the sendId if present
             let sendId = data["sendId"] as? String ?? UUID().uuidString
             
             // Сохраняем в CoreData
@@ -195,23 +202,18 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
             
             // Уведомляем делегата
             workoutCompletionDelegate?.didReceiveCompletedWorkout(transferWorkout)
-            
-            // Immediately send confirmation back to the watch with the same sendId
-            // This is critical to prevent retries
             sendWorkoutDataReceivedConfirmation(sendId: sendId)
         }
     }
     
     // Сохранение данных о завершенной тренировке в CoreData
     private func saveCompletedWorkout(_ transferWorkout: TransferWorkoutModels.TransferWorkoutInfo) {
-        // Check if a workout with the same workoutId and startTime already exists
         let existingWorkouts = fetchExistingWorkoutSessions(
             workoutId: transferWorkout.workoutId,
             startTime: transferWorkout.startTime
         )
         
         if existingWorkouts.isEmpty {
-            // No duplicates, create a new workout session
             CoreDataManager.shared.createWorkoutSession(
                 date: transferWorkout.startTime,
                 totalTime: transferWorkout.totalTime,
@@ -223,7 +225,6 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
             )
             print("New workout saved with time: \(transferWorkout.totalTime)")
         } else {
-            // A duplicate exists, log and ignore
             print("Duplicate workout found, ignoring. Time: \(transferWorkout.totalTime)")
         }
     }
@@ -234,9 +235,8 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         let startRange = calendar.date(byAdding: .second, value: -10, to: startTime)!
         let endRange = calendar.date(byAdding: .second, value: 10, to: startTime)!
         
-        // Create a predicate to find sessions with the same workoutId and a startTime within the tolerance
         let predicate = NSPredicate(format: "workoutOriginalId == %@ AND date >= %@ AND date <= %@",
-                                   workoutId, startRange as NSDate, endRange as NSDate)
+                                    workoutId, startRange as NSDate, endRange as NSDate)
         request.predicate = predicate
         
         do {
@@ -320,6 +320,10 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
             
             if let watchStatus = message["watchStatus"] as? String {
                 self.delegate?.didReceiveWatchStatus(watchStatus)
+                
+                if watchStatus == "stopped" {
+                    self.resetTrainingParameters()
+                }
             }
             
             // Обработка данных о завершенной тренировке
@@ -348,17 +352,24 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         DispatchQueue.main.async {
             // Обработка запроса параметров длины бассейна
             if message["requestPoolLength"] != nil {
-                replyHandler(["poolLength": self.currentPoolSize])
+                if self.parametersExplicitlySet {
+                    replyHandler(["poolLength": self.currentPoolSize])
+                } else {
+                    replyHandler(["parametersNotSet": true])
+                }
             }
             // Обработка запроса всех параметров тренировки
             else if message["requestAllParameters"] != nil {
-                // Всегда отправляем текущие параметры
-                let responseParams: [String: Any] = [
-                    "poolSize": self.currentPoolSize,
-                    "swimmingStyle": self.currentSwimmingStyle,
-                    "totalMeters": self.currentTotalMeters
-                ]
-                replyHandler(responseParams)
+                if self.parametersExplicitlySet {
+                    let responseParams: [String: Any] = [
+                        "poolSize": self.currentPoolSize,
+                        "swimmingStyle": self.currentSwimmingStyle,
+                        "totalMeters": self.currentTotalMeters
+                    ]
+                    replyHandler(responseParams)
+                } else {
+                    replyHandler(["parametersNotSet": true])
+                }
             }
             // Обработка запроса для списка тренировок
             else if message["requestWorkouts"] != nil {
@@ -444,7 +455,6 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     
     func sessionDidDeactivate(_ session: WCSession) {
         isSessionActive = false
-        // Reactivate session if needed
         WCSession.default.activate()
     }
 }

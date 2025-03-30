@@ -19,6 +19,7 @@ class StartWaitingViewModel: ObservableObject {
     
     // MARK: - Initialization
     init() {
+        isReadyToStart = false
     }
     
     // MARK: - Public Methods
@@ -33,6 +34,14 @@ class StartWaitingViewModel: ObservableObject {
         }
         startService.resetAndRequestParameters()
         isReadyToStart = startService.isReadyToStart
+    }
+    
+    func resetParameters(startService: StartService) {
+        if self.startService == nil {
+            setupWithService(startService: startService)
+        }
+        startService.resetParameters()
+        isReadyToStart = false
     }
     
     func resetCommand() {

@@ -74,6 +74,7 @@ struct ActiveSwimmingView: View {
             if newCommand == Constants.stopCommand {
                 viewModel.stopWorkout()
                 
+                startService.resetParameters()
                 DispatchQueue.main.asyncAfter(deadline: .now() + Constants.rootNavigationDelay) {
                     shouldNavigateToRoot = true
                 }
@@ -82,6 +83,9 @@ struct ActiveSwimmingView: View {
         .navigationDestination(isPresented: $shouldNavigateToRoot) {
             MainView()
                 .navigationBarBackButtonHidden(true)
+        }
+        .onDisappear {
+            startService.resetParameters()
         }
     }
 }

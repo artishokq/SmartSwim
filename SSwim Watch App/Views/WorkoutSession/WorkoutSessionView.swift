@@ -18,10 +18,8 @@ struct WorkoutSessionView: View {
     
     var body: some View {
         ZStack {
-            // Base content background
             Color.black.edgesIgnoringSafeArea(.all)
             
-            // Exercise Preview View
             if viewModel.showingExercisePreview {
                 ExercisePreviewView(
                     exercise: viewModel.nextExercisePreviewData,
@@ -37,7 +35,6 @@ struct WorkoutSessionView: View {
                 .animation(.easeInOut(duration: 0.5), value: viewModel.showingExercisePreview)
             }
             
-            // Countdown View
             if viewModel.showingCountdown {
                 CountdownView(onComplete: {
                     viewModel.startExerciseAfterCountdown()
@@ -47,7 +44,6 @@ struct WorkoutSessionView: View {
                 .animation(.easeInOut(duration: 0.3), value: viewModel.showingCountdown)
             }
             
-            // Active Exercise View
             if viewModel.showingActiveExercise {
                 ExerciseActiveView(
                     exercise: viewModel.currentExerciseData,
@@ -73,7 +69,6 @@ struct WorkoutSessionView: View {
                 .animation(.easeInOut(duration: 0.5), value: viewModel.showingActiveExercise)
             }
             
-            // Completion View
             if viewModel.showingCompletionView {
                 WorkoutCompletionView(
                     onComplete: {
@@ -85,7 +80,6 @@ struct WorkoutSessionView: View {
                 .animation(.easeInOut(duration: 0.5), value: viewModel.showingCompletionView)
             }
             
-            // Initial loading state
             if !viewModel.showingExercisePreview && !viewModel.showingCountdown &&
                 !viewModel.showingActiveExercise && !viewModel.showingCompletionView {
                 ProgressView()

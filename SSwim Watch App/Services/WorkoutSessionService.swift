@@ -15,7 +15,6 @@ final class WorkoutSessionService: ObservableObject {
     @Published var nextExercisePreview: SwimWorkoutModels.ActiveExerciseData?
     @Published var completedExercises: [SwimWorkoutModels.CompletedExerciseData] = []
     
-    // Exercise state properties
     @Published var isIntervalCompleted: Bool = false
     @Published var canCompleteExercise: Bool = false
     @Published var intervalTimeRemaining: TimeInterval = 0
@@ -40,7 +39,6 @@ final class WorkoutSessionService: ObservableObject {
     private var lapData: [SwimWorkoutModels.LapData] = []
     private var cancellables = Set<AnyCancellable>()
     
-    // Timer-related properties
     private var sessionTimer: Timer?
     private var exerciseTimer: Timer?
     private var intervalTimer: Timer?
@@ -49,7 +47,6 @@ final class WorkoutSessionService: ObservableObject {
     private var sessionTime: TimeInterval = 0
     private var exerciseTime: TimeInterval = 0
     
-    // Track workout state
     private var workoutActive = false
     
     // Флаг получения подтверждения от iPhone
@@ -59,7 +56,6 @@ final class WorkoutSessionService: ObservableObject {
     // Флаг для предотвращения повторного вызова завершения сессии
     private var isCompletingSession = false
     
-    // Улучшенный подсчет гребков
     private var strokeCountAtLapStart: Int = 0
     private var strokesInCurrentLap: Int = 0
     private var lastRecordedStrokeCount: Int = 0
@@ -87,7 +83,6 @@ final class WorkoutSessionService: ObservableObject {
         stopAllTimers()
         manualRefreshTimer?.invalidate()
         
-        // Ensure workout is stopped if still active
         if workoutActive {
             workoutKitManager.stopWorkout()
         }
@@ -117,8 +112,6 @@ final class WorkoutSessionService: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] calories in
                 guard let self = self else { return }
-                // Здесь вы можете обновлять UI или сохранять значение
-                // Например, сохранять в свойстве currentCalories
                 self.currentCalories = calories
             }
             .store(in: &cancellables)
@@ -157,7 +150,6 @@ final class WorkoutSessionService: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Подписываемся на сообщения через метод subscribe
         subscriptionId = communicationService.subscribe(to: .command) { [weak self] message in
             if message["workoutDataReceived"] != nil {
                 // Получили подтверждение от iPhone
@@ -301,16 +293,13 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Public method for next repetition
     func advanceToNextRepetition() {
         guard let exercise = currentExercise?.exerciseRef,
               currentRepetitionNumber < exercise.repetitions else { return }
         
-        // Call the private implementation instead of recursively calling itself
         performNextRepetitionStep()
     }
     
-    // Private implementation with a different name to avoid conflict
     private func performNextRepetitionStep() {
         guard let exercise = currentExercise?.exerciseRef,
               currentRepetitionNumber < exercise.repetitions else { return }
@@ -386,18 +375,18 @@ final class WorkoutSessionService: ObservableObject {
                     self.shouldShowNextRepButton = self.isIntervalCompleted && !self.isLastRepetition
                     self.canCompleteExercise = self.isIntervalCompleted && self.isLastRepetition
                 } else {
-                    // Без интервала - кнопка для перехода к следующему повторению всегда активна
+                    // Без интервала кнопка для перехода к следующему повторению всегда активна
                     self.shouldShowNextRepButton = !self.isLastRepetition
                     self.canCompleteExercise = self.isLastRepetition
                 }
             } else {
                 // Для одиночных упражнений
                 if exercise.hasInterval && exercise.intervalInSeconds > 0 {
-                    // С интервалом - можно завершить только когда интервал истек
+                    // С интервалом можно завершить только когда интервал истек
                     self.shouldShowNextRepButton = false
                     self.canCompleteExercise = self.isIntervalCompleted
                 } else {
-                    // Без интервала - можно завершить в любой момент
+                    // Без интервала можно завершить в любой момент
                     self.shouldShowNextRepButton = false
                     self.canCompleteExercise = true
                 }
@@ -452,9 +441,9 @@ final class WorkoutSessionService: ObservableObject {
                 // Явно сообщаем об изменении
                 self.objectWillChange.send()
                 
-                // Записываем данные о пульсе (но не так часто, как они поступают)
+                // Записываем данные о пульсе
                 let now = Date()
-                if self.lastStrokeMetricTime == nil || now.timeIntervalSince(self.lastStrokeMetricTime!) > 5.0 {
+                if self.lastStrokeMetricTime == nil || now.timeIntervalSince(self.lastStrokeMetricTime!) > 4.0 {
                     self.recordLapMetrics()
                     self.lastStrokeMetricTime = now
                 }
@@ -493,7 +482,6 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Метод для записи метрик отрезка
     private func recordLapMetrics() {
         guard let exercise = currentExercise else { return }
         
@@ -605,8 +593,6 @@ final class WorkoutSessionService: ObservableObject {
             }
         }
         
-        // Если sendMessageWithReply не получит ответ в течение таймаута,
-        // выполнится этот блок как запасной вариант
         DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) { [weak self] in
             guard let self = self, !self.gotWorkoutDataConfirmation else { return }
             self.retrySendOnce(transferWorkout: transferWorkout, sendId: sendId)
@@ -657,7 +643,6 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Начать выполнение текущего упражнения
     func startCurrentExercise() {
         guard (sessionState == .previewingExercise || sessionState == .countdown),
               let preview = nextExercisePreview else { return }
@@ -665,7 +650,7 @@ final class WorkoutSessionService: ObservableObject {
         print("Starting current exercise")
         
         // Сбрасываем счетчики времени
-        exerciseTime = 0  // Reset only exercise time, keep session time running
+        exerciseTime = 0
         
         // Сбрасываем состояние интервала
         isIntervalCompleted = false
@@ -724,11 +709,11 @@ final class WorkoutSessionService: ObservableObject {
                 self.canCompleteExercise = false
                 self.intervalTimeRemaining = TimeInterval(exercise.intervalInSeconds)
             } else if exercise.repetitions > 1 {
-                // Если есть повторения, но нет интервала - кнопка "Next Rep"
+                // Если есть повторения, но нет интервала, кнопка "Next Rep"
                 self.shouldShowNextRepButton = true
                 self.canCompleteExercise = false
             } else {
-                // Если нет ни интервала, ни повторений - кнопка "Complete" активна
+                // Если нет ни интервала, ни повторений, кнопка "Complete" активна
                 self.canCompleteExercise = true
             }
             
@@ -737,7 +722,6 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Завершить текущее упражнение и перейти к следующему
     func completeCurrentExercise() {
         guard sessionState == .exerciseActive,
               let currentExercise = currentExercise,
@@ -800,7 +784,6 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Завершить всю тренировку
     func completeSession() {
         // Prevent multiple calls
         if isCompletingSession {

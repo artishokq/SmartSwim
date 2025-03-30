@@ -99,7 +99,7 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
             workoutBuilder?.delegate = self
             
             workoutBuilder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore,
-                                                               workoutConfiguration: configuration)
+                                                                 workoutConfiguration: configuration)
             
             workoutSession?.startActivity(with: Date())
             workoutBuilder?.beginCollection(withStart: Date()) { (success, error) in
@@ -147,7 +147,7 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
     
     // MARK: - HKWorkoutSessionDelegate
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
-                      from fromState: HKWorkoutSessionState, date: Date) {
+                        from fromState: HKWorkoutSessionState, date: Date) {
         DispatchQueue.main.async {
             self.workoutStatePublisher.send(toState == .running)
         }
@@ -207,7 +207,7 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
             }
         }
     }
-
+    
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
         // Получаем массив событий тренировки
         let workoutEvents = workoutBuilder.workoutEvents

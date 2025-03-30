@@ -22,7 +22,7 @@ final class WorkoutKit {
     private var _pendingWorkoutsRequest = false
     private var pendingLock = NSLock()
     
-    // MARK: - Thread-safe getters and setters
+    // MARK: - getters and setters
     var workouts: [SwimWorkoutModels.SwimWorkout] {
         get {
             workoutsLock.lock()

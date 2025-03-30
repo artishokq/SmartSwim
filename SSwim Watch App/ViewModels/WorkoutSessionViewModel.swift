@@ -17,17 +17,14 @@ final class WorkoutSessionViewModel: ObservableObject {
     @Published var showingCompletionView = false
     @Published var navigateBack = false
     
-    // Exercise data - redeclared here to force UI updates
     @Published var currentExerciseData: SwimWorkoutModels.ActiveExerciseData?
     @Published var nextExercisePreviewData: SwimWorkoutModels.ActiveExerciseData?
     
-    // Added direct published properties for critical values
     @Published var totalSessionTime: TimeInterval = 0
     @Published var currentRepetitionTime: TimeInterval = 0
     @Published var heartRate: Double = 0
     @Published var strokeCount: Int = 0
     
-    // New properties for interval and repetition control
     @Published var showingCountdown = false
     @Published var currentRepetition: Int = 1
     @Published var totalRepetitions: Int = 1
@@ -83,7 +80,6 @@ final class WorkoutSessionViewModel: ObservableObject {
     
     // MARK: - Private Methods
     private func setupStateObservers() {
-        // Observe session state changes
         sessionService.$sessionState
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
@@ -92,13 +88,12 @@ final class WorkoutSessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Observe current exercise changes
+        // Следим за текущими данными упражнения
         sessionService.$currentExercise
             .receive(on: DispatchQueue.main)
             .sink { [weak self] exercise in
                 self?.currentExerciseData = exercise
                 
-                // Update the direct properties for better reactivity
                 if let exercise = exercise {
                     self?.totalSessionTime = exercise.totalSessionTime
                     self?.currentRepetitionTime = exercise.currentRepetitionTime
@@ -106,12 +101,10 @@ final class WorkoutSessionViewModel: ObservableObject {
                     self?.strokeCount = exercise.strokeCount
                 }
                 
-                // Force UI update
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
         
-        // Observe preview exercise changes
         sessionService.$nextExercisePreview
             .receive(on: DispatchQueue.main)
             .sink { [weak self] exercise in
@@ -120,7 +113,6 @@ final class WorkoutSessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Observe interval and repetition state
         sessionService.$isIntervalCompleted
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isCompleted in
@@ -178,25 +170,23 @@ final class WorkoutSessionViewModel: ObservableObject {
     }
     
     private func setupRefreshTimer() {
-        // Add a refresh timer to ensure UI updates even if Combine pipeline misses updates
+        // Добавить таймер обновления, чтобы обеспечить обновление пользовательского интерфейса, даже если Combine пропускает обновления
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self, self.showingActiveExercise else { return }
             
-            // Poll the service for latest data
+            // Для получения последних данных
             if let exercise = self.sessionService.currentExercise {
                 self.totalSessionTime = exercise.totalSessionTime
                 self.currentRepetitionTime = exercise.currentRepetitionTime
                 self.heartRate = exercise.heartRate
                 self.strokeCount = exercise.strokeCount
                 
-                // Also poll interval and repetition state
                 self.intervalTimeRemaining = self.sessionService.intervalTimeRemaining
                 self.canCompleteExercise = self.sessionService.canCompleteExercise
                 self.currentRepetition = self.sessionService.currentRepetitionNumber
                 self.totalRepetitions = self.sessionService.totalRepetitions
                 self.shouldShowNextRepButton = self.sessionService.shouldShowNextRepButton
                 
-                // Force UI update
                 DispatchQueue.main.async {
                     self.objectWillChange.send()
                 }
@@ -238,7 +228,6 @@ final class WorkoutSessionViewModel: ObservableObject {
                 self.showingCompletionView = true
             }
             
-            // Force UI update
             self.objectWillChange.send()
         }
     }

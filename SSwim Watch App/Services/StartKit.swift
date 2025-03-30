@@ -42,7 +42,7 @@ final class StartKit {
     private var _pendingPoolLengthRequest = false
     private var pendingLock = NSLock()
     
-    // MARK: - Thread-safe getters and setters
+    // MARK: - getters and setters
     var poolLength: Double {
         get {
             poolLengthLock.lock()
@@ -132,6 +132,7 @@ final class StartKit {
     init(communicationService: WatchCommunicationService, workoutKitManager: WorkoutKitManager) {
         self.communicationService = communicationService
         self.workoutKitManager = workoutKitManager
+        self._isReady = false
         subscribeToMessages()
     }
     
@@ -181,6 +182,12 @@ final class StartKit {
         ) { [weak self] response in
             guard let self = self, let response = response else { return }
             
+            // Проверить если параметры не заданы на телефоне
+            if response["parametersNotSet"] != nil {
+                self.isReady = false
+                return
+            }
+            
             if let poolLength = response["poolSize"] as? Double {
                 self.poolLength = poolLength
             }
@@ -193,7 +200,9 @@ final class StartKit {
                 self.totalMeters = meters
             }
             
-            self.isReady = true
+            if response["poolSize"] != nil || response["swimmingStyle"] != nil || response["totalMeters"] != nil {
+                self.isReady = true
+            }
         }
     }
     
@@ -210,6 +219,11 @@ final class StartKit {
         ) { [weak self] response in
             guard let self = self else { return }
             self.pendingPoolLengthRequest = false
+            
+            // Проверить если параметры не заданы на телефоне
+            if response?["parametersNotSet"] != nil {
+                return
+            }
             
             if let poolLength = response?["poolLength"] as? Double {
                 self.poolLength = poolLength
@@ -240,7 +254,7 @@ final class StartKit {
             id: UUID().uuidString,
             description: "Свободное плавание",
             style: swimmingStyle,
-            type: 1, // Основная
+            type: 1,
             hasInterval: false,
             intervalMinutes: 0,
             intervalSeconds: 0,

@@ -51,7 +51,7 @@ struct ExerciseItemView: View {
                     .font(.subheadline)
             }
             
-            // Режим (интервал)
+            // Режим
             if !exercise.getFormattedInterval().isEmpty {
                 Text(exercise.getFormattedInterval())
                     .font(.caption)
