@@ -197,11 +197,33 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         if let transferWorkout = TransferWorkoutModels.TransferWorkoutInfo.fromDictionary(data) {
             let sendId = data["sendId"] as? String ?? UUID().uuidString
             
-            // Сохраняем в CoreData
-            saveCompletedWorkout(transferWorkout)
+            // Проверяем, получали ли мы уже эту тренировку
+            let existingWorkouts = fetchExistingWorkoutSessions(
+                workoutId: transferWorkout.workoutId,
+                startTime: transferWorkout.startTime
+            )
             
-            // Уведомляем делегата
-            workoutCompletionDelegate?.didReceiveCompletedWorkout(transferWorkout)
+            if existingWorkouts.isEmpty {
+                print("iPhone: Сохраняем новую тренировку с временем: \(transferWorkout.totalTime)")
+                
+                // Сохраняем в CoreData
+                CoreDataManager.shared.createWorkoutSession(
+                    date: transferWorkout.startTime,
+                    totalTime: transferWorkout.totalTime,
+                    totalCalories: transferWorkout.totalCalories,
+                    poolSize: Int16(transferWorkout.poolSize),
+                    workoutOriginalId: transferWorkout.workoutId,
+                    workoutName: transferWorkout.workoutName,
+                    exercisesData: convertToCompletedExerciseData(transferWorkout.exercises)
+                )
+                
+                // Уведомляем делегата
+                workoutCompletionDelegate?.didReceiveCompletedWorkout(transferWorkout)
+            } else {
+                print("iPhone: Дубликат тренировки, игнорируем. Время: \(transferWorkout.totalTime)")
+            }
+            
+            // В любом случае отправляем подтверждение получения данных
             sendWorkoutDataReceivedConfirmation(sendId: sendId)
         }
     }
@@ -223,9 +245,9 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
                 workoutName: transferWorkout.workoutName,
                 exercisesData: convertToCompletedExerciseData(transferWorkout.exercises)
             )
-            print("New workout saved with time: \(transferWorkout.totalTime)")
+            print("Новая тренировка сохранена с временем: \(transferWorkout.totalTime)")
         } else {
-            print("Duplicate workout found, ignoring. Time: \(transferWorkout.totalTime)")
+            print("Найден дубликат тренировки. Время: \(transferWorkout.totalTime)")
         }
     }
     
@@ -306,10 +328,11 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         }
     }
     
-    // Обработка обычных сообщений
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         DispatchQueue.main.async {
-            // Существующие обработчики сообщений...
+            print("iPhone: Получено сообщение от часов \(message.keys)")
+            
+            // Обработка метрик в реальном времени
             if let heartRate = message["heartRate"] as? Int {
                 self.delegate?.didReceiveHeartRate(heartRate)
             }
@@ -318,19 +341,54 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
                 self.delegate?.didReceiveStrokeCount(strokeCount)
             }
             
+            // Обработка статуса тренировки от часов
             if let watchStatus = message["watchStatus"] as? String {
+                print("iPhone: Получен статус от часов: \(watchStatus)")
+                
+                // Проверяем флаг, следует ли сохранять данные
+                let shouldSaveWorkout = message["shouldSaveWorkout"] as? Bool ?? false
+                let isCollectingData = message["isCollectingData"] as? Bool ?? false
+                
+                if isCollectingData {
+                    print("iPhone: Часы в режиме сбора данных, ждем 30 секунд...")
+                }
+                
+                // Уведомляем делегата о статусе (для UI)
                 self.delegate?.didReceiveWatchStatus(watchStatus)
                 
-                if watchStatus == "stopped" {
+                // Если это финальный статус "stopped" с данными для сохранения
+                if watchStatus == "stopped" && shouldSaveWorkout {
+                    print("iPhone: Получен окончательный статус STOPPED с сохранением")
+                    
+                    if let completedWorkoutData = message["completedWorkoutData"] as? [String: Any] {
+                        print("iPhone: Сохраняем данные тренировки из STOPPED сообщения")
+                        self.handleCompletedWorkoutData(completedWorkoutData)
+                    }
+                    
+                    // В любом случае сбрасываем параметры при окончании тренировки
+                    self.resetTrainingParameters()
+                }
+                else if watchStatus == "stopped" {
+                    // Обычный статус stopped без данных - только сбрасываем параметры
+                    print("iPhone: Получен статус STOPPED без данных (промежуточный)")
                     self.resetTrainingParameters()
                 }
             }
             
-            // Обработка данных о завершенной тренировке
+            // Обработка отдельного сообщения с данными о завершенной тренировке
             if let completedWorkoutData = message["completedWorkoutData"] as? [String: Any] {
-                self.handleCompletedWorkoutData(completedWorkoutData)
+                // Проверяем флаг перед сохранением
+                let shouldSaveWorkout = message["shouldSaveWorkout"] as? Bool ?? true
+                
+                if shouldSaveWorkout {
+                    print("iPhone: Получены данные о завершенной тренировке для сохранения")
+                    self.handleCompletedWorkoutData(completedWorkoutData)
+                } else {
+                    print("iPhone: Получены данные о тренировке, но shouldSaveWorkout=false")
+                }
             }
             
+            // Другие обработчики
             if let parametersReceived = message["parametersReceived"] as? Bool, parametersReceived {
                 self.parametersConfirmed = true
             }

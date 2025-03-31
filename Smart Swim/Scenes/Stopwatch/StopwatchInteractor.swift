@@ -2,10 +2,11 @@
 //  StopwatchInteractor.swift
 //  Smart Swim
 //
-//  Обновлённая версия для сохранения Start аналогично Workout
+//  Created by Artem Tkachuk on 11.02.2025.
 //
 
 import UIKit
+import WatchConnectivity
 
 protocol StopwatchBusinessLogic {
     func handleMainButtonAction(request: StopwatchModels.MainButtonAction.Request)
@@ -44,11 +45,38 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     private var currentLapNumber: Int = 0
     private var laps: [StopwatchModels.LapRecording.Response] = []
     
+    // Структура для хранения данных о пульсе за отрезок
+    private struct PulseData {
+        var readings: [Int] = []
+        var timestamps: [Date] = []
+        
+        // Вычисляет среднее значение пульса
+        var average: Int {
+            guard !readings.isEmpty else { return 0 }
+            let sum = readings.reduce(0, +)
+            return sum / readings.count
+        }
+        
+        // Вычисляет максимальное значение пульса
+        var max: Int {
+            return readings.max() ?? 0
+        }
+        
+        // Добавляет новое измерение пульса
+        mutating func addReading(_ value: Int) {
+            readings.append(value)
+            timestamps.append(Date())
+        }
+    }
+    
     // Данные для пульса и гребков, накапливаем локально
     private var currentPulse: Int = 0
     private var currentStrokes: Int = 0
     private var lapPulseData: [Int: Int] = [:]
     private var lapStrokesData: [Int: Int] = [:]
+    
+    // Словарь для хранения данных о пульсе по отрезкам
+    private var lapPulseReadings: [Int: PulseData] = [:]
     
     // Количество отрезков, рассчитываемое по дистанции и размеру бассейна
     var totalLengths: Int {
@@ -63,10 +91,12 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     }
     private var state: StopwatchState = .notStarted
     
-    // Core Data объект StartEntity (будет создан при завершении тренировки)
     private var startEntity: StartEntity?
     
-    // MARK: - Инициализация
+    // Флаг для предотвращения повторного запуска финализации
+    private var isFinalizingWorkout: Bool = false
+    
+    // MARK: - Initialization
     init() {
         // Настраиваем связь с Apple Watch
         WatchSessionManager.shared.delegate = self
@@ -143,10 +173,17 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             }
             presenter?.presentLapRecording(response: updatedLapResponse)
             
-            // Сохраняем данные пульса и гребков для текущего отрезка
-            if lapPulseData[currentLapNumber] == nil {
+            // Обновляем финальные данные о пульсе для отрезка
+            if let pulseData = lapPulseReadings[currentLapNumber] {
+                // Сохраняем среднее значение пульса за отрезок
+                lapPulseData[currentLapNumber] = pulseData.average
+                print("DEBUG: Отрезок \(currentLapNumber) завершен. Средний пульс: \(pulseData.average), максимальный: \(pulseData.max), измерений: \(pulseData.readings.count)")
+            } else if currentPulse > 0 {
+                // Если нет накопленных данных, но есть текущее значение
                 lapPulseData[currentLapNumber] = currentPulse
             }
+            
+            // Сохраняем данные гребков для текущего отрезка
             if lapStrokesData[currentLapNumber] == nil {
                 lapStrokesData[currentLapNumber] = currentStrokes
                 currentStrokes = 0
@@ -191,14 +228,24 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     
     // MARK: - Обработка данных с часов
     func updatePulseData(request: StopwatchModels.PulseUpdate.Request) {
-        currentPulse = request.pulse
-        if state == .running {
-            lapPulseData[currentLapNumber] = currentPulse
+        let newPulse = request.pulse
+        currentPulse = newPulse
+        
+        if state == .running && newPulse > 0 {
+            // Добавляем новое измерение пульса в текущий отрезок
+            if lapPulseReadings[currentLapNumber] == nil {
+                lapPulseReadings[currentLapNumber] = PulseData()
+            }
+            lapPulseReadings[currentLapNumber]?.addReading(newPulse)
+            
+            // Обновляем также текущее значение для обратной совместимости
+            lapPulseData[currentLapNumber] = newPulse
         }
     }
     
     func updateStrokeCount(request: StopwatchModels.StrokeUpdate.Request) {
         currentStrokes = request.strokes
+        print("DEBUG: updateStrokeCount received: \(request.strokes)")
         if state == .running {
             lapStrokesData[currentLapNumber] = currentStrokes
         }
@@ -224,7 +271,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         updateWatchStatus(request: request)
     }
     
-    // MARK: - Таймер
+    // MARK: - Timer Management
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
             guard let self = self else { return }
@@ -240,24 +287,35 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         timer = nil
     }
     
-    // MARK: - Завершение тренировки
+    // MARK: - Start Finish
     private func finishStopwatch() {
+        // Защита от повторного вызова
+        if isFinalizingWorkout {
+            return
+        }
+        isFinalizingWorkout = true
+        
+        // Переходим в состояние завершения и останавливаем таймер
         state = .finished
         stopTimer()
-        WatchSessionManager.shared.sendCommandToWatch("stop")
         
-        guard let globalStart = globalStartTime else { return }
-        let totalTime = Date().timeIntervalSince(globalStart)
-        
-        // Собираем данные всех отрезков в массив LapData
-        let lapDatas: [LapData] = laps.map { lap in
-            let lapNumber = Int16(lap.lapNumber)
-            let pulse = Int16(lapPulseData[lap.lapNumber] ?? 0)
-            let strokes = Int16(lapStrokesData[lap.lapNumber] ?? 0)
-            return LapData(lapTime: lap.lapTime, pulse: pulse, strokes: strokes, lapNumber: lapNumber)
+        // Немедленно обновляем UI, делаем кнопку финиша серой и отключенной
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let immediateResponse = StopwatchModels.Finish.Response(
+                finalButtonTitle: Constants.finishString,
+                finalButtonColor: UIColor.systemGray,
+                dataSaved: false
+            )
+            self.presenter?.presentFinish(response: immediateResponse)
         }
         
-        // Определяем код стиля плавания
+        WatchSessionManager.shared.sendCommandToWatch("stop")
+        guard let globalStart = globalStartTime else { return }
+        let finishTime = Date()
+        let totalTime = finishTime.timeIntervalSince(globalStart)
+        
+        // Определяем числовой код стиля плавания
         var styleCode: Int16 = 0
         if let swimmingStyle = swimmingStyle {
             switch swimmingStyle {
@@ -270,25 +328,158 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             }
         }
         
-        // Создаём StartEntity вместе с массивом отрезков, аналогично созданию Workout
+        // Проверяем, подключены ли часы
+        let watchConnected = WCSession.default.isReachable
+        print("DEBUG: WCSession.default.isReachable = \(watchConnected)")
+        
+        if watchConnected {
+            print("DEBUG: Часы подключены, откладываем сохранение тренировки на 30 секунд для накопления данных")
+            
+            var receivedFinalStrokeCount = false
+            
+            // Запрашиваем финальное количество гребков перед сохранением
+            func requestFinalStrokeCount() {
+                print("DEBUG: Запрашиваем финальное количество гребков от часов")
+                
+                // Создаем сообщение с запросом финального количества гребков
+                let message: [String: Any] = [
+                    "requestFinalStrokeCount": true,
+                    "startDate": globalStart,
+                    "endDate": finishTime
+                ]
+                
+                WCSession.default.sendMessage(message, replyHandler: { [weak self] response in
+                    guard let self = self else { return }
+                    
+                    if let finalCount = response["finalStrokeCount"] as? Int {
+                        print("DEBUG: Получено финальное количество гребков: \(finalCount)")
+                        receivedFinalStrokeCount = true
+                        
+                        // Распределяем гребки по отрезкам пропорционально длине
+                        self.distributeStrokesAcrossLaps(finalCount)
+                    }
+                }, errorHandler: { error in
+                    print("DEBUG: Ошибка при запросе финального количества гребков: \(error.localizedDescription)")
+                })
+            }
+            
+            // Запрашиваем финальные данные как можно раньше
+            requestFinalStrokeCount()
+            
+            // Основной таймер ожидания перед сохранением
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 30) { [weak self] in
+                guard let self = self else { return }
+                
+                // Финальная проверка перед сохранением
+                if !receivedFinalStrokeCount {
+                    print("DEBUG: Не получены финальные данные о гребках, повторный запрос")
+                    requestFinalStrokeCount()
+                    
+                    // Дополнительная задержка для получения финальных данных
+                    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 5) {
+                        self.saveStartEntityWithFinalData(
+                            globalStart: globalStart,
+                            totalTime: totalTime,
+                            styleCode: styleCode
+                        )
+                    }
+                } else {
+                    self.saveStartEntityWithFinalData(
+                        globalStart: globalStart,
+                        totalTime: totalTime,
+                        styleCode: styleCode
+                    )
+                }
+            }
+        } else {
+            // Часы не подключены, сохраняем тренировку немедленно
+            print("DEBUG: Часы не подключены, сохраняем тренировку немедленно")
+            saveStartEntityWithFinalData(
+                globalStart: globalStart,
+                totalTime: totalTime,
+                styleCode: styleCode
+            )
+        }
+    }
+    
+    // Функция для распределения гребков по отрезкам
+    private func distributeStrokesAcrossLaps(_ totalStrokes: Int) {
+        // Если нет отрезков или общее количество гребков равно 0, выходим
+        guard !self.laps.isEmpty, totalStrokes > 0 else { return }
+        
+        // Общее количество отрезков
+        let totalLaps = self.totalLengths
+        
+        // Если у нас только один отрезок, присваиваем все гребки ему
+        if totalLaps == 1 {
+            self.lapStrokesData[1] = totalStrokes
+            return
+        }
+        
+        // Равномерное распределение по всем отрезкам
+        let baseStrokesPerLap = totalStrokes / totalLaps
+        let remainder = totalStrokes % totalLaps
+        
+        for lapNumber in 1...totalLaps {
+            // Добавляем остаточные гребки к последним отрезкам
+            let extraStrokes = (lapNumber > totalLaps - remainder) ? 1 : 0
+            self.lapStrokesData[lapNumber] = baseStrokesPerLap + extraStrokes
+        }
+        print("DEBUG: Распределены гребки по отрезкам: \(self.lapStrokesData)")
+    }
+    
+    // Выделяем сохранение данных в отдельный метод для повторного использования
+    private func saveStartEntityWithFinalData(globalStart: Date, totalTime: TimeInterval, styleCode: Int16) {
+        print("DEBUG: Сохранение тренировки. totalTime = \(totalTime) сек.")
+        print("DEBUG: currentPulse = \(self.currentPulse), currentStrokes = \(self.currentStrokes)")
+        
+        // Финальная обработка данных о пульсе перед сохранением
+        for lapNumber in 1...totalLengths {
+            if let pulseData = lapPulseReadings[lapNumber], pulseData.readings.count > 0 {
+                // Используем среднее значение пульса вместо последнего измерения
+                lapPulseData[lapNumber] = pulseData.average
+                print("DEBUG: Финальный пульс для отрезка \(lapNumber): \(pulseData.average) (из \(pulseData.readings.count) измерений)")
+            }
+        }
+        
+        print("DEBUG: lapPulseData = \(self.lapPulseData)")
+        print("DEBUG: lapStrokesData = \(self.lapStrokesData)")
+        
+        // Собираем данные о каждом отрезке в массив LapData
+        let lapDatas: [LapData] = self.laps.map { lap in
+            let lapNumber = Int16(lap.lapNumber)
+            let pulse = Int16(self.lapPulseData[lap.lapNumber] ?? 0)
+            let strokes = Int16(self.lapStrokesData[lap.lapNumber] ?? 0)
+            return LapData(lapTime: lap.lapTime, pulse: pulse, strokes: strokes, lapNumber: lapNumber)
+        }
+        
+        // Создаём StartEntity с накопленными данными
         if let start = CoreDataManager.shared.createStart(
-            poolSize: Int16(poolSize ?? 0),
-            totalMeters: Int16(totalMeters ?? 0),
+            poolSize: Int16(self.poolSize ?? 0),
+            totalMeters: Int16(self.totalMeters ?? 0),
             swimmingStyle: styleCode,
             laps: lapDatas,
             date: globalStart
         ) {
             CoreDataManager.shared.updateStartTotalTime(start, totalTime: totalTime)
             self.startEntity = start
+            print("DEBUG: StartEntity успешно создан.")
         } else {
-            print("Ошибка при создании StartEntity")
+            print("DEBUG: Ошибка при создании StartEntity")
         }
         
-        let response = StopwatchModels.Finish.Response(
-            finalButtonTitle: Constants.finishString,
-            finalButtonColor: UIColor.systemGray,
-            dataSaved: true
-        )
-        presenter?.presentFinish(response: response)
+        // Сбрасываем флаг финализации
+        self.isFinalizingWorkout = false
+        
+        // Обновляем UI, теперь данные сохранены
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let finalResponse = StopwatchModels.Finish.Response(
+                finalButtonTitle: Constants.finishString,
+                finalButtonColor: UIColor.systemGray,
+                dataSaved: true
+            )
+            self.presenter?.presentFinish(response: finalResponse)
+        }
     }
 }

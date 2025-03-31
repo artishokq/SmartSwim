@@ -485,4 +485,13 @@ extension CoreDataManager {
         
         return (count, totalTime, totalCalories)
     }
+    
+    func updateWorkoutSessionRecommendation(_ workoutSession: WorkoutSessionEntity, recommendation: String) {
+        workoutSession.recommendation = recommendation
+        _ = saveContext()
+    }
+    
+    func workoutSessionHasRecommendation(_ workoutSession: WorkoutSessionEntity) -> Bool {
+        return workoutSession.recommendation != nil && !workoutSession.recommendation!.isEmpty
+    }
 }

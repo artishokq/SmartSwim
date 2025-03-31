@@ -21,6 +21,9 @@ class StartService: ObservableObject {
     private var hasUpdatedPoolLength = false
     private var retryCount = 0
     
+    // Флаг активности сбора данных для предотвращения дублей
+    private var isDataCollectionActive = false
+    
     // MARK: - Initialization
     init(startKit: StartKit, workoutKitManager: WorkoutKitManager) {
         self.startKit = startKit
@@ -136,6 +139,7 @@ class StartService: ObservableObject {
     }
     
     func resetParameters() {
+        isDataCollectionActive = false
         startKit.resetReadyState()
         isReadyToStart = false
         resetCommand()
@@ -143,18 +147,34 @@ class StartService: ObservableObject {
     
     func startWorkout() {
         retryCount = 0
+        print("START: Запускаем тренировку в режиме старта")
         
         ensurePoolLength { [weak self] in
             guard let self = self else { return }
             self.startKit.startWorkout()
             self.startKit.sendStatus("started")
+            print("START: Тренировка запущена в Health")
         }
     }
     
     func stopWorkout() {
+        if isDataCollectionActive {
+            print("Остановка уже в процессе, игнорируем повторный запрос")
+            return
+        }
+        
+        print("STOP: Пользователь запросил остановку")
+        let stopTime = Date()
+        isDataCollectionActive = true
+        
+        startKit.sendStatus("stopping")
+        print("STOP: Статус UI обновлен на stopping")
+        
+        print("Фактическая остановка тренировки")
         startKit.stopWorkout()
-        startKit.sendStatus("stopped")
-        resetParameters()
+        
+        startKit.sendStatus("stopped", endTime: stopTime)
+        isDataCollectionActive = false
     }
     
     func resetCommand() {

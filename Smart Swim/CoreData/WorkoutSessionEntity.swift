@@ -28,6 +28,7 @@ extension WorkoutSessionEntity {
     @NSManaged public var workoutName: String?
     @NSManaged public var workoutOriginalId: String?
     @NSManaged public var exerciseSessions: NSSet?
+    @NSManaged public var recommendation: String?
 
 }
 

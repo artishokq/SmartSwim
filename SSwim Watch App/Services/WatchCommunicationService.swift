@@ -31,6 +31,8 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
         // Общие
         case error
         case requestAllParameters
+        
+        case requestFinalStrokeCount
     }
     
     // MARK: - Singleton
@@ -237,6 +239,15 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
         DispatchQueue.main.async {
+            if let requestFinal = message["requestFinalStrokeCount"] as? Bool, requestFinal,
+               let startDate = message["startDate"] as? Date,
+               let endDate = message["endDate"] as? Date {
+                WorkoutKitManager.shared.queryFinalStrokeCount(from: startDate, to: endDate) { finalCount in
+                    replyHandler(["finalStrokeCount": finalCount])
+                }
+                return
+            }
+
             self.handleMessage(message)
             
             var response: [String: Any] = ["received": true, "timestamp": Date().timeIntervalSince1970]

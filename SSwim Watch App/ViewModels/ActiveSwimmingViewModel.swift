@@ -13,11 +13,13 @@ final class ActiveSwimmingViewModel: ObservableObject {
     private enum Constants {
         static let startStatus = "started"
         static let stopStatus = "stopped"
+        static let stoppingStatus = "stopping"
         static let rootViewNotification = "ReturnToRootView"
     }
     
     // MARK: - Published Properties
     @Published var command = ""
+    @Published var isWorkoutActive = false
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -43,6 +45,7 @@ final class ActiveSwimmingViewModel: ObservableObject {
             return
         }
         
+        isWorkoutActive = true
         startService.startWorkout()
     }
     
@@ -51,6 +54,7 @@ final class ActiveSwimmingViewModel: ObservableObject {
             return
         }
         
+        isWorkoutActive = false
         startService.stopWorkout()
     }
     
@@ -71,6 +75,13 @@ final class ActiveSwimmingViewModel: ObservableObject {
                 if !command.isEmpty {
                     self.command = command
                 }
+            }
+            .store(in: &cancellables)
+        
+        startService.$session
+            .receive(on: RunLoop.main)
+            .sink { [weak self] session in
+                self?.isWorkoutActive = session.isActive
             }
             .store(in: &cancellables)
     }

@@ -78,6 +78,39 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
         return 0
     }
     
+    func getTotalStrokeCount() -> Int {
+        return Int(lastStrokeCount)
+    }
+    
+    func queryFinalStrokeCount(from startDate: Date, to endDate: Date, completion: @escaping (Int) -> Void) {
+        guard let strokeType = HKQuantityType.quantityType(forIdentifier: .swimmingStrokeCount) else {
+            completion(0)
+            return
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [])
+        let interval = DateComponents(second: 1)
+        let query = HKStatisticsCollectionQuery(quantityType: strokeType,
+                                                quantitySamplePredicate: predicate,
+                                                options: .cumulativeSum,
+                                                anchorDate: startDate,
+                                                intervalComponents: interval)
+        query.initialResultsHandler = { query, results, error in
+            var totalStrokes = 0.0
+            if let statsCollection = results {
+                statsCollection.enumerateStatistics(from: startDate, to: endDate) { statistics, stop in
+                    if let sumQuantity = statistics.sumQuantity() {
+                        totalStrokes += sumQuantity.doubleValue(for: HKUnit.count())
+                    }
+                }
+            }
+            DispatchQueue.main.async {
+                completion(Int(totalStrokes))
+            }
+        }
+        healthStore.execute(query)
+    }
+    
+    
     func startWorkout(workout: SwimWorkoutModels.SwimWorkout) {
         // Останавливаем существующую сессию, если есть
         if workoutSession != nil {
@@ -185,8 +218,7 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
                     if strokeDifference == 0 || self.lastStrokeCount == 0 {
                         // Первое измерение или нет изменений
                     } else if strokeDifference < 3 {
-                        // Малое количество гребков может означать завершение отрезка
-                        // и начало нового (остановка, разворот и продолжение)
+                        // Малое количество гребков может означать завершение отрезка и начало нового (остановка, разворот и продолжение)
                         self.lapCounter += 1
                         self.lapCompletedPublisher.send(self.lapCounter)
                     }

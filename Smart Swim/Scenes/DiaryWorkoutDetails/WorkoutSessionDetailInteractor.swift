@@ -104,15 +104,57 @@ final class WorkoutSessionDetailInteractor: WorkoutSessionDetailBusinessLogic, W
         )
         presenter?.presentRecommendation(response: loadingResponse)
         
-        // TBA
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            let recommendation = "TBA"
-            
+        // Получаем сессию тренировки
+        guard let sessionEntity = CoreDataManager.shared.fetchWorkoutSession(byID: request.sessionID) else {
+            // Если не удалось получить сессию, показываем сообщение об ошибке
+            let errorResponse = WorkoutSessionDetailModels.FetchRecommendation.Response(
+                recommendationText: "Не удалось загрузить данные тренировки",
+                isLoading: false
+            )
+            presenter?.presentRecommendation(response: errorResponse)
+            return
+        }
+        
+        // Проверяем, есть ли уже рекомендация
+        if let recommendation = sessionEntity.recommendation, !recommendation.isEmpty {
+            // Если рекомендация уже есть, показываем ее
             let response = WorkoutSessionDetailModels.FetchRecommendation.Response(
                 recommendationText: recommendation,
                 isLoading: false
             )
-            self?.presenter?.presentRecommendation(response: response)
+            presenter?.presentRecommendation(response: response)
+            return
+        }
+        
+        // Запрашиваем рекомендацию из DeepSeek API
+        AIWorkoutService.shared.generateRecommendation(for: sessionEntity) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let recommendation):
+                    // Сохраняем рекомендацию в CoreData
+                    CoreDataManager.shared.updateWorkoutSessionRecommendation(sessionEntity, recommendation: recommendation)
+                    
+                    // Информируем презентер, что рекомендация загружена
+                    let recommendationResponse = WorkoutSessionDetailModels.FetchRecommendation.Response(
+                        recommendationText: recommendation,
+                        isLoading: false
+                    )
+                    self?.presenter?.presentRecommendation(response: recommendationResponse)
+                    
+                case .failure(let error):
+                    // В случае ошибки показываем соответствующее сообщение
+                    let errorMessage = "Не удалось получить рекомендацию: \(error.localizedDescription)"
+                    print("DeepSeek API Error: \(errorMessage)") // Для отладки
+                    
+                    // Формируем ответ с информацией об ошибке
+                    let fallbackMessage = "Не удалось получить рекомендацию. Пожалуйста, повторите позже."
+                    let recommendationResponse = WorkoutSessionDetailModels.FetchRecommendation.Response(
+                        recommendationText: fallbackMessage,
+                        isLoading: false
+                    )
+                    self?.presenter?.presentRecommendation(response: recommendationResponse)
+                }
+            }
         }
     }
     

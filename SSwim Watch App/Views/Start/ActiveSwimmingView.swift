@@ -13,11 +13,9 @@ struct ActiveSwimmingView: View {
         static let activeTitle: String = "Плавание активно"
         static let poolLengthFormat: String = "Бассейн: %dм"
         static let heartRateFormat: String = "Пульс: %d уд/м"
-        static let strokeCountFormat: String = "Гребки: %d"
         static let stopCommand: String = "stop"
         
         static let heartIcon = "heart.fill"
-        static let swimIcon = "figure.pool.swim"
         
         static let mainStackSpacing: CGFloat = 12
         static let metricsStackSpacing: CGFloat = 12
@@ -26,7 +24,6 @@ struct ActiveSwimmingView: View {
         static let activeTitleColor = Color.green
         static let poolInfoColor = Color.gray
         static let heartIconColor = Color.red
-        static let swimIconColor = Color.blue
     }
     
     // MARK: - Properties
@@ -41,26 +38,22 @@ struct ActiveSwimmingView: View {
             Text(Constants.activeTitle)
                 .font(.headline)
                 .foregroundColor(Constants.activeTitleColor)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
             
             Text(String(format: Constants.poolLengthFormat, Int(startService.session.poolLength)))
                 .font(.headline)
                 .foregroundColor(Constants.poolInfoColor)
             
             // MARK: - Metrics
-            VStack(alignment: .leading, spacing: Constants.metricsStackSpacing) {
-                HStack {
-                    Image(systemName: Constants.heartIcon)
-                        .foregroundColor(Constants.heartIconColor)
-                    Text(String(format: Constants.heartRateFormat, Int(startService.session.heartRate)))
-                }
-                
-                HStack {
-                    Image(systemName: Constants.swimIcon)
-                        .foregroundColor(Constants.swimIconColor)
-                    Text(String(format: Constants.strokeCountFormat, startService.session.strokeCount))
-                }
+            HStack {
+                Image(systemName: Constants.heartIcon)
+                    .foregroundColor(Constants.heartIconColor)
+                Text(String(format: Constants.heartRateFormat, Int(startService.session.heartRate)))
             }
             .padding()
+            
             Spacer()
         }
         .padding()
