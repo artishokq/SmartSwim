@@ -78,6 +78,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     // Словарь для хранения данных о пульсе по отрезкам
     private var lapPulseReadings: [Int: PulseData] = [:]
     
+    // Массив для хранения всех пульсовых показаний
+    private var allPulseReadings: [Int] = []
+    
     // Количество отрезков, рассчитываемое по дистанции и размеру бассейна
     var totalLengths: Int {
         if let totalMeters = totalMeters, let poolSize = poolSize, poolSize > 0 {
@@ -231,6 +234,11 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         let newPulse = request.pulse
         currentPulse = newPulse
         
+        // Сохраняем все значения пульса, если они корректные
+        if newPulse > 0 {
+            allPulseReadings.append(newPulse)
+        }
+        
         if state == .running && newPulse > 0 {
             // Добавляем новое измерение пульса в текущий отрезок
             if lapPulseReadings[currentLapNumber] == nil {
@@ -285,6 +293,64 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+    }
+    
+    // MARK: - Методы равномерного распределения пульса
+    private func distributePulseAcrossLaps() {
+        // Проверяем, что есть измерения пульса и отрезки
+        guard !allPulseReadings.isEmpty, totalLengths > 0 else {
+            return
+        }
+        
+        // Группируем показания пульса на равные части по количеству отрезков
+        let totalReadings = allPulseReadings.count
+        let readingsPerLap = totalReadings / totalLengths
+        
+        print("DEBUG: Равномерное распределение пульса - всего показаний: \(totalReadings), отрезков: \(totalLengths)")
+        
+        // Если слишком мало измерений на отрезок, вычисляем общий средний пульс
+        if readingsPerLap < 2 {
+            let totalSum = allPulseReadings.reduce(0, +)
+            let averagePulse = totalSum / totalReadings
+            
+            // Устанавливаем одинаковый пульс для всех отрезков
+            for lapNumber in 1...totalLengths {
+                lapPulseData[lapNumber] = averagePulse
+            }
+            
+            print("DEBUG: Недостаточно измерений для распределения по отрезкам. Установлен общий средний пульс: \(averagePulse)")
+            return
+        }
+        
+        for lapNumber in 1...totalLengths {
+            // Вычисляем начальный и конечный индекс для текущего отрезка
+            let startIndex = (lapNumber - 1) * readingsPerLap
+            let endIndex = min(startIndex + readingsPerLap, totalReadings)
+            
+            var lapReadings: [Int] = []
+            
+            // Если у нас есть показания для этого отрезка
+            if startIndex < totalReadings {
+                // Получаем все показания для текущего отрезка
+                lapReadings = Array(allPulseReadings[startIndex..<endIndex])
+            }
+            
+            // Вычисляем средний пульс для отрезка
+            var averagePulse: Int
+            if !lapReadings.isEmpty {
+                let sum = lapReadings.reduce(0, +)
+                averagePulse = sum / lapReadings.count
+                print("DEBUG: Отрезок \(lapNumber): средний пульс \(averagePulse) из \(lapReadings.count) показаний")
+            } else {
+                // Если показаний нет, используем общий средний
+                let sum = allPulseReadings.reduce(0, +)
+                averagePulse = sum / totalReadings
+                print("DEBUG: Отрезок \(lapNumber): нет показаний, используем общий средний \(averagePulse)")
+            }
+            
+            // Обновляем значение пульса для этого отрезка
+            lapPulseData[lapNumber] = averagePulse
+        }
     }
     
     // MARK: - Start Finish
@@ -370,6 +436,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 30) { [weak self] in
                 guard let self = self else { return }
                 
+                // Выполняем равномерное распределение пульса по отрезкам
+                self.distributePulseAcrossLaps()
+                
                 // Финальная проверка перед сохранением
                 if !receivedFinalStrokeCount {
                     print("DEBUG: Не получены финальные данные о гребках, повторный запрос")
@@ -394,6 +463,10 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         } else {
             // Часы не подключены, сохраняем тренировку немедленно
             print("DEBUG: Часы не подключены, сохраняем тренировку немедленно")
+            
+            // Распределяем пульс по отрезкам
+            distributePulseAcrossLaps()
+            
             saveStartEntityWithFinalData(
                 globalStart: globalStart,
                 totalTime: totalTime,
@@ -433,13 +506,18 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         print("DEBUG: Сохранение тренировки. totalTime = \(totalTime) сек.")
         print("DEBUG: currentPulse = \(self.currentPulse), currentStrokes = \(self.currentStrokes)")
         
-        // Финальная обработка данных о пульсе перед сохранением
+        // Проверим, собрали ли мы пульс для всех отрезков
+        var missingPulseLaps = 0
         for lapNumber in 1...totalLengths {
-            if let pulseData = lapPulseReadings[lapNumber], pulseData.readings.count > 0 {
-                // Используем среднее значение пульса вместо последнего измерения
-                lapPulseData[lapNumber] = pulseData.average
-                print("DEBUG: Финальный пульс для отрезка \(lapNumber): \(pulseData.average) (из \(pulseData.readings.count) измерений)")
+            if lapPulseData[lapNumber] == nil || lapPulseData[lapNumber] == 0 {
+                missingPulseLaps += 1
             }
+        }
+        
+        // Если отсутствуют данные о пульсе для некоторых отрезков, повторно применяем распределение
+        if missingPulseLaps > 0 {
+            print("DEBUG: Отсутствует пульс для \(missingPulseLaps) отрезков. Применяем равномерное распределение.")
+            distributePulseAcrossLaps()
         }
         
         print("DEBUG: lapPulseData = \(self.lapPulseData)")

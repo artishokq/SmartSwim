@@ -87,27 +87,81 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
             completion(0)
             return
         }
+        
+        print("DEBUG: Запрашиваем данные гребков за период \(startDate) - \(endDate)")
+        
+        // Создаем предикат для временного периода
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [])
-        let interval = DateComponents(second: 1)
-        let query = HKStatisticsCollectionQuery(quantityType: strokeType,
-                                                quantitySamplePredicate: predicate,
-                                                options: .cumulativeSum,
-                                                anchorDate: startDate,
-                                                intervalComponents: interval)
+        let interval = DateComponents(second: 0, nanosecond: 100000000)
+        
+        // Используем HKStatisticsCollectionQuery для получения суммы гребков
+        let query = HKStatisticsCollectionQuery(
+            quantityType: strokeType,
+            quantitySamplePredicate: predicate,
+            options: .cumulativeSum,
+            anchorDate: startDate,
+            intervalComponents: interval
+        )
+        
         query.initialResultsHandler = { query, results, error in
             var totalStrokes = 0.0
+            
+            if let error = error {
+                print("DEBUG: Ошибка запроса данных HealthKit: \(error.localizedDescription)")
+            }
+            
             if let statsCollection = results {
+                print("DEBUG: Получена коллекция статистики HealthKit")
+                
                 statsCollection.enumerateStatistics(from: startDate, to: endDate) { statistics, stop in
                     if let sumQuantity = statistics.sumQuantity() {
-                        totalStrokes += sumQuantity.doubleValue(for: HKUnit.count())
+                        let value = sumQuantity.doubleValue(for: HKUnit.count())
+                        if value > 0 {
+                            totalStrokes = max(totalStrokes, value)
+                            print("DEBUG: Найдено значение гребков: \(value) на \(statistics.startDate)")
+                        }
                     }
                 }
+            } else {
+                print("DEBUG: Не удалось получить коллекцию статистики")
             }
+            
             DispatchQueue.main.async {
+                print("DEBUG: Итоговое количество гребков: \(Int(totalStrokes))")
                 completion(Int(totalStrokes))
             }
         }
+        
+        // Запускаем запрос
         healthStore.execute(query)
+        print("DEBUG: Запрос данных HealthKit запущен")
+        
+        // Еще один запрос с использованием HKSampleQuery для дополнительной надежности
+        let sampleQuery = HKSampleQuery(
+            sampleType: strokeType,
+            predicate: predicate,
+            limit: HKObjectQueryNoLimit,
+            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+        ) { query, samples, error in
+            guard let samples = samples as? [HKQuantitySample], error == nil else {
+                print("DEBUG: Ошибка запроса образцов HealthKit: \(String(describing: error))")
+                return
+            }
+            
+            let totalFromSamples = samples.reduce(0.0) { total, sample in
+                return total + sample.quantity.doubleValue(for: HKUnit.count())
+            }
+            
+            print("DEBUG: Количество гребков из образцов: \(Int(totalFromSamples))")
+            
+            if totalFromSamples > 0 {
+                DispatchQueue.main.async {
+                    completion(Int(totalFromSamples))
+                }
+            }
+        }
+        
+        healthStore.execute(sampleQuery)
     }
     
     
@@ -210,22 +264,30 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
             }
             else if quantityType.identifier == HKQuantityTypeIdentifier.swimmingStrokeCount.rawValue {
                 let strokeUnit = HKUnit.count()
-                if let value = statistics?.sumQuantity()?.doubleValue(for: strokeUnit), value > self.lastStrokeCount {
+                if let value = statistics?.sumQuantity()?.doubleValue(for: strokeUnit) {
                     let newCount = Int(value)
                     
-                    // Определяем, был ли это новый отрезок
+                    // Определяем, был ли это новый отрезок, с более точной логикой
                     let strokeDifference = value - self.lastStrokeCount
                     if strokeDifference == 0 || self.lastStrokeCount == 0 {
                         // Первое измерение или нет изменений
-                    } else if strokeDifference < 3 {
-                        // Малое количество гребков может означать завершение отрезка и начало нового (остановка, разворот и продолжение)
-                        self.lapCounter += 1
-                        self.lapCompletedPublisher.send(self.lapCounter)
+                    } else {
+                        // Сохраняем новое значение в любом случае
+                        DispatchQueue.main.async {
+                            self.strokeCountPublisher.send(newCount)
+                        }
+                        
+                        // Для определения завершения отрезка используем более точные критерии
+                        if workoutBuilder.workoutEvents.contains(where: { $0.type == .lap }) {
+                            // Обработка будет в workoutBuilderDidCollectEvent
+                        } else if strokeDifference < 5 && strokeDifference > 0 && self.lastStrokeCount > 10 {
+                            // Это может указывать на новый отрезок - небольшое количество новых гребков
+                            // после значительного количества предыдущих
+                            self.lapCounter += 1
+                            self.lapCompletedPublisher.send(self.lapCounter)
+                        }
                     }
                     
-                    DispatchQueue.main.async {
-                        self.strokeCountPublisher.send(newCount)
-                    }
                     self.lastStrokeCount = value
                 }
             }
@@ -244,6 +306,8 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
         // Получаем массив событий тренировки
         let workoutEvents = workoutBuilder.workoutEvents
         
+        print("DEBUG: Получено \(workoutEvents.count) событий тренировки")
+        
         // Проверяем на наличие новых событий отрезка
         for event in workoutEvents {
             let eventTimeStamp = event.dateInterval.start.timeIntervalSince1970
@@ -253,9 +317,13 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
                 continue
             }
             
+            print("DEBUG: Новое событие типа \(event.type.rawValue) в \(event.dateInterval.start)")
+            
             // Обрабатываем событие отрезка
             if event.type == .lap {
                 self.lapCounter += 1
+                print("DEBUG: Зарегистрировано событие LAP #\(self.lapCounter)")
+                
                 DispatchQueue.main.async {
                     self.lapCompletedPublisher.send(self.lapCounter)
                 }

@@ -253,7 +253,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SSwim-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
+				INFOPLIST_KEY_CFBundleDisplayName = "Smart Swim";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
@@ -287,7 +287,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SSwim-Watch-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = SSwim;
+				INFOPLIST_KEY_CFBundleDisplayName = "Smart Swim";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";

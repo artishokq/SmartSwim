@@ -61,11 +61,27 @@ final class WorkoutSessionService: ObservableObject {
     private var lastRecordedStrokeCount: Int = 0
     private var lastStrokeMetricTime: Date?
     
+    private var allHeartRateReadings: [HeartRateData] = []
+    private var heartRateReadings: [HeartRateData] = []
+    private var lapHeartRateData: [Int: [HeartRateData]] = [:]
+    
+    private var exerciseDurations: [String: TimeInterval] = [:]
+    
+    private var totalCaloriesBurned: Double = 0
+    private var lastKnownCalories: Double = 0
+    
+    private var queryCompleted = false
+    
     private struct PendingDataCollection {
         let exerciseId: String
         let startTime: Date
         let endTime: Date
         let timer: Timer
+    }
+    
+    private struct HeartRateData {
+        let timestamp: Date
+        let value: Double
     }
     
     private var pendingDataCollections: [PendingDataCollection] = []
@@ -122,12 +138,21 @@ final class WorkoutSessionService: ObservableObject {
                 self.updateStrokeCount(strokeCount)
             }
             .store(in: &cancellables)
+        
         // Подписываемся на обновления калорий
         workoutKitManager.caloriesPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] calories in
                 guard let self = self else { return }
+                
                 self.currentCalories = calories
+                
+                if calories > self.lastKnownCalories {
+                    self.lastKnownCalories = calories
+                    
+                    // Обновляем общее количество сожженных калорий
+                    self.totalCaloriesBurned = calories
+                }
             }
             .store(in: &cancellables)
         
@@ -170,11 +195,34 @@ final class WorkoutSessionService: ObservableObject {
     }
     
     private func handleLapTransition() {
-        // Записываем метрики завершенного отрезка
-        recordLapMetrics()
+        let currentLapHeartRate = calculateAverageHeartRate(for: currentRepetitionNumber)
+        
+        // Создаем запись о текущем отрезке с усредненным пульсом и актуальным количеством гребков
+        let lapRecord = SwimWorkoutModels.LapData(
+            timestamp: Date(),
+            lapNumber: currentRepetitionNumber,
+            exerciseId: currentExercise?.exerciseId ?? "",
+            distance: (currentExercise?.exerciseRef.meters ?? 0) / (currentExercise?.exerciseRef.repetitions ?? 1),
+            lapTime: exerciseTime,
+            heartRate: currentLapHeartRate,
+            strokes: strokesInCurrentLap
+        )
+        
+        // Сохраняем запись о текущем отрезке
+        if let existingIndex = lapData.firstIndex(where: {
+            $0.exerciseId == lapRecord.exerciseId && $0.lapNumber == currentRepetitionNumber
+        }) {
+            lapData[existingIndex] = lapRecord
+        } else {
+            lapData.append(lapRecord)
+        }
         
         strokeCountAtLapStart = lastRecordedStrokeCount
         strokesInCurrentLap = 0
+        
+        if heartRateReadings.count > 0 {
+            lapHeartRateData[currentRepetitionNumber] = heartRateReadings
+        }
     }
     
     private func startManualRefreshTimer() {
@@ -242,7 +290,6 @@ final class WorkoutSessionService: ObservableObject {
             RunLoop.main.add(self.sessionTimer!, forMode: .common)
             RunLoop.main.add(self.exerciseTimer!, forMode: .common)
             
-            // Если у текущего упражнения есть интервал, запускаем интервальный таймер
             self.startIntervalTimerIfNeeded()
         }
     }
@@ -250,7 +297,6 @@ final class WorkoutSessionService: ObservableObject {
     private func startIntervalTimerIfNeeded() {
         guard let exercise = currentExercise?.exerciseRef else { return }
         
-        // Если у упражнения есть интервал, запускаем таймер интервала
         if exercise.hasInterval && exercise.intervalInSeconds > 0 {
             repetitionStartTime = Date()
             intervalTimeRemaining = TimeInterval(exercise.intervalInSeconds)
@@ -359,22 +405,17 @@ final class WorkoutSessionService: ObservableObject {
             if exercise.repetitions > 1 {
                 // Для упражнений с несколькими повторениями
                 if exercise.hasInterval && exercise.intervalInSeconds > 0 {
-                    // С интервалом - кнопка активна только когда интервал истек
                     self.shouldShowNextRepButton = self.isIntervalCompleted && !self.isLastRepetition
                     self.canCompleteExercise = self.isIntervalCompleted && self.isLastRepetition
                 } else {
-                    // Без интервала кнопка для перехода к следующему повторению всегда активна
                     self.shouldShowNextRepButton = !self.isLastRepetition
                     self.canCompleteExercise = self.isLastRepetition
                 }
             } else {
-                // Для одиночных упражнений
                 if exercise.hasInterval && exercise.intervalInSeconds > 0 {
-                    // С интервалом можно завершить только когда интервал истек
                     self.shouldShowNextRepButton = false
                     self.canCompleteExercise = self.isIntervalCompleted
                 } else {
-                    // Без интервала можно завершить в любой момент
                     self.shouldShowNextRepButton = false
                     self.canCompleteExercise = true
                 }
@@ -418,20 +459,33 @@ final class WorkoutSessionService: ObservableObject {
     }
     
     private func updateHeartRate(_ heartRate: Double) {
+        let newReading = HeartRateData(timestamp: Date(), value: heartRate)
+        allHeartRateReadings.append(newReading)
+        heartRateReadings.append(newReading)
+        
         DispatchQueue.main.async {
             if var exercise = self.currentExercise {
                 exercise.heartRate = heartRate
                 self.currentExercise = exercise
-                
                 self.objectWillChange.send()
-                
-                let now = Date()
-                if self.lastStrokeMetricTime == nil || now.timeIntervalSince(self.lastStrokeMetricTime!) > 4.0 {
-                    self.recordLapMetrics()
-                    self.lastStrokeMetricTime = now
-                }
             }
         }
+    }
+    
+    private func calculateAverageHeartRate(for lapNumber: Int) -> Double {
+        // Есть ли сохраненные данные для этого отрезка
+        if let savedReadings = lapHeartRateData[lapNumber], !savedReadings.isEmpty {
+            let sum = savedReadings.reduce(0.0) { $0 + $1.value }
+            return sum / Double(savedReadings.count)
+        }
+        
+        // Если нет сохраненных данных используем текущие показания
+        if !heartRateReadings.isEmpty {
+            let sum = heartRateReadings.reduce(0.0) { $0 + $1.value }
+            return sum / Double(heartRateReadings.count)
+        }
+        
+        return currentExercise?.heartRate ?? 0
     }
     
     private func updateStrokeCount(_ strokeCount: Int) {
@@ -459,10 +513,270 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
+    private func distributeHeartRateReadings() {
+        if completedExercises.isEmpty || allHeartRateReadings.isEmpty {
+            return
+        }
+        
+        print("Распределение \(allHeartRateReadings.count) показаний пульса между \(completedExercises.count) упражнениями")
+        
+        var totalDuration: TimeInterval = 0
+        var exerciseTimings: [(exerciseId: String, duration: TimeInterval)] = []
+        
+        for exercise in completedExercises {
+            let duration = exercise.endTime.timeIntervalSince(exercise.startTime)
+            totalDuration += duration
+            exerciseTimings.append((exerciseId: exercise.exerciseId, duration: duration))
+        }
+        
+        let sortedHeartRates = allHeartRateReadings.sorted { $0.timestamp < $1.timestamp }
+        let totalReadings = sortedHeartRates.count
+        
+        if totalDuration <= 0 || totalReadings <= 0 {
+            return
+        }
+        
+        var startIndex = 0
+        for i in 0..<exerciseTimings.count {
+            let timing = exerciseTimings[i]
+            
+            // Рассчитываем количество показаний для этого упражнения пропорционально его длительности
+            let proportion = timing.duration / totalDuration
+            let readingsForExercise = Int(Double(totalReadings) * proportion)
+            let endIndex = min(startIndex + readingsForExercise, totalReadings)
+            
+            if startIndex < endIndex {
+                let exerciseReadings = Array(sortedHeartRates[startIndex..<endIndex])
+                
+                updateLapHeartRates(for: timing.exerciseId, with: exerciseReadings)
+                startIndex = endIndex
+            }
+        }
+        
+        if startIndex < totalReadings && !completedExercises.isEmpty {
+            let lastExerciseId = completedExercises.last!.exerciseId
+            let remainingReadings = Array(sortedHeartRates[startIndex..<totalReadings])
+            updateLapHeartRates(for: lastExerciseId, with: remainingReadings)
+        }
+    }
+    
+    private func updateLapHeartRates(for exerciseId: String, with heartRates: [HeartRateData]) {
+        guard !heartRates.isEmpty else { return }
+        
+        guard let exerciseIndex = completedExercises.firstIndex(where: { $0.exerciseId == exerciseId }) else {
+            return
+        }
+        
+        let existingLaps = completedExercises[exerciseIndex].laps
+        if existingLaps.isEmpty {
+            return
+        }
+        
+        var newLaps: [SwimWorkoutModels.LapData] = []
+        if existingLaps.count == 1 {
+            let avgHeartRate = heartRates.reduce(0.0) { $0 + $1.value } / Double(heartRates.count)
+            
+            let lap = existingLaps[0]
+            let newLap = SwimWorkoutModels.LapData(
+                timestamp: lap.timestamp,
+                lapNumber: lap.lapNumber,
+                exerciseId: lap.exerciseId,
+                distance: lap.distance,
+                lapTime: lap.lapTime,
+                heartRate: avgHeartRate,
+                strokes: lap.strokes
+            )
+            newLaps.append(newLap)
+            
+            if let lapIndex = lapData.firstIndex(where: {
+                $0.exerciseId == exerciseId && $0.lapNumber == lap.lapNumber
+            }) {
+                let oldLap = lapData[lapIndex]
+                let updatedLapData = SwimWorkoutModels.LapData(
+                    timestamp: oldLap.timestamp,
+                    lapNumber: oldLap.lapNumber,
+                    exerciseId: oldLap.exerciseId,
+                    distance: oldLap.distance,
+                    lapTime: oldLap.lapTime,
+                    heartRate: avgHeartRate,
+                    strokes: oldLap.strokes
+                )
+                lapData[lapIndex] = updatedLapData
+            }
+        } else {
+            let totalLapTime = existingLaps.reduce(0.0) { $0 + $1.lapTime }
+            if totalLapTime <= 0 {
+                return
+            }
+            
+            var startIndex = 0
+            let totalReadings = heartRates.count
+            
+            for lap in existingLaps {
+                let proportion = lap.lapTime / totalLapTime
+                let readingsForLap = max(1, Int(Double(totalReadings) * proportion))
+                let endIndex = min(startIndex + readingsForLap, totalReadings)
+                
+                var lapHeartRate = lap.heartRate
+                
+                if startIndex < endIndex {
+                    let lapReadings = Array(heartRates[startIndex..<endIndex])
+                    lapHeartRate = lapReadings.reduce(0.0) { $0 + $1.value } / Double(lapReadings.count)
+                    
+                    if let lapIndex = lapData.firstIndex(where: {
+                        $0.exerciseId == exerciseId && $0.lapNumber == lap.lapNumber
+                    }) {
+                        let oldLap = lapData[lapIndex]
+                        let updatedLapData = SwimWorkoutModels.LapData(
+                            timestamp: oldLap.timestamp,
+                            lapNumber: oldLap.lapNumber,
+                            exerciseId: oldLap.exerciseId,
+                            distance: oldLap.distance,
+                            lapTime: oldLap.lapTime,
+                            heartRate: lapHeartRate,
+                            strokes: oldLap.strokes
+                        )
+                        lapData[lapIndex] = updatedLapData
+                    }
+                    
+                    startIndex = endIndex
+                }
+                
+                let newLap = SwimWorkoutModels.LapData(
+                    timestamp: lap.timestamp,
+                    lapNumber: lap.lapNumber,
+                    exerciseId: lap.exerciseId,
+                    distance: lap.distance,
+                    lapTime: lap.lapTime,
+                    heartRate: lapHeartRate,
+                    strokes: lap.strokes
+                )
+                newLaps.append(newLap)
+            }
+        }
+        
+        let currentExercise = completedExercises[exerciseIndex]
+        let updatedExercise = SwimWorkoutModels.CompletedExerciseData(
+            exerciseId: currentExercise.exerciseId,
+            startTime: currentExercise.startTime,
+            endTime: currentExercise.endTime,
+            laps: newLaps
+        )
+        
+        completedExercises[exerciseIndex] = updatedExercise
+    }
+    
+    private func requestFinalStrokeData() {
+        guard let sessionStartTime = sessionStartTime else { return }
+        let endTime = Date()
+        
+        workoutKitManager.queryFinalStrokeCount(from: sessionStartTime, to: endTime) { [weak self] totalStrokeCount in
+            guard let self = self else { return }
+            
+            print("Получены финальные данные о гребках: \(totalStrokeCount)")
+            self.queryCompleted = true
+            
+            DispatchQueue.main.async {
+                self.distributeStrokesAcrossLaps(totalStrokes: totalStrokeCount)
+            }
+        }
+    }
+    
+    private func distributeStrokesAcrossLaps(totalStrokes: Int) {
+        var totalLaps = 0
+        var exerciseLaps: [String: Int] = [:]
+        
+        for exercise in completedExercises {
+            let lapsInExercise = exercise.laps.count
+            totalLaps += lapsInExercise
+            exerciseLaps[exercise.exerciseId] = lapsInExercise
+        }
+        
+        if totalLaps == 0 {
+            return
+        }
+        
+        // Если у нас только один отрезок все гребки идут на него
+        if totalLaps == 1, let firstExercise = completedExercises.first, !firstExercise.laps.isEmpty {
+            let lapIndex = lapData.firstIndex {
+                $0.exerciseId == firstExercise.exerciseId && $0.lapNumber == firstExercise.laps[0].lapNumber
+            }
+            
+            if let index = lapIndex {
+                // Создаем новый экземпляр структуры с обновленным значением гребков
+                let oldLap = lapData[index]
+                let newLap = SwimWorkoutModels.LapData(
+                    timestamp: oldLap.timestamp,
+                    lapNumber: oldLap.lapNumber,
+                    exerciseId: oldLap.exerciseId,
+                    distance: oldLap.distance,
+                    lapTime: oldLap.lapTime,
+                    heartRate: oldLap.heartRate,
+                    strokes: totalStrokes
+                )
+                lapData[index] = newLap
+            }
+            return
+        }
+        
+        var remainingStrokes = totalStrokes
+        var processedLapIndices: [Int] = []
+        
+        // Рраспределяем известные гребки
+        for (_, exercise) in completedExercises.enumerated() {
+            for (_, lap) in exercise.laps.enumerated() {
+                if let dataIndex = lapData.firstIndex(where: {
+                    $0.exerciseId == exercise.exerciseId && $0.lapNumber == lap.lapNumber
+                }) {
+                    // Если у нас уже есть ненулевое количество гребков, оставляем его
+                    if lapData[dataIndex].strokes > 0 {
+                        remainingStrokes -= lapData[dataIndex].strokes
+                    }
+                    processedLapIndices.append(dataIndex)
+                }
+            }
+        }
+        
+        // Распределяем оставшиеся гребки равномерно по оставшимся отрезкам
+        let remainingLaps = totalLaps - processedLapIndices.count
+        if remainingLaps > 0 && remainingStrokes > 0 {
+            let strokesPerLap = remainingStrokes / remainingLaps
+            let extraStrokes = remainingStrokes % remainingLaps
+            
+            var extraDistributed = 0
+            
+            // Распределяем равномерно между отрезками
+            for (_, exercise) in completedExercises.enumerated() {
+                for (_, lap) in exercise.laps.enumerated() {
+                    if let dataIndex = lapData.firstIndex(where: {
+                        $0.exerciseId == exercise.exerciseId && $0.lapNumber == lap.lapNumber
+                    }), !processedLapIndices.contains(dataIndex) {
+                        let oldLap = lapData[dataIndex]
+                        var newStrokeCount = strokesPerLap
+                        if extraDistributed < extraStrokes {
+                            newStrokeCount += 1
+                            extraDistributed += 1
+                        }
+                        
+                        let newLap = SwimWorkoutModels.LapData(
+                            timestamp: oldLap.timestamp,
+                            lapNumber: oldLap.lapNumber,
+                            exerciseId: oldLap.exerciseId,
+                            distance: oldLap.distance,
+                            lapTime: oldLap.lapTime,
+                            heartRate: oldLap.heartRate,
+                            strokes: newStrokeCount
+                        )
+                        lapData[dataIndex] = newLap
+                    }
+                }
+            }
+        }
+        print("DEBUG: Распределены гребки по отрезкам из финального запроса")
+    }
+    
     private func recordLapMetrics() {
         guard let exercise = currentExercise else { return }
-        
-        // Создаем запись о текущем отрезке
         let lapRecord = SwimWorkoutModels.LapData(
             timestamp: Date(),
             lapNumber: currentRepetitionNumber,
@@ -482,7 +796,6 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
-    // Метод для сброса счетчиков гребков при начале нового упражнения
     private func resetStrokeCounters() {
         strokeCountAtLapStart = 0
         strokesInCurrentLap = 0
@@ -492,9 +805,10 @@ final class WorkoutSessionService: ObservableObject {
     
     private func finalizeExerciseDataCollection(exerciseId: String, startTime: Date, endTime: Date) {
         print("Finalizing background data collection for exercise: \(exerciseId)")
+        let duration = endTime.timeIntervalSince(startTime)
+        exerciseDurations[exerciseId] = duration
         
         let exerciseLaps = lapData.filter { $0.exerciseId == exerciseId }
-        
         let completedExercise = SwimWorkoutModels.CompletedExerciseData(
             exerciseId: exerciseId,
             startTime: startTime,
@@ -512,8 +826,8 @@ final class WorkoutSessionService: ObservableObject {
     // MARK: - Отправка данных о выполненной тренировке
     private func prepareTransferWorkoutInfo(finalEndTime: Date? = nil) -> TransferWorkoutModels.TransferWorkoutInfo {
         let endTime = finalEndTime ?? Date()
+        distributeHeartRateReadings()
         
-        // Преобразуем все упражнения в TransferExerciseInfo
         let transferExercises = completedExercises.enumerated().map { index, completedExercise -> TransferWorkoutModels.TransferExerciseInfo in
             let originalExercise = exercises.first { $0.id == completedExercise.exerciseId }!
             
@@ -546,31 +860,25 @@ final class WorkoutSessionService: ObservableObject {
             )
         }
         
-        // Создаем объект с данными о тренировке
+        let healthKitCalories = workoutKitManager.getWorkoutTotalCalories()
+        let finalCalories = max(totalCaloriesBurned, max(healthKitCalories, lastKnownCalories))
         return TransferWorkoutModels.TransferWorkoutInfo.create(
             workoutId: workout.id,
             workoutName: workout.name,
             poolSize: workout.poolSize,
             startTime: sessionStartTime ?? Date(),
             endTime: endTime,
-            totalCalories: workoutKitManager.getWorkoutTotalCalories(),
+            totalCalories: finalCalories,
             exercises: transferExercises
         )
     }
     
     private func sendWorkoutDataWithConfirmation(finalEndTime: Date? = nil) {
         let endTime = finalEndTime ?? Date()
-        
-        // Подготавливаем данные о тренировке в формате для передачи
         let transferWorkout = prepareTransferWorkoutInfo(finalEndTime: endTime)
-        
-        // Преобразуем в словарь для передачи через WatchConnectivity
         let workoutDict = transferWorkout.toDictionary()
-        
-        // Генерируем уникальный идентификатор для этой отправки
         let sendId = UUID().uuidString
         
-        // Отправляем данные на iPhone с ожиданием ответа
         communicationService.sendMessageWithReply(
             type: .command,
             data: [
@@ -615,6 +923,22 @@ final class WorkoutSessionService: ObservableObject {
         }
     }
     
+    private func finalizeWorkout(sessionEndTime: Date) {
+        if workoutActive {
+            let currentHealthKitCalories = workoutKitManager.getWorkoutTotalCalories()
+            if currentHealthKitCalories > 0 {
+                totalCaloriesBurned = max(totalCaloriesBurned, currentHealthKitCalories)
+                lastKnownCalories = max(lastKnownCalories, currentHealthKitCalories)
+            }
+            
+            workoutKitManager.stopWorkout()
+            workoutActive = false
+        }
+        
+        print("Завершение тренировки. Всего сожжено калорий: \(totalCaloriesBurned)")
+        self.sendWorkoutDataWithConfirmation(finalEndTime: sessionEndTime)
+    }
+    
     // MARK: - Public Methods
     func startSession() {
         guard sessionState == .notStarted else { return }
@@ -622,7 +946,15 @@ final class WorkoutSessionService: ObservableObject {
         print("Starting workout session")
         sessionStartTime = Date()
         
-        // Показываем превью первого упражнения
+        allHeartRateReadings = []
+        heartRateReadings = []
+        lapHeartRateData = [:]
+        exerciseDurations = [:]
+        
+        lastKnownCalories = 0
+        totalCaloriesBurned = 0
+        currentCalories = 0
+        
         if !exercises.isEmpty {
             currentExerciseIndex = 0
             prepareExercisePreview(exercises[currentExerciseIndex])
@@ -632,7 +964,6 @@ final class WorkoutSessionService: ObservableObject {
                 self.objectWillChange.send()
             }
         } else {
-            // Если нет упражнений, завершаем тренировку
             completeSession()
         }
     }
@@ -653,10 +984,9 @@ final class WorkoutSessionService: ObservableObject {
         isLastRepetition = currentRepetitionNumber >= totalRepetitions
         
         resetStrokeCounters()
-        
+        heartRateReadings = []
         updateButtonState()
         
-        // Устанавливаем текущее упражнение и сбрасываем превью
         DispatchQueue.main.async {
             self.currentExercise = preview
             self.nextExercisePreview = nil
@@ -677,7 +1007,6 @@ final class WorkoutSessionService: ObservableObject {
                 
                 DispatchQueue.main.async {
                     print("Starting WorkoutKit monitoring")
-                    // Запускаем тренировку WorkoutKit
                     self.workoutKitManager.startWorkout(workout: self.workout)
                 }
             }
@@ -717,6 +1046,16 @@ final class WorkoutSessionService: ObservableObject {
         let exerciseEndTime = Date()
         recordRepetitionCompletion()
         
+        if !heartRateReadings.isEmpty {
+            lapHeartRateData[currentRepetitionNumber] = heartRateReadings
+        }
+        
+        let currentHealthKitCalories = workoutKitManager.getWorkoutTotalCalories()
+        if currentHealthKitCalories > 0 {
+            totalCaloriesBurned = max(totalCaloriesBurned, currentHealthKitCalories)
+            lastKnownCalories = max(lastKnownCalories, currentHealthKitCalories)
+        }
+        
         let exerciseId = currentExercise.exerciseId
         let backgroundTimer = Timer.scheduledTimer(withTimeInterval: 20.0, repeats: false) { [weak self] timer in
             guard let self = self else { return }
@@ -751,6 +1090,9 @@ final class WorkoutSessionService: ObservableObject {
             isIntervalCompleted = false
             canCompleteExercise = false
             currentRepetitionNumber = 1
+            
+            heartRateReadings = []
+            resetStrokeCounters()
         } else {
             completeSession()
         }
@@ -772,14 +1114,20 @@ final class WorkoutSessionService: ObservableObject {
         sessionTimer?.invalidate()
         sessionTimer = nil
         stopExerciseTimer()
+        requestFinalStrokeData()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
-            if self.workoutActive {
-                self.workoutKitManager.stopWorkout()
-                self.workoutActive = false
+        // Ожидаем данных перед завершением
+        DispatchQueue.main.asyncAfter(deadline: .now() + 35.0) {
+            // Проверяем, получили ли мы данные о гребках
+            if !self.queryCompleted {
+                self.requestFinalStrokeData()
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    self.finalizeWorkout(sessionEndTime: sessionEndTime)
+                }
+            } else {
+                self.finalizeWorkout(sessionEndTime: sessionEndTime)
             }
-            
-            self.sendWorkoutDataWithConfirmation(finalEndTime: sessionEndTime)
         }
     }
     

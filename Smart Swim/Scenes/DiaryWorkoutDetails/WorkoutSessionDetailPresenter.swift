@@ -63,24 +63,24 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
             
             if !exerciseData.laps.isEmpty {
                 // Подготовим массив валидированных гребков
-                let validatedLaps = exerciseData.laps.map { lap ->
+                let normalizedLaps = exerciseData.laps.map { lap ->
                     (strokes: Int16, distance: Int16) in
-                    let validatedStrokes = validateStrokeData(lap.strokes, forDistance: lap.distance)
-                    return (validatedStrokes, lap.distance)
+                    let normalizedStrokes = normalizeStrokeData(lap.strokes, forDistance: lap.distance)
+                    return (normalizedStrokes, lap.distance)
                 }
                 
                 // Считаем общие гребки и дистанцию для среднего значения
-                let totalValidatedStrokes = validatedLaps.reduce(0) { $0 + Int($1.strokes) }
-                let totalDistance = validatedLaps.reduce(0) { $0 + Int($1.distance) }
+                let totalNormalizedStrokes = normalizedLaps.reduce(0) { $0 + Int($1.strokes) }
+                let totalDistance = normalizedLaps.reduce(0) { $0 + Int($1.distance) }
                 
                 if totalDistance > 0 {
-                    avgStrokesPerPoolLength = Double(totalValidatedStrokes) / Double(totalDistance) * Double(distanceDivisor)
+                    avgStrokesPerPoolLength = Double(totalNormalizedStrokes) / Double(totalDistance) * Double(distanceDivisor)
                 }
                 
                 // Для max/min рассчитываем на длину бассейна для каждого отрезка
-                if validatedLaps.count == 1 {
+                if normalizedLaps.count == 1 {
                     // Если только один отрезок, max и min одинаковые
-                    let lap = validatedLaps[0]
+                    let lap = normalizedLaps[0]
                     if lap.distance > 0 {
                         let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
                         maxStrokesPerPoolLength = Int16(strokesPerPoolLength.rounded())
@@ -88,15 +88,15 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                     }
                 } else {
                     // Несколько отрезков - считаем для каждого
-                    for lap in validatedLaps {
-                        if lap.distance > 0 {
+                    for lap in normalizedLaps {
+                        if lap.distance > 0 && lap.strokes > 0 {
                             let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
                             let roundedStrokes = Int16(strokesPerPoolLength.rounded())
                             
                             if roundedStrokes > maxStrokesPerPoolLength {
                                 maxStrokesPerPoolLength = roundedStrokes
                             }
-                            if roundedStrokes < minStrokesPerPoolLength {
+                            if roundedStrokes < minStrokesPerPoolLength && roundedStrokes > 0 {
                                 minStrokesPerPoolLength = roundedStrokes
                             }
                         }
@@ -110,7 +110,7 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                 averageStrokes: "\(Int(avgStrokesPerPoolLength.rounded()))",
                 maxStrokes: "\(maxStrokesPerPoolLength)",
                 minStrokes: "\(minStrokesPerPoolLength)",
-                totalStrokes: "" // Оставляем пустым, так как не используем
+                totalStrokes: ""
             )
             
             // Форматирование данных об упражнении
@@ -131,7 +131,7 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                 intervalString: intervalString,
                 metersString: "\(exerciseData.meters * exerciseData.repetitions)м",
                 repetitionsString: "\(exerciseData.repetitions)x\(exerciseData.meters)м",
-                poolSize: response.headerData.poolSize, // Добавляем размер бассейна
+                poolSize: response.headerData.poolSize,
                 pulseAnalysis: pulseAnalysis,
                 strokeAnalysis: strokeAnalysis
             )
@@ -202,23 +202,13 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
         }
     }
     
-    private func validateStrokeData(_ strokes: Int16, forDistance distance: Int16) -> Int16 {
-        let strokesInt = Int(strokes)
-        let distanceInt = Int(distance)
-        
-        if distanceInt <= 0 {
+    private func normalizeStrokeData(_ strokes: Int16, forDistance distance: Int16) -> Int16 {
+        if distance <= 0 {
             return 0
         }
         
-        let maxStrokesFor25m = 35
-        let expectedMaxStrokes = maxStrokesFor25m * (distanceInt / 25)
-        
-        if strokesInt > expectedMaxStrokes * 3 / 2 {
-            return Int16(expectedMaxStrokes)
-        }
-        
-        if strokesInt == 0 && distanceInt > 0 {
-            return Int16(max(distanceInt / 25 * 8, 1))
+        if strokes <= 0 {
+            return 0
         }
         
         return strokes

@@ -128,7 +128,7 @@ class AIWorkoutService {
                 ["role": "user", "content": prompt]
             ],
             "temperature": 0.7,
-            "max_tokens": 600
+            "max_tokens": 1000
         ]
         
         // Преобразование тела запроса в JSON
@@ -185,8 +185,10 @@ class AIWorkoutService {
                    let firstChoice = choices.first,
                    let message = firstChoice["message"] as? [String: Any],
                    let content = message["content"] as? String {
-                    // Возвращаем только текст ответа
-                    completion(.success(content))
+                    // Удаляем все символы "*" из ответа перед отправкой
+                    let cleanedContent = content.replacingOccurrences(of: "*", with: "")
+                    
+                    completion(.success(cleanedContent))
                 } else {
                     // Если не удалось распарсить ответ по ожидаемой структуре
                     if let jsonString = String(data: data, encoding: .utf8) {
