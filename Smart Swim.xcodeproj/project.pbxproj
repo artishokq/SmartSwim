@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		166B97002D65310800D91CF0 /* SSwim Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 166B96F32D65310700D91CF0 /* SSwim Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3F20107C49367798B70B80E0 /* Pods_SSwim_Watch_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3DB7B55B8A470F951A35C5A2 /* Pods_SSwim_Watch_App.framework */; };
+		3FF4D1727A9AE360157C245E /* Pods_Smart_Swim.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C92788A17D7F40EA9B49FA44 /* Pods_Smart_Swim.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +39,12 @@
 /* Begin PBXFileReference section */
 		166B96F32D65310700D91CF0 /* SSwim Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SSwim Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		16A823722D3006480084DADF /* Smart Swim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Smart Swim.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3DB7B55B8A470F951A35C5A2 /* Pods_SSwim_Watch_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SSwim_Watch_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C8115512970CBC3265EF717 /* Pods-SSwim Watch App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SSwim Watch App.debug.xcconfig"; path = "Target Support Files/Pods-SSwim Watch App/Pods-SSwim Watch App.debug.xcconfig"; sourceTree = "<group>"; };
+		5CFDD31A81BE91A2D6197BFC /* Pods-Smart Swim.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Smart Swim.release.xcconfig"; path = "Target Support Files/Pods-Smart Swim/Pods-Smart Swim.release.xcconfig"; sourceTree = "<group>"; };
+		805679D72E18B63425225BF4 /* Pods-SSwim Watch App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SSwim Watch App.release.xcconfig"; path = "Target Support Files/Pods-SSwim Watch App/Pods-SSwim Watch App.release.xcconfig"; sourceTree = "<group>"; };
+		C92788A17D7F40EA9B49FA44 /* Pods_Smart_Swim.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Smart_Swim.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB0140BB26E1E785849C184F /* Pods-Smart Swim.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Smart Swim.debug.xcconfig"; path = "Target Support Files/Pods-Smart Swim/Pods-Smart Swim.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -79,6 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F20107C49367798B70B80E0 /* Pods_SSwim_Watch_App.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +95,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3FF4D1727A9AE360157C245E /* Pods_Smart_Swim.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +108,8 @@
 				16A823742D3006480084DADF /* Smart Swim */,
 				166B96F42D65310700D91CF0 /* SSwim Watch App */,
 				16A823732D3006480084DADF /* Products */,
+				E17AE512F3C0218E7BF8BD2F /* Pods */,
+				D67F60CF570E8B2A2C03335C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -110,6 +122,26 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		D67F60CF570E8B2A2C03335C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				3DB7B55B8A470F951A35C5A2 /* Pods_SSwim_Watch_App.framework */,
+				C92788A17D7F40EA9B49FA44 /* Pods_Smart_Swim.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		E17AE512F3C0218E7BF8BD2F /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				5C8115512970CBC3265EF717 /* Pods-SSwim Watch App.debug.xcconfig */,
+				805679D72E18B63425225BF4 /* Pods-SSwim Watch App.release.xcconfig */,
+				CB0140BB26E1E785849C184F /* Pods-Smart Swim.debug.xcconfig */,
+				5CFDD31A81BE91A2D6197BFC /* Pods-Smart Swim.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -117,6 +149,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 166B97032D65310800D91CF0 /* Build configuration list for PBXNativeTarget "SSwim Watch App" */;
 			buildPhases = (
+				EA2A1A3816AD201D2234E812 /* [CP] Check Pods Manifest.lock */,
 				166B96EF2D65310700D91CF0 /* Sources */,
 				166B96F02D65310700D91CF0 /* Frameworks */,
 				166B96F12D65310700D91CF0 /* Resources */,
@@ -129,8 +162,6 @@
 				166B96F42D65310700D91CF0 /* SSwim Watch App */,
 			);
 			name = "SSwim Watch App";
-			packageProductDependencies = (
-			);
 			productName = "SSwim Watch App";
 			productReference = 166B96F32D65310700D91CF0 /* SSwim Watch App.app */;
 			productType = "com.apple.product-type.application";
@@ -139,10 +170,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 16A823852D3006490084DADF /* Build configuration list for PBXNativeTarget "Smart Swim" */;
 			buildPhases = (
+				FAC34F3B1270BDBBDFFD5FA7 /* [CP] Check Pods Manifest.lock */,
 				16A8236E2D3006480084DADF /* Sources */,
 				16A8236F2D3006480084DADF /* Frameworks */,
 				16A823702D3006480084DADF /* Resources */,
 				166B95FB2D65246300D91CF0 /* Embed Watch Content */,
+				60C1B8C5EA546279D78E2A34 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -153,8 +186,6 @@
 				16A823742D3006480084DADF /* Smart Swim */,
 			);
 			name = "Smart Swim";
-			packageProductDependencies = (
-			);
 			productName = "Smart Swim";
 			productReference = 16A823722D3006480084DADF /* Smart Swim.app */;
 			productType = "com.apple.product-type.application";
@@ -214,6 +245,70 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		60C1B8C5EA546279D78E2A34 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Smart Swim/Pods-Smart Swim-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Smart Swim/Pods-Smart Swim-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Smart Swim/Pods-Smart Swim-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		EA2A1A3816AD201D2234E812 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-SSwim Watch App-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		FAC34F3B1270BDBBDFFD5FA7 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Smart Swim-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		166B96EF2D65310700D91CF0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -242,6 +337,7 @@
 /* Begin XCBuildConfiguration section */
 		166B97012D65310800D91CF0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5C8115512970CBC3265EF717 /* Pods-SSwim Watch App.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -276,6 +372,7 @@
 		};
 		166B97022D65310800D91CF0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 805679D72E18B63425225BF4 /* Pods-SSwim Watch App.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -310,8 +407,7 @@
 		};
 		16A823862D3006490084DADF /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReferenceAnchor = 16A823742D3006480084DADF /* Smart Swim */;
-			baseConfigurationReferenceRelativePath = Application/APIkey.xcconfig;
+			baseConfigurationReference = CB0140BB26E1E785849C184F /* Pods-Smart Swim.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -319,10 +415,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Smart Swim/Helpers/Info.plist";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Для отображения бассейнов поблизости требуется доступ к вашему местоположению";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -348,6 +446,7 @@
 		};
 		16A823872D3006490084DADF /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5CFDD31A81BE91A2D6197BFC /* Pods-Smart Swim.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -355,10 +454,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Smart Swim/Helpers/Info.plist";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Приложению требуется доступ к данным здоровья для записи результатов плавания";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Приложению требуется доступ к данным здоровья для отслеживания показателей плавания";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Для отображения бассейнов поблизости требуется доступ к вашему местоположению";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -384,6 +485,8 @@
 		};
 		16A823882D3006490084DADF /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 16A823742D3006480084DADF /* Smart Swim */;
+			baseConfigurationReferenceRelativePath = Application/APIKeys.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -447,6 +550,8 @@
 		};
 		16A823892D3006490084DADF /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 16A823742D3006480084DADF /* Smart Swim */;
+			baseConfigurationReferenceRelativePath = Application/APIKeys.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;

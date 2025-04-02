@@ -64,7 +64,17 @@ final class WorkoutRouter: NSObject, WorkoutRoutingLogic, WorkoutDataPassing {
     
     func routeToInfo() {
         let infoVC = InfoViewController()
-        let navigationController = UINavigationController(rootViewController: infoVC)
-        viewController?.present(navigationController, animated: true)
+        
+        let interactor = InfoInteractor()
+        let presenter = InfoPresenter()
+        let router = InfoRouter()
+        
+        infoVC.interactor = interactor
+        infoVC.router = router
+        interactor.presenter = presenter
+        presenter.viewController = infoVC
+        router.viewController = infoVC
+        
+        viewController?.navigationController?.pushViewController(infoVC, animated: true)
     }
 }

@@ -7,11 +7,23 @@
 
 import UIKit
 import CoreData
+import YandexMapsMobile
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         WatchSessionManager.shared.activateSessionAndSendWorkouts()
+        
+        let apiKey: String = {
+            if let key = Bundle.main.object(forInfoDictionaryKey: "YANDEX_API_KEY") as? String, !key.isEmpty {
+                return key
+            }
+            print("YANDEX_API_KEY не задан в Info.plist")
+            return ""
+        }()
+        
+        YMKMapKit.setApiKey(apiKey)
+        let _ = YMKMapKit.sharedInstance()
         return true
     }
     
