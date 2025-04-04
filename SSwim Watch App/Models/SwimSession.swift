@@ -14,6 +14,11 @@ struct SwimSession {
     var heartRate: Double = 0
     var strokeCount: Int = 0
     var isActive: Bool = false
+    var startTime: Date? = nil
+    
+    var totalLaps: Int {
+        return Int(Double(totalMeters) / poolLength)
+    }
     
     init(poolLength: Double = 25.0, swimmingStyle: Int = 0, totalMeters: Int = 0,
          heartRate: Double = 0, strokeCount: Int = 0, isActive: Bool = false) {
@@ -23,5 +28,6 @@ struct SwimSession {
         self.heartRate = heartRate
         self.strokeCount = strokeCount
         self.isActive = isActive
+        self.startTime = nil
     }
 }

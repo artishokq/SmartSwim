@@ -1,2 +1,3 @@
 # Исключаем файл с ключами
 APIKeys.xcconfig
+Pods

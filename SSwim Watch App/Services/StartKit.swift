@@ -23,8 +23,8 @@ final class StartKit {
     let isReadyPublisher = PassthroughSubject<Bool, Never>()
     
     // MARK: - Properties
-    private let communicationService: WatchCommunicationService
-    private let workoutKitManager: WorkoutKitManager
+    let communicationService: WatchCommunicationService
+    let workoutKitManager: WorkoutKitManager
     private var subscriptionIds: [UUID] = []
     
     private var _poolLength: Double = Constants.defaultPoolLength
@@ -43,20 +43,7 @@ final class StartKit {
     private var pendingLock = NSLock()
     
     private var workoutStartTime: Date?
-    
-    private struct LapData {
-        let lapNumber: Int
-        let timestamp: Date
-        var strokeCount: Int
-        var heartRate: Double
-        var distance: Double
-    }
-    
-    private var laps: [LapData] = []
-    private var currentLapStartStrokeCount: Int = 0
     private var currentLapNumber: Int = 1
-    private var lastKnownHeartRate: Double = 0
-    private var lastStrokeMetricTime: Date?
     
     // MARK: - getters and setters
     var poolLength: Double {
@@ -191,125 +178,13 @@ final class StartKit {
     }
     
     private func setupWorkoutSubscriptions() {
-        // Подписка на завершение отрезков
         _ = workoutKitManager.lapCompletedPublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] lapNumber in
                 guard let self = self else { return }
                 print("Отрезок \(lapNumber) завершен")
-                
-                // Задержка для сбора возможных данных о гребках
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    self.finalizeLapData(lapNumber: lapNumber)
-                }
+                self.currentLapNumber = lapNumber
             }
-        
-        // Подписка на обновления сердечного ритма
-        _ = workoutKitManager.heartRatePublisher
-            .receive(on: RunLoop.main)
-            .sink { [weak self] heartRate in
-                guard let self = self else { return }
-                self.lastKnownHeartRate = heartRate
-                self.updateLatestLapData()
-            }
-        
-        // Подписка на обновления гребков
-        _ = workoutKitManager.strokeCountPublisher
-            .receive(on: RunLoop.main)
-            .sink { [weak self] strokeCount in
-                guard let self = self else { return }
-                
-                // Обновляем данные о текущем отрезке
-                self.updateStrokeCount(strokeCount)
-            }
-    }
-    
-    private func updateLatestLapData() {
-        // Сохраняем текущий пульс для отрезка
-        if !laps.isEmpty {
-            let now = Date()
-            if lastStrokeMetricTime == nil || now.timeIntervalSince(lastStrokeMetricTime!) > 4.0 {
-                recordCurrentLapMetrics()
-                lastStrokeMetricTime = now
-            }
-        }
-    }
-    
-    private func updateStrokeCount(_ strokeCount: Int) {
-        // Обновляем данные о текущем отрезке если он начат
-        if laps.isEmpty {
-            // Первый отрезок
-            laps.append(LapData(
-                lapNumber: 1,
-                timestamp: Date(),
-                strokeCount: strokeCount,
-                heartRate: lastKnownHeartRate,
-                distance: poolLength
-            ))
-            currentLapStartStrokeCount = 0
-            currentLapNumber = 1
-        } else {
-            let now = Date()
-            if lastStrokeMetricTime == nil || now.timeIntervalSince(lastStrokeMetricTime!) > 4.0 {
-                recordCurrentLapMetrics()
-                lastStrokeMetricTime = now
-            }
-        }
-    }
-    
-    private func recordCurrentLapMetrics() {
-        let totalStrokeCount = workoutKitManager.getTotalStrokeCount()
-        let strokesInCurrentLap = totalStrokeCount - currentLapStartStrokeCount
-        
-        // Если у нас есть данные для текущего отрезка, обновляем их
-        if let index = laps.firstIndex(where: { $0.lapNumber == currentLapNumber }) {
-            var updatedLap = laps[index]
-            updatedLap.strokeCount = strokesInCurrentLap
-            updatedLap.heartRate = lastKnownHeartRate
-            laps[index] = updatedLap
-        } else {
-            // Если нет записи, создаем новую
-            laps.append(LapData(
-                lapNumber: currentLapNumber,
-                timestamp: Date(),
-                strokeCount: strokesInCurrentLap,
-                heartRate: lastKnownHeartRate,
-                distance: poolLength
-            ))
-        }
-    }
-    
-    private func finalizeLapData(lapNumber: Int) {
-        let totalStrokeCount = workoutKitManager.getTotalStrokeCount()
-        let strokesInCurrentLap = totalStrokeCount - currentLapStartStrokeCount
-        
-        if let index = laps.firstIndex(where: { $0.lapNumber == currentLapNumber }) {
-            var updatedLap = laps[index]
-            updatedLap.strokeCount = strokesInCurrentLap
-            updatedLap.heartRate = lastKnownHeartRate
-            laps[index] = updatedLap
-        } else {
-            laps.append(LapData(
-                lapNumber: currentLapNumber,
-                timestamp: Date(),
-                strokeCount: strokesInCurrentLap,
-                heartRate: lastKnownHeartRate,
-                distance: poolLength
-            ))
-        }
-        
-        currentLapStartStrokeCount = totalStrokeCount
-        currentLapNumber = lapNumber
-        
-        laps.append(LapData(
-            lapNumber: lapNumber,
-            timestamp: Date(),
-            strokeCount: 0,
-            heartRate: lastKnownHeartRate,
-            distance: poolLength
-        ))
-        
-        print("Отрезок \(currentLapNumber-1) финализирован с \(strokesInCurrentLap) гребками")
     }
     
     // MARK: - Public Methods
@@ -376,33 +251,23 @@ final class StartKit {
     }
     
     func startWorkout() {
-        laps = []
-        currentLapStartStrokeCount = 0
         currentLapNumber = 1
-        lastKnownHeartRate = 0
-        
         workoutStartTime = Date()
         print("StartKit: Запуск тренировки через HealthKit в \(workoutStartTime!)")
-        
-        // Создаем базовую тренировку по плаванию
         let workout = createBasicSwimWorkout()
-        // Запускаем тренировку через HealthKit
         workoutKitManager.startWorkout(workout: workout)
-        // Создаем первый отрезок
-        laps.append(LapData(
-            lapNumber: 1,
-            timestamp: Date(),
-            strokeCount: 0,
-            heartRate: 0,
-            distance: poolLength
-        ))
     }
     
     func stopWorkout() {
         print("StartKit: Останавливаем тренировку в HealthKit")
-        
-        recordCurrentLapMetrics()
         workoutKitManager.stopWorkout()
+        communicationService.sendMessage(
+            type: .status,
+            data: [
+                "watchStatus": "workoutStopped",
+                "workoutStopTime": Date()
+            ]
+        )
     }
     
     private func createBasicSwimWorkout() -> SwimWorkoutModels.SwimWorkout {
@@ -427,44 +292,15 @@ final class StartKit {
         )
     }
     
-    func sendHeartRate(_ heartRate: Int) {
-        communicationService.sendMessage(
-            type: .heartRate,
-            data: ["heartRate": heartRate]
-        )
-    }
-    
-    func sendStrokeCount(_ count: Int) {
-        communicationService.sendMessage(
-            type: .strokeCount,
-            data: ["strokeCount": count]
-        )
-    }
-    
     func sendStatus(_ status: String, endTime: Date? = nil) {
-        if status == "stopping" {
-            communicationService.sendMessage(
-                type: .status,
-                data: [
-                    "watchStatus": status,
-                    "shouldSaveWorkout": false,
-                    "isCollectingData": true
-                ]
-            )
-            print("StartKit: Отправка статуса STOPPING (только для UI, без сохранения)")
-            return
-        }
-        
-        if status == "stopped", let endTime = endTime {
-            communicationService.sendMessage(
-                type: .status,
-                data: [
-                    "watchStatus": status,
-                    "shouldSaveWorkout": false
-                ]
-            )
-            print("StartKit: Отправка статуса STOPPED (только UI)")
-        }
+        communicationService.sendMessage(
+            type: .status,
+            data: [
+                "watchStatus": status,
+                "endTime": endTime as Any
+            ]
+        )
+        print("StartKit: Отправка статуса \(status)")
     }
     
     func getCurrentPoolLength() -> Double {
@@ -478,9 +314,6 @@ final class StartKit {
         swimmingStyle = 0
         totalMeters = 0
         workoutStartTime = nil
-        laps = []
-        currentLapStartStrokeCount = 0
         currentLapNumber = 1
-        lastKnownHeartRate = 0
     }
 }

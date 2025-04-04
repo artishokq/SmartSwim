@@ -20,8 +20,6 @@ class StartService: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var hasUpdatedPoolLength = false
     private var retryCount = 0
-    
-    // Флаг активности сбора данных для предотвращения дублей
     private var isDataCollectionActive = false
     
     // MARK: - Initialization
@@ -69,6 +67,13 @@ class StartService: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] cmd in
                 guard let self = self else { return }
+                
+                if cmd == "start" {
+                    self.handleStartCommand()
+                } else if cmd == "stop" {
+                    self.handleStopCommand()
+                }
+                
                 DispatchQueue.main.async {
                     self.command = cmd
                 }
@@ -80,7 +85,6 @@ class StartService: ObservableObject {
             .sink { [weak self] heartRate in
                 guard let self = self else { return }
                 self.session.heartRate = heartRate
-                self.startKit.sendHeartRate(Int(heartRate))
             }
             .store(in: &cancellables)
         
@@ -89,7 +93,6 @@ class StartService: ObservableObject {
             .sink { [weak self] strokeCount in
                 guard let self = self else { return }
                 self.session.strokeCount = strokeCount
-                self.startKit.sendStrokeCount(strokeCount)
             }
             .store(in: &cancellables)
         
@@ -116,10 +119,8 @@ class StartService: ObservableObject {
             if retryCount < 3 {
                 // Пробуем другой способ получения параметров
                 let allParamsSuccess = startKit.requestAllParameters()
-                
                 if allParamsSuccess {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        // Обновляем длину бассейна в сессии
                         let poolLength = self.startKit.getCurrentPoolLength()
                         self.session.poolLength = poolLength
                         completion()
@@ -131,6 +132,14 @@ class StartService: ObservableObject {
                 completion()
             }
         }
+    }
+    
+    private func handleStartCommand() {
+        startWorkout()
+    }
+    
+    private func handleStopCommand() {
+        stopWorkout()
     }
     
     // MARK: - Public Methods
@@ -148,7 +157,7 @@ class StartService: ObservableObject {
     func startWorkout() {
         retryCount = 0
         print("START: Запускаем тренировку в режиме старта")
-        
+        session.startTime = Date()
         ensurePoolLength { [weak self] in
             guard let self = self else { return }
             self.startKit.startWorkout()
@@ -170,11 +179,14 @@ class StartService: ObservableObject {
         startKit.sendStatus("stopping")
         print("STOP: Статус UI обновлен на stopping")
         
-        print("Фактическая остановка тренировки")
-        startKit.stopWorkout()
-        
-        startKit.sendStatus("stopped", endTime: stopTime)
-        isDataCollectionActive = false
+        // Ждем 2 секунды перед остановкой тренировки для завершения записей
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self else { return }
+            print("Фактическая остановка тренировки")
+            self.startKit.stopWorkout()
+            self.startKit.sendStatus("stopped", endTime: stopTime)
+            self.isDataCollectionActive = false
+        }
     }
     
     func resetCommand() {

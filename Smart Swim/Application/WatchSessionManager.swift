@@ -345,39 +345,18 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
             if let watchStatus = message["watchStatus"] as? String {
                 print("iPhone: Получен статус от часов: \(watchStatus)")
                 
-                // Проверяем флаг, следует ли сохранять данные
-                let shouldSaveWorkout = message["shouldSaveWorkout"] as? Bool ?? false
-                let isCollectingData = message["isCollectingData"] as? Bool ?? false
+                _ = message["workoutStopTime"] as? Date
+                _ = message["endTime"] as? Date
                 
-                if isCollectingData {
-                    print("iPhone: Часы в режиме сбора данных, ждем 30 секунд...")
-                }
-                
-                // Уведомляем делегата о статусе (для UI)
                 self.delegate?.didReceiveWatchStatus(watchStatus)
-                
-                // Если это финальный статус "stopped" с данными для сохранения
-                if watchStatus == "stopped" && shouldSaveWorkout {
-                    print("iPhone: Получен окончательный статус STOPPED с сохранением")
-                    
-                    if let completedWorkoutData = message["completedWorkoutData"] as? [String: Any] {
-                        print("iPhone: Сохраняем данные тренировки из STOPPED сообщения")
-                        self.handleCompletedWorkoutData(completedWorkoutData)
-                    }
-                    
-                    // В любом случае сбрасываем параметры при окончании тренировки
-                    self.resetTrainingParameters()
-                }
-                else if watchStatus == "stopped" {
-                    // Обычный статус stopped без данных - только сбрасываем параметры
-                    print("iPhone: Получен статус STOPPED без данных (промежуточный)")
+                // Если получен статус остановки тренировки, сбрасываем параметры
+                if watchStatus == "stopped" || watchStatus == "workoutStopped" {
                     self.resetTrainingParameters()
                 }
             }
             
             // Обработка отдельного сообщения с данными о завершенной тренировке
             if let completedWorkoutData = message["completedWorkoutData"] as? [String: Any] {
-                // Проверяем флаг перед сохранением
                 let shouldSaveWorkout = message["shouldSaveWorkout"] as? Bool ?? true
                 
                 if shouldSaveWorkout {

@@ -7,12 +7,11 @@
 
 import UIKit
 import WatchConnectivity
+import HealthKit
 
 protocol StopwatchBusinessLogic {
     func handleMainButtonAction(request: StopwatchModels.MainButtonAction.Request)
     func timerTick(request: StopwatchModels.TimerTick.Request)
-    func updatePulseData(request: StopwatchModels.PulseUpdate.Request)
-    func updateStrokeCount(request: StopwatchModels.StrokeUpdate.Request)
     func updateWatchStatus(request: StopwatchModels.WatchStatusUpdate.Request)
 }
 
@@ -45,43 +44,9 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     private var currentLapNumber: Int = 0
     private var laps: [StopwatchModels.LapRecording.Response] = []
     
-    // Структура для хранения данных о пульсе за отрезок
-    private struct PulseData {
-        var readings: [Int] = []
-        var timestamps: [Date] = []
-        
-        // Вычисляет среднее значение пульса
-        var average: Int {
-            guard !readings.isEmpty else { return 0 }
-            let sum = readings.reduce(0, +)
-            return sum / readings.count
-        }
-        
-        // Вычисляет максимальное значение пульса
-        var max: Int {
-            return readings.max() ?? 0
-        }
-        
-        // Добавляет новое измерение пульса
-        mutating func addReading(_ value: Int) {
-            readings.append(value)
-            timestamps.append(Date())
-        }
-    }
-    
-    // Данные для пульса и гребков, накапливаем локально
-    private var currentPulse: Int = 0
-    private var currentStrokes: Int = 0
     private var lapPulseData: [Int: Int] = [:]
     private var lapStrokesData: [Int: Int] = [:]
     
-    // Словарь для хранения данных о пульсе по отрезкам
-    private var lapPulseReadings: [Int: PulseData] = [:]
-    
-    // Массив для хранения всех пульсовых показаний
-    private var allPulseReadings: [Int] = []
-    
-    // Количество отрезков, рассчитываемое по дистанции и размеру бассейна
     var totalLengths: Int {
         if let totalMeters = totalMeters, let poolSize = poolSize, poolSize > 0 {
             return totalMeters / poolSize
@@ -96,13 +61,31 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
     
     private var startEntity: StartEntity?
     
-    // Флаг для предотвращения повторного запуска финализации
+    private let healthStore = HKHealthStore()
     private var isFinalizingWorkout: Bool = false
+    private var strokeDataQueryCompleted = false
+    private var heartRateQueryCompleted = false
+    private var isWaitingForWatchConfirmation = false
+    private var workoutStopTime: Date?
     
     // MARK: - Initialization
     init() {
-        // Настраиваем связь с Apple Watch
         WatchSessionManager.shared.delegate = self
+        requestHealthKitPermissions()
+    }
+    
+    private func requestHealthKitPermissions() {
+        let typesToRead: Set<HKObjectType> = [
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .swimmingStrokeCount)!,
+            HKObjectType.workoutType()
+        ]
+        
+        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { (success, error) in
+            if !success {
+                print("Ошибка при запросе разрешений HealthKit: \(String(describing: error))")
+            }
+        }
     }
     
     // MARK: - Handle MainButton Action
@@ -117,7 +100,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
                 return
             }
             
-            // Преобразуем стиль плавания в числовой код (Int16)
             var styleCode: Int16 = 0
             switch swimmingStyle {
             case "Кроль": styleCode = 0
@@ -176,23 +158,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             }
             presenter?.presentLapRecording(response: updatedLapResponse)
             
-            // Обновляем финальные данные о пульсе для отрезка
-            if let pulseData = lapPulseReadings[currentLapNumber] {
-                // Сохраняем среднее значение пульса за отрезок
-                lapPulseData[currentLapNumber] = pulseData.average
-                print("DEBUG: Отрезок \(currentLapNumber) завершен. Средний пульс: \(pulseData.average), максимальный: \(pulseData.max), измерений: \(pulseData.readings.count)")
-            } else if currentPulse > 0 {
-                // Если нет накопленных данных, но есть текущее значение
-                lapPulseData[currentLapNumber] = currentPulse
-            }
-            
-            // Сохраняем данные гребков для текущего отрезка
-            if lapStrokesData[currentLapNumber] == nil {
-                lapStrokesData[currentLapNumber] = currentStrokes
-                currentStrokes = 0
-            }
-            
-            // Переходим к следующему отрезку
             currentLapNumber += 1
             lapStartTime = now
             
@@ -229,49 +194,22 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         presenter?.presentTimerTick(response: response)
     }
     
-    // MARK: - Обработка данных с часов
-    func updatePulseData(request: StopwatchModels.PulseUpdate.Request) {
-        let newPulse = request.pulse
-        currentPulse = newPulse
-        
-        // Сохраняем все значения пульса, если они корректные
-        if newPulse > 0 {
-            allPulseReadings.append(newPulse)
-        }
-        
-        if state == .running && newPulse > 0 {
-            // Добавляем новое измерение пульса в текущий отрезок
-            if lapPulseReadings[currentLapNumber] == nil {
-                lapPulseReadings[currentLapNumber] = PulseData()
-            }
-            lapPulseReadings[currentLapNumber]?.addReading(newPulse)
-            
-            // Обновляем также текущее значение для обратной совместимости
-            lapPulseData[currentLapNumber] = newPulse
-        }
-    }
-    
-    func updateStrokeCount(request: StopwatchModels.StrokeUpdate.Request) {
-        currentStrokes = request.strokes
-        print("DEBUG: updateStrokeCount received: \(request.strokes)")
-        if state == .running {
-            lapStrokesData[currentLapNumber] = currentStrokes
-        }
-    }
-    
     func updateWatchStatus(request: StopwatchModels.WatchStatusUpdate.Request) {
         print("Получен статус от часов: \(request.status)")
+        if request.status == "stopped" || request.status == "workoutStopped" {
+            if isWaitingForWatchConfirmation {
+                isWaitingForWatchConfirmation = false
+                // Запрашиваем данные из HealthKit
+                fetchHealthKitDataAndSave()
+            }
+        }
     }
     
     // MARK: - WatchDataDelegate
     func didReceiveHeartRate(_ pulse: Int) {
-        let request = StopwatchModels.PulseUpdate.Request(pulse: pulse)
-        updatePulseData(request: request)
     }
     
     func didReceiveStrokeCount(_ strokes: Int) {
-        let request = StopwatchModels.StrokeUpdate.Request(strokes: strokes)
-        updateStrokeCount(request: request)
     }
     
     func didReceiveWatchStatus(_ status: String) {
@@ -295,75 +233,246 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         timer = nil
     }
     
-    // MARK: - Методы равномерного распределения пульса
-    private func distributePulseAcrossLaps() {
-        // Проверяем, что есть измерения пульса и отрезки
-        guard !allPulseReadings.isEmpty, totalLengths > 0 else {
-            return
-        }
-        
-        // Группируем показания пульса на равные части по количеству отрезков
-        let totalReadings = allPulseReadings.count
-        let readingsPerLap = totalReadings / totalLengths
-        
-        print("DEBUG: Равномерное распределение пульса - всего показаний: \(totalReadings), отрезков: \(totalLengths)")
-        
-        // Если слишком мало измерений на отрезок, вычисляем общий средний пульс
-        if readingsPerLap < 2 {
-            let totalSum = allPulseReadings.reduce(0, +)
-            let averagePulse = totalSum / totalReadings
-            
-            // Устанавливаем одинаковый пульс для всех отрезков
-            for lapNumber in 1...totalLengths {
-                lapPulseData[lapNumber] = averagePulse
-            }
-            
-            print("DEBUG: Недостаточно измерений для распределения по отрезкам. Установлен общий средний пульс: \(averagePulse)")
-            return
-        }
-        
-        for lapNumber in 1...totalLengths {
-            // Вычисляем начальный и конечный индекс для текущего отрезка
-            let startIndex = (lapNumber - 1) * readingsPerLap
-            let endIndex = min(startIndex + readingsPerLap, totalReadings)
-            
-            var lapReadings: [Int] = []
-            
-            // Если у нас есть показания для этого отрезка
-            if startIndex < totalReadings {
-                // Получаем все показания для текущего отрезка
-                lapReadings = Array(allPulseReadings[startIndex..<endIndex])
-            }
-            
-            // Вычисляем средний пульс для отрезка
-            var averagePulse: Int
-            if !lapReadings.isEmpty {
-                let sum = lapReadings.reduce(0, +)
-                averagePulse = sum / lapReadings.count
-                print("DEBUG: Отрезок \(lapNumber): средний пульс \(averagePulse) из \(lapReadings.count) показаний")
-            } else {
-                // Если показаний нет, используем общий средний
-                let sum = allPulseReadings.reduce(0, +)
-                averagePulse = sum / totalReadings
-                print("DEBUG: Отрезок \(lapNumber): нет показаний, используем общий средний \(averagePulse)")
-            }
-            
-            // Обновляем значение пульса для этого отрезка
-            lapPulseData[lapNumber] = averagePulse
+    // MARK: - HealthKit Data Fetching
+    private func fetchHealthKitDataAndSave() {
+        print("DEBUG: Установка задержки 20 секунд перед запросом данных из HealthKit")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 20.0) { [weak self] in
+            guard let self = self else { return }
+            print("DEBUG: Начинаем запрос данных из HealthKit после задержки")
+            self.queryHeartRateDataFromHealth()
+            self.queryStrokeDataFromHealth()
         }
     }
     
-    // MARK: - Start Finish
+    private func queryHeartRateDataFromHealth() {
+        print("DEBUG: Запрос данных о пульсе из HealthKit")
+        guard let startTime = globalStartTime, let stopTime = workoutStopTime else {
+            print("ERROR: Не удалось определить время начала или окончания тренировки")
+            heartRateQueryCompleted = true
+            return
+        }
+        
+        // Запас к временному диапазону
+        let extendedStartTime = startTime.addingTimeInterval(-5.0)
+        let extendedStopTime = stopTime.addingTimeInterval(5.0)
+        
+        heartRateQueryCompleted = false
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            print("ERROR: Не удалось получить тип данных для пульса")
+            heartRateQueryCompleted = true
+            return
+        }
+        
+        // Создаем предикат для временного диапазона с расширенными границами
+        let predicate = HKQuery.predicateForSamples(withStart: extendedStartTime, end: extendedStopTime, options: [])
+        print("DEBUG: Запрос пульса в диапазоне \(extendedStartTime) - \(extendedStopTime)")
+        
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        let query = HKSampleQuery(sampleType: heartRateType,
+                                  predicate: predicate,
+                                  limit: 200,
+                                  sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
+            
+            guard let self = self else { return }
+            if let error = error {
+                print("ERROR: Ошибка при получении данных о пульсе: \(error.localizedDescription)")
+                self.heartRateQueryCompleted = true
+                return
+            }
+            
+            guard let heartRateSamples = samples as? [HKQuantitySample], !heartRateSamples.isEmpty else {
+                print("DEBUG: Нет данных о пульсе в HealthKit")
+                for lapNumber in 1...self.totalLengths {
+                    self.lapPulseData[lapNumber] = 0
+                }
+                self.heartRateQueryCompleted = true
+                self.checkAllQueriesCompleted()
+                return
+            }
+            print("DEBUG: Получено \(heartRateSamples.count) значений пульса из HealthKit")
+            self.distributeHeartRates(heartRateSamples)
+            self.heartRateQueryCompleted = true
+            self.checkAllQueriesCompleted()
+        }
+        healthStore.execute(query)
+    }
+    
+    private func distributeHeartRates(_ heartRateSamples: [HKQuantitySample]) {
+        guard let startTime = globalStartTime, let stopTime = workoutStopTime, totalLengths > 0 else {
+            print("DEBUG: Не удалось распределить пульс по отрезкам")
+            return
+        }
+        
+        if totalLengths == 1 {
+            let sum = heartRateSamples.reduce(0.0) { $0 + $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) }
+            let avgPulse = Int(sum / Double(heartRateSamples.count))
+            lapPulseData[1] = avgPulse
+            print("DEBUG: Средний пульс для единственного отрезка: \(avgPulse)")
+            return
+        }
+        
+        let totalDuration = stopTime.timeIntervalSince(startTime)
+        let lapDuration = totalDuration / Double(totalLengths)
+        
+        // Группируем значения пульса по отрезкам
+        for lapNumber in 1...totalLengths {
+            let lapStartOffset = lapDuration * Double(lapNumber - 1)
+            let lapEndOffset = lapDuration * Double(lapNumber)
+            _ = startTime.addingTimeInterval(lapStartOffset)
+            _ = startTime.addingTimeInterval(lapEndOffset)
+            
+            let lapHeartRates = heartRateSamples.filter { sample in
+                let sampleTime = sample.startDate.timeIntervalSince(startTime)
+                return sampleTime >= lapStartOffset && sampleTime < lapEndOffset
+            }
+            
+            if !lapHeartRates.isEmpty {
+                // Вычисляем средний пульс для отрезка
+                let sum = lapHeartRates.reduce(0.0) { $0 + $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) }
+                let avgPulse = Int(sum / Double(lapHeartRates.count))
+                lapPulseData[lapNumber] = avgPulse
+                print("DEBUG: Отрезок \(lapNumber): средний пульс \(avgPulse) из \(lapHeartRates.count) показаний")
+            } else if !heartRateSamples.isEmpty {
+                let sum = heartRateSamples.reduce(0.0) { $0 + $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) }
+                let avgPulse = Int(sum / Double(heartRateSamples.count))
+                lapPulseData[lapNumber] = avgPulse
+                print("DEBUG: Отрезок \(lapNumber): нет показаний, используем общий средний \(avgPulse)")
+            } else {
+                lapPulseData[lapNumber] = 0
+                print("DEBUG: Отрезок \(lapNumber): нет данных о пульсе, устанавливаем 0")
+            }
+        }
+    }
+    
+    private func queryStrokeDataFromHealth() {
+        print("DEBUG: Запрос данных о гребках из HealthKit")
+        guard let startTime = globalStartTime, let stopTime = workoutStopTime else {
+            print("ERROR: Не удалось определить время начала или окончания тренировки")
+            strokeDataQueryCompleted = true
+            return
+        }
+        
+        let extendedStartTime = startTime.addingTimeInterval(-5.0)
+        let extendedStopTime = stopTime.addingTimeInterval(5.0)
+        print("DEBUG: Запрос гребков в диапазоне \(extendedStartTime) - \(extendedStopTime)")
+        strokeDataQueryCompleted = false
+        
+        guard let strokeType = HKQuantityType.quantityType(forIdentifier: .swimmingStrokeCount) else {
+            print("ERROR: Не удалось получить тип данных для гребков")
+            strokeDataQueryCompleted = true
+            return
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: extendedStartTime, end: extendedStopTime, options: [])
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        
+        // Создаем запрос для получения последних записей о гребках
+        let query = HKSampleQuery(sampleType: strokeType,
+                                  predicate: predicate,
+                                  limit: max(50, totalLengths * 2),
+                                  sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
+            
+            guard let self = self else { return }
+            if let error = error {
+                print("ERROR: Ошибка при получении данных о гребках: \(error.localizedDescription)")
+                self.strokeDataQueryCompleted = true
+                return
+            }
+            
+            guard let strokeSamples = samples as? [HKQuantitySample], !strokeSamples.isEmpty else {
+                print("DEBUG: Нет данных о гребках в HealthKit")
+                for lapNumber in 1...self.totalLengths {
+                    self.lapStrokesData[lapNumber] = 0
+                }
+                self.strokeDataQueryCompleted = true
+                self.checkAllQueriesCompleted()
+                return
+            }
+            print("DEBUG: Получено \(strokeSamples.count) записей о гребках из HealthKit")
+            
+            strokeSamples.forEach { sample in
+                print("DEBUG: Гребки - время: \(sample.startDate), количество: \(sample.quantity.doubleValue(for: HKUnit.count()))")
+            }
+            let relevantSamples = strokeSamples.filter { sample in
+                return sample.startDate >= extendedStartTime && sample.endDate <= extendedStopTime
+            }
+            print("DEBUG: Отфильтровано \(relevantSamples.count) записей о гребках для текущей тренировки")
+            
+            if relevantSamples.isEmpty {
+                for lapNumber in 1...self.totalLengths {
+                    self.lapStrokesData[lapNumber] = 0
+                }
+            } else if relevantSamples.count >= self.totalLengths {
+                for (index, sample) in relevantSamples.prefix(self.totalLengths).enumerated().reversed() {
+                    let lapNumber = self.totalLengths - index
+                    if lapNumber > 0 && lapNumber <= self.totalLengths {
+                        let strokes = Int(sample.quantity.doubleValue(for: HKUnit.count()))
+                        self.lapStrokesData[lapNumber] = strokes
+                        print("DEBUG: Отрезок \(lapNumber): \(strokes) гребков из HealthKit")
+                    }
+                }
+            } else {
+                let totalStrokes = relevantSamples.reduce(0) { $0 + Int($1.quantity.doubleValue(for: HKUnit.count())) }
+                let strokesPerLap = totalStrokes / self.totalLengths
+                let extraStrokes = totalStrokes % self.totalLengths
+                
+                for lapNumber in 1...self.totalLengths {
+                    let lapStrokes = strokesPerLap + (lapNumber <= extraStrokes ? 1 : 0)
+                    self.lapStrokesData[lapNumber] = lapStrokes
+                    print("DEBUG: Отрезок \(lapNumber): \(lapStrokes) гребков (равномерное распределение)")
+                }
+            }
+            
+            for lapNumber in 1...self.totalLengths {
+                if self.lapStrokesData[lapNumber] == nil {
+                    self.lapStrokesData[lapNumber] = 0
+                    print("DEBUG: Отрезок \(lapNumber): нет данных о гребках, устанавливаем 0")
+                }
+            }
+            self.strokeDataQueryCompleted = true
+            self.checkAllQueriesCompleted()
+        }
+        healthStore.execute(query)
+    }
+    
+    private func checkAllQueriesCompleted() {
+        if heartRateQueryCompleted && strokeDataQueryCompleted {
+            print("DEBUG: Все запросы данных из HealthKit завершены")
+            guard let globalStart = globalStartTime, let stopTime = workoutStopTime else {
+                print("ERROR: Не удалось определить время начала или окончания тренировки")
+                return
+            }
+            
+            var styleCode: Int16 = 0
+            if let swimmingStyle = swimmingStyle {
+                switch swimmingStyle {
+                case "Кроль": styleCode = 0
+                case "Брасс": styleCode = 1
+                case "Спина": styleCode = 2
+                case "Батт": styleCode = 3
+                case "К/П": styleCode = 4
+                default: styleCode = 0
+                }
+            }
+            
+            let totalTime = stopTime.timeIntervalSince(globalStart)
+            saveStartEntityWithFinalData(
+                globalStart: globalStart,
+                totalTime: totalTime,
+                styleCode: styleCode
+            )
+        }
+    }
+    
+    // MARK: - Start and Finish
     private func finishStopwatch() {
-        // Защита от повторного вызова
         if isFinalizingWorkout {
             return
         }
         isFinalizingWorkout = true
         
-        // Переходим в состояние завершения и останавливаем таймер
         state = .finished
         stopTimer()
+        workoutStopTime = Date()
         
         // Немедленно обновляем UI, делаем кнопку финиша серой и отключенной
         DispatchQueue.main.async { [weak self] in
@@ -376,162 +485,44 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             self.presenter?.presentFinish(response: immediateResponse)
         }
         
-        WatchSessionManager.shared.sendCommandToWatch("stop")
-        guard let globalStart = globalStartTime else { return }
-        let finishTime = Date()
-        let totalTime = finishTime.timeIntervalSince(globalStart)
-        
-        // Определяем числовой код стиля плавания
-        var styleCode: Int16 = 0
-        if let swimmingStyle = swimmingStyle {
-            switch swimmingStyle {
-            case "Кроль": styleCode = 0
-            case "Брасс": styleCode = 1
-            case "Спина": styleCode = 2
-            case "Батт": styleCode = 3
-            case "К/П": styleCode = 4
-            default: styleCode = 0
-            }
-        }
-        
-        // Проверяем, подключены ли часы
+        // Проверяем соединение с часами
         let watchConnected = WCSession.default.isReachable
         print("DEBUG: WCSession.default.isReachable = \(watchConnected)")
-        
         if watchConnected {
-            print("DEBUG: Часы подключены, откладываем сохранение тренировки на 30 секунд для накопления данных")
+            print("DEBUG: Часы подключены, отправляем команду завершения и ждем подтверждения")
+            WatchSessionManager.shared.sendCommandToWatch("stop")
+            isWaitingForWatchConfirmation = true
             
-            var receivedFinalStrokeCount = false
-            
-            // Запрашиваем финальное количество гребков перед сохранением
-            func requestFinalStrokeCount() {
-                print("DEBUG: Запрашиваем финальное количество гребков от часов")
-                
-                // Создаем сообщение с запросом финального количества гребков
-                let message: [String: Any] = [
-                    "requestFinalStrokeCount": true,
-                    "startDate": globalStart,
-                    "endDate": finishTime
-                ]
-                
-                WCSession.default.sendMessage(message, replyHandler: { [weak self] response in
-                    guard let self = self else { return }
-                    
-                    if let finalCount = response["finalStrokeCount"] as? Int {
-                        print("DEBUG: Получено финальное количество гребков: \(finalCount)")
-                        receivedFinalStrokeCount = true
-                        
-                        // Распределяем гребки по отрезкам пропорционально длине
-                        self.distributeStrokesAcrossLaps(finalCount)
-                    }
-                }, errorHandler: { error in
-                    print("DEBUG: Ошибка при запросе финального количества гребков: \(error.localizedDescription)")
-                })
-            }
-            
-            // Запрашиваем финальные данные как можно раньше
-            requestFinalStrokeCount()
-            
-            // Основной таймер ожидания перед сохранением
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 30) { [weak self] in
-                guard let self = self else { return }
-                
-                // Выполняем равномерное распределение пульса по отрезкам
-                self.distributePulseAcrossLaps()
-                
-                // Финальная проверка перед сохранением
-                if !receivedFinalStrokeCount {
-                    print("DEBUG: Не получены финальные данные о гребках, повторный запрос")
-                    requestFinalStrokeCount()
-                    
-                    // Дополнительная задержка для получения финальных данных
-                    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 5) {
-                        self.saveStartEntityWithFinalData(
-                            globalStart: globalStart,
-                            totalTime: totalTime,
-                            styleCode: styleCode
-                        )
-                    }
-                } else {
-                    self.saveStartEntityWithFinalData(
-                        globalStart: globalStart,
-                        totalTime: totalTime,
-                        styleCode: styleCode
-                    )
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak self] in
+                guard let self = self, self.isWaitingForWatchConfirmation else { return }
+                print("DEBUG: Таймаут ожидания подтверждения от часов, запрашиваем данные напрямую")
+                self.isWaitingForWatchConfirmation = false
+                self.fetchHealthKitDataAndSave()
             }
         } else {
-            // Часы не подключены, сохраняем тренировку немедленно
-            print("DEBUG: Часы не подключены, сохраняем тренировку немедленно")
-            
-            // Распределяем пульс по отрезкам
-            distributePulseAcrossLaps()
-            
-            saveStartEntityWithFinalData(
-                globalStart: globalStart,
-                totalTime: totalTime,
-                styleCode: styleCode
-            )
+            print("DEBUG: Часы не подключены, запрашиваем данные напрямую")
+            fetchHealthKitDataAndSave()
         }
     }
     
-    // Функция для распределения гребков по отрезкам
-    private func distributeStrokesAcrossLaps(_ totalStrokes: Int) {
-        // Если нет отрезков или общее количество гребков равно 0, выходим
-        guard !self.laps.isEmpty, totalStrokes > 0 else { return }
-        
-        // Общее количество отрезков
-        let totalLaps = self.totalLengths
-        
-        // Если у нас только один отрезок, присваиваем все гребки ему
-        if totalLaps == 1 {
-            self.lapStrokesData[1] = totalStrokes
-            return
-        }
-        
-        // Равномерное распределение по всем отрезкам
-        let baseStrokesPerLap = totalStrokes / totalLaps
-        let remainder = totalStrokes % totalLaps
-        
-        for lapNumber in 1...totalLaps {
-            // Добавляем остаточные гребки к последним отрезкам
-            let extraStrokes = (lapNumber > totalLaps - remainder) ? 1 : 0
-            self.lapStrokesData[lapNumber] = baseStrokesPerLap + extraStrokes
-        }
-        print("DEBUG: Распределены гребки по отрезкам: \(self.lapStrokesData)")
-    }
-    
-    // Выделяем сохранение данных в отдельный метод для повторного использования
     private func saveStartEntityWithFinalData(globalStart: Date, totalTime: TimeInterval, styleCode: Int16) {
         print("DEBUG: Сохранение тренировки. totalTime = \(totalTime) сек.")
-        print("DEBUG: currentPulse = \(self.currentPulse), currentStrokes = \(self.currentStrokes)")
-        
-        // Проверим, собрали ли мы пульс для всех отрезков
-        var missingPulseLaps = 0
-        for lapNumber in 1...totalLengths {
-            if lapPulseData[lapNumber] == nil || lapPulseData[lapNumber] == 0 {
-                missingPulseLaps += 1
-            }
-        }
-        
-        // Если отсутствуют данные о пульсе для некоторых отрезков, повторно применяем распределение
-        if missingPulseLaps > 0 {
-            print("DEBUG: Отсутствует пульс для \(missingPulseLaps) отрезков. Применяем равномерное распределение.")
-            distributePulseAcrossLaps()
-        }
-        
-        print("DEBUG: lapPulseData = \(self.lapPulseData)")
-        print("DEBUG: lapStrokesData = \(self.lapStrokesData)")
+        print("DEBUG: Финальные данные о пульсе по отрезкам: \(lapPulseData)")
+        print("DEBUG: Финальные данные о гребках по отрезкам: \(lapStrokesData)")
         
         // Собираем данные о каждом отрезке в массив LapData
-        let lapDatas: [LapData] = self.laps.map { lap in
-            let lapNumber = Int16(lap.lapNumber)
-            let pulse = Int16(self.lapPulseData[lap.lapNumber] ?? 0)
-            let strokes = Int16(self.lapStrokesData[lap.lapNumber] ?? 0)
-            return LapData(lapTime: lap.lapTime, pulse: pulse, strokes: strokes, lapNumber: lapNumber)
+        var lapDatas: [LapData] = []
+        for lapNumber in 1...totalLengths {
+            let pulse = Int16(lapPulseData[lapNumber] ?? 0)
+            let strokes = Int16(lapStrokesData[lapNumber] ?? 0)
+            
+            var lapTime: Double = 0
+            if let lap = laps.first(where: { $0.lapNumber == lapNumber }) {
+                lapTime = lap.lapTime
+            }
+            lapDatas.append(LapData(lapTime: lapTime, pulse: pulse, strokes: strokes, lapNumber: Int16(lapNumber)))
         }
         
-        // Создаём StartEntity с накопленными данными
         if let start = CoreDataManager.shared.createStart(
             poolSize: Int16(self.poolSize ?? 0),
             totalMeters: Int16(self.totalMeters ?? 0),
@@ -546,10 +537,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             print("DEBUG: Ошибка при создании StartEntity")
         }
         
-        // Сбрасываем флаг финализации
         self.isFinalizingWorkout = false
-        
-        // Обновляем UI, теперь данные сохранены
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             let finalResponse = StopwatchModels.Finish.Response(
