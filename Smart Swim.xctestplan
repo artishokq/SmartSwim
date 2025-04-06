@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "2545373E-7CD2-4941-B6FF-C38A90EB1E20",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Smart Swim.xcodeproj",
+      "identifier" : "16A823712D3006480084DADF",
+      "name" : "Smart Swim"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Smart Swim.xcodeproj",
+        "identifier" : "167424B22D9E86EE0037AEFD",
+        "name" : "Smart Swim Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

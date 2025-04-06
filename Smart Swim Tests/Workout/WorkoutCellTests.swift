@@ -1,13 +1,13 @@
 //
-//  Smart_Swim_Tests.swift
+//  WorkoutCellTests.swift
 //  Smart Swim Tests
 //
-//  Created by Artem Tkachuk on 03.04.2025.
+//  Created by Artem Tkachuk on 05.04.2025.
 //
 
 import XCTest
 
-final class Smart_Swim_Tests: XCTestCase {
+final class WorkoutCellTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -27,7 +27,7 @@ final class Smart_Swim_Tests: XCTestCase {
 
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
-        measure {
+        self.measure {
             // Put the code you want to measure the time of here.
         }
     }
