@@ -19,9 +19,19 @@ protocol WorkoutDataStore {
     var workouts: [WorkoutEntity]? { get set }
 }
 
+protocol CoreDataManagerProtocol {
+    func fetchAllWorkouts() -> [WorkoutEntity]
+    func deleteWorkout(_ workout: WorkoutEntity)
+}
+
 final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
     var presenter: WorkoutPresentationLogic?
     var workouts: [WorkoutEntity]?
+    var coreDataManager: CoreDataManagerProtocol
+    
+    init(coreDataManager: CoreDataManagerProtocol = CoreDataManager.shared) {
+        self.coreDataManager = coreDataManager
+    }
     
     // MARK: - Create Workout Button
     func createWorkout(request: WorkoutModels.Create.Request) {
@@ -37,7 +47,8 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
     
     // MARK: - Fetch Workouts
     func fetchWorkouts(request: WorkoutModels.FetchWorkouts.Request) {
-        let workoutEntities = CoreDataManager.shared.fetchAllWorkouts()
+        // Use injected coreDataManager instead of directly accessing shared instance
+        let workoutEntities = coreDataManager.fetchAllWorkouts()
         self.workouts = workoutEntities
         
         let workoutData = workoutEntities.map { entity -> WorkoutModels.FetchWorkouts.Response.WorkoutData in
@@ -78,9 +89,7 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
         }
         
         let workoutToDelete = workouts[request.index]
-        
-        // Удаляем тренировку в CoreData + упражнения
-        CoreDataManager.shared.deleteWorkout(workoutToDelete)
+        coreDataManager.deleteWorkout(workoutToDelete)
         
         // Удаляем из локального массива интерактора
         self.workouts?.remove(at: request.index)
@@ -166,3 +175,5 @@ final class WorkoutInteractor: WorkoutBusinessLogic, WorkoutDataStore {
         return result
     }
 }
+
+extension CoreDataManager: CoreDataManagerProtocol {}

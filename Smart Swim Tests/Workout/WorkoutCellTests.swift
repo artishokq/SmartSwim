@@ -6,30 +6,80 @@
 //
 
 import XCTest
+@testable import Smart_Swim
 
 final class WorkoutCellTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    // MARK: - Subject Under Test
+    var sut: WorkoutCell!
+    
+    // MARK: - Test Doubles
+    class WorkoutCellDelegateSpy: WorkoutCellDelegate {
+        var editCalled = false
+        var deletionCalled = false
+        var editedCell: WorkoutCell?
+        var deletedCell: WorkoutCell?
+        
+        func workoutCellDidRequestEdit(_ cell: WorkoutCell) {
+            editCalled = true
+            editedCell = cell
+        }
+        
+        func workoutCellDidRequestDeletion(_ cell: WorkoutCell) {
+            deletionCalled = true
+            deletedCell = cell
         }
     }
-
+    
+    // MARK: - Test Lifecycle
+    override func setUp() {
+        super.setUp()
+        configureWorkoutCell()
+    }
+    
+    override func tearDown() {
+        sut = nil
+        super.tearDown()
+    }
+    
+    // MARK: - Test Configure
+    func configureWorkoutCell() {
+        sut = WorkoutCell(style: .default, reuseIdentifier: "TestCell")
+    }
+    
+    // MARK: - Test Cases
+    func testCellConfiguration() {
+        // Arrange
+        let workout = WorkoutModels.FetchWorkouts.ViewModel.DisplayedWorkout(
+            name: "Test Workout",
+            totalVolume: 1000,
+            exercises: [
+                "1. Разминка 100м кроль",
+                "2. 8x50м на спине",
+                "3. Заминка 200м брасс"
+            ]
+        )
+        
+        // Act
+        sut.configure(with: workout)
+        
+        // Assert
+        let mirror = Mirror(reflecting: sut as Any)
+        if let nameLabelProperty = mirror.children.first(where: { $0.label == "nameLabel" }) {
+            if let nameLabel = nameLabelProperty.value as? UILabel {
+                XCTAssertEqual(nameLabel.text, "Test Workout")
+            }
+        }
+        
+        if let volumeLabelProperty = mirror.children.first(where: { $0.label == "volumeLabel" }) {
+            if let volumeLabel = volumeLabelProperty.value as? UILabel {
+                XCTAssertEqual(volumeLabel.text, "Всего: 1000м")
+            }
+        }
+        
+        if let stackViewProperty = mirror.children.first(where: { $0.label == "exercisesStackView" }) {
+            if let stackView = stackViewProperty.value as? UIStackView {
+                XCTAssertEqual(stackView.arrangedSubviews.count, 3)
+            }
+        }
+    }
 }
