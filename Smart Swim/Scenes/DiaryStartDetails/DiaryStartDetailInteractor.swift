@@ -8,6 +8,17 @@
 import Foundation
 import CoreData
 
+protocol CoreDataManagerType {
+    func fetchStart(byID: NSManagedObjectID) -> StartEntity?
+    func fetchStartsWithCriteria(totalMeters: Int16, swimmingStyle: Int16, poolSize: Int16) -> [StartEntity]
+    func startHasRecommendation(_ start: StartEntity) -> Bool
+    func updateStartRecommendation(_ start: StartEntity, recommendation: String)
+}
+
+protocol AIStartServiceType {
+    func generateRecommendation(for start: StartEntity, completion: @escaping (Result<String, DeepSeekError>) -> Void)
+}
+
 protocol DiaryStartDetailBusinessLogic {
     func fetchStartDetails(request: DiaryStartDetailModels.FetchStartDetails.Request)
 }
@@ -19,21 +30,26 @@ protocol DiaryStartDetailDataStore {
 final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStartDetailDataStore {
     var presenter: DiaryStartDetailPresentationLogic?
     var startID: NSManagedObjectID?
+    private let coreDataManager: CoreDataManagerType
+    private let aiStartService: AIStartServiceType
+    
+    // MARK: - Initialization
+    init(coreDataManager: CoreDataManagerType = CoreDataManager.shared,
+         aiStartService: AIStartServiceType = AIStartService.shared) {
+        self.coreDataManager = coreDataManager
+        self.aiStartService = aiStartService
+    }
     
     // MARK: - Fetch Start Details
     func fetchStartDetails(request: DiaryStartDetailModels.FetchStartDetails.Request) {
-        guard let start = CoreDataManager.shared.fetchStart(byID: request.startID) else {
-            // Старт не найден
+        guard let start = coreDataManager.fetchStart(byID: request.startID) else {
             return
         }
         
-        // Достаём отрезки для старта
         guard let lapEntities = start.laps?.allObjects as? [LapEntity], !lapEntities.isEmpty else {
-            // Отрезки не найдены
             return
         }
         
-        // Сортиуем отрезки
         let sortedLaps = lapEntities.sorted { $0.lapNumber < $1.lapNumber }
         
         let lapsData = sortedLaps.map { lap -> DiaryStartDetailModels.FetchStartDetails.Response.LapData in
@@ -45,7 +61,6 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
             )
         }
         
-        // Находим лучшее время для сравнения
         let bestTimeInfo = findBestTime(
             forMeters: start.totalMeters,
             style: start.swimmingStyle,
@@ -53,8 +68,7 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
             currentStartID: request.startID
         )
         
-        // Получаем рекомендацию
-        let hasRecommendation = CoreDataManager.shared.startHasRecommendation(start)
+        let hasRecommendation = coreDataManager.startHasRecommendation(start)
         let recommendationText = start.recommendation
         let isLoadingRecommendation = false
         
@@ -75,7 +89,6 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
         
         presenter?.presentStartDetails(response: response)
         
-        // Если рекомендация отсутствует, запрашиваем ее из Deepseek
         if !hasRecommendation {
             loadRecommendation(for: start, startID: request.startID)
         }
@@ -83,19 +96,15 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
     
     // MARK: - Load Recommendation
     func loadRecommendation(for start: StartEntity, startID: NSManagedObjectID) {
-        // Информируем презентер, что загрузка рекомендации началась
         let loadingResponse = DiaryStartDetailModels.RecommendationLoading.Response(isLoading: true)
         presenter?.presentRecommendationLoading(response: loadingResponse)
         
-        // Запрашиваем рекомендацию из DeepSeek API
-        AIStartService.shared.generateRecommendation(for: start) { [weak self] result in
+        aiStartService.generateRecommendation(for: start) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let recommendation):
-                    // Сохраняем рекомендацию в CoreData
-                    CoreDataManager.shared.updateStartRecommendation(start, recommendation: recommendation)
+                    self?.coreDataManager.updateStartRecommendation(start, recommendation: recommendation)
                     
-                    // Информируем презентер, что рекомендация загружена
                     let recommendationResponse = DiaryStartDetailModels.RecommendationReceived.Response(
                         recommendationText: recommendation,
                         startID: startID
@@ -103,11 +112,9 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
                     self?.presenter?.presentRecommendationReceived(response: recommendationResponse)
                     
                 case .failure(let error):
-                    // В случае ошибки показываем соответствующее сообщение с детальной информацией
                     let errorMessage = "Не удалось получить рекомендацию: \(error.localizedDescription)"
-                    print("DeepSeek API Error: \(errorMessage)") // Для отладки
+                    print("AI Service Error: \(errorMessage)")
                     
-                    // Формируем ответ с информацией об ошибке
                     let fallbackMessage = "Не удалось получить рекомендацию. Пожалуйста, повторите позже."
                     let recommendationResponse = DiaryStartDetailModels.RecommendationReceived.Response(
                         recommendationText: fallbackMessage,
@@ -116,7 +123,6 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
                     self?.presenter?.presentRecommendationReceived(response: recommendationResponse)
                 }
                 
-                // Информируем презентер, что загрузка рекомендации завершена
                 let loadingResponse = DiaryStartDetailModels.RecommendationLoading.Response(isLoading: false)
                 self?.presenter?.presentRecommendationLoading(response: loadingResponse)
             }
@@ -125,8 +131,7 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
     
     // MARK: - Helper Methods
     private func findBestTime(forMeters meters: Int16, style: Int16, poolSize: Int16, currentStartID: NSManagedObjectID) -> (bestTime: Double, date: Date?, isBest: Bool) {
-        // Находим все старты с такими критериями
-        let starts = CoreDataManager.shared.fetchStartsWithCriteria(
+        let starts = coreDataManager.fetchStartsWithCriteria(
             totalMeters: meters,
             swimmingStyle: style,
             poolSize: poolSize
@@ -136,7 +141,6 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
         var bestTimeDate: Date?
         var isCurrentBest = false
         
-        // Находим лучшее время
         for fetchedStart in starts {
             if bestTime == nil || fetchedStart.totalTime < bestTime! {
                 bestTime = fetchedStart.totalTime
@@ -151,3 +155,6 @@ final class DiaryStartDetailInteractor: DiaryStartDetailBusinessLogic, DiaryStar
         return (bestTime ?? 0, bestTimeDate, isCurrentBest)
     }
 }
+
+extension CoreDataManager: CoreDataManagerType {}
+extension AIStartService: AIStartServiceType {}

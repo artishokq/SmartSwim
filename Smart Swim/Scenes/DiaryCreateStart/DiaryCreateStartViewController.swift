@@ -443,15 +443,12 @@ final class DiaryCreateStartViewController: UIViewController {
             scrollView.contentInset = contentInsets
             scrollView.scrollIndicatorInsets = contentInsets
             
-            // Если активное текстовое поле скрыто клавиатурой, прокручиваем для его отображения
             if let activeField = findFirstResponder() {
                 var aRect = view.frame
                 aRect.size.height -= keyboardSize.height
                 
-                // Преобразуем координаты текстового поля в систему координат scroll view
                 if let fieldRect = activeField.superview?.convert(activeField.frame, to: scrollView) {
                     if !aRect.contains(fieldRect.origin) {
-                        // Прокручиваем, чтобы сделать поле видимым
                         scrollView.scrollRectToVisible(fieldRect, animated: true)
                     }
                 }
@@ -465,7 +462,6 @@ final class DiaryCreateStartViewController: UIViewController {
     }
     
     private func findFirstResponder() -> UIView? {
-        // Проверяем каждое текстовое поле, чтобы найти первый responder
         if metersTextField.isFirstResponder {
             return metersTextField
         } else if dateTextField.isFirstResponder {
@@ -474,7 +470,6 @@ final class DiaryCreateStartViewController: UIViewController {
             return timeTextField
         }
         
-        // Проверяем текстовые поля отрезков
         for textField in lapTextFields where textField.isFirstResponder {
             return textField
         }
@@ -483,27 +478,22 @@ final class DiaryCreateStartViewController: UIViewController {
     }
     
     private func setupTimePickerForTextField(_ textField: UITextField, picker: UIPickerView) {
-        // Сохраняем активное текстовое поле и пикер
         activeTimeTextField = textField
         activeTimePicker = picker
         
-        // Увеличиваем высоту пикера для лучшей видимости
         if let superView = picker.superview {
-            // Проверяем, является ли это пикером для отрезков, чтобы сделать его еще больше
             let newHeight: CGFloat = lapTimePickers.contains(picker) ? 300 : 250
             var frame = superView.frame
             frame.size.height = newHeight
             superView.frame = frame
         }
         
-        // Устанавливаем начальные значения, если время уже существует
         if let timeText = textField.text, timeText.count > 0 {
             if let time = parseTime(timeText) {
                 let minutes = Int(time) / 60
                 let seconds = Int(time) % 60
                 let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
                 
-                // Устанавливаем пикер на текущие значения
                 if minutes < minutesRange.count {
                     picker.selectRow(minutes, inComponent: 0, animated: false)
                 }
@@ -515,7 +505,6 @@ final class DiaryCreateStartViewController: UIViewController {
                 }
             }
         } else {
-            // По умолчанию ставим нули
             picker.selectRow(0, inComponent: 0, animated: false)
             picker.selectRow(0, inComponent: 1, animated: false)
             picker.selectRow(0, inComponent: 2, animated: false)
@@ -542,15 +531,12 @@ final class DiaryCreateStartViewController: UIViewController {
         let selectedRow = metersPicker.selectedRow(inComponent: 0)
         if currentMetersOptions.indices.contains(selectedRow) {
             metersTextField.text = "\(currentMetersOptions[selectedRow])"
-            
-            // Автоматически пересчитываем отрезки при изменении метража
             calculateLaps()
         }
         view.endEditing(true)
     }
     
     @objc private func timePickerDone() {
-        // Убедимся, что мы обновляем только то поле, по которому было нажатие
         if let activeField = activeTimeTextField, let activePicker = activeTimePicker {
             let minutes = minutesRange[activePicker.selectedRow(inComponent: 0)]
             let seconds = secondsRange[activePicker.selectedRow(inComponent: 1)]
@@ -565,20 +551,16 @@ final class DiaryCreateStartViewController: UIViewController {
     }
     
     @objc private func updateMetersOptions() {
-        // Обновляем пикер с новыми опциями
         metersPicker.reloadAllComponents()
         
-        // Обновляем текстовое поле первым значением из нового списка
         if let firstOption = currentMetersOptions.first {
             metersTextField.text = "\(firstOption)"
         }
         
-        // Автоматически пересчитываем отрезки при изменении стиля (что может влиять на метраж)
         calculateLaps()
     }
     
     @objc private func poolSizeOrMetersChanged() {
-        // Автоматически пересчитываем отрезки при изменении размера бассейна
         calculateLaps()
     }
     
@@ -598,12 +580,10 @@ final class DiaryCreateStartViewController: UIViewController {
         interactor?.calculateLaps(request: request)
     }
     
-    @objc private func saveButtonTapped() {
-        // Собираем все данные формы
+    @objc func saveButtonTapped() {
         let poolSize: Int16 = poolSizeSegmentControl.selectedSegmentIndex == 0 ? 25 : 50
         let swimmingStyle: Int16 = Int16(styleSegmentControl.selectedSegmentIndex)
         
-        // Собираем тексты времени отрезков
         var lapTimeTexts: [String] = []
         for textField in lapTextFields {
             if let text = textField.text {
@@ -613,7 +593,6 @@ final class DiaryCreateStartViewController: UIViewController {
             }
         }
         
-        // Отправляем данные в интерактор для валидации
         let request = DiaryCreateStartModels.CollectData.Request(
             poolSize: poolSize,
             swimmingStyle: swimmingStyle,
@@ -655,7 +634,6 @@ final class DiaryCreateStartViewController: UIViewController {
     }
     
     private func setupLapInputFields() {
-        // Очищаем существующие поля
         for view in lapsStackView.arrangedSubviews {
             lapsStackView.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -678,19 +656,15 @@ final class DiaryCreateStartViewController: UIViewController {
             textField.placeholder = "00:00,00"
             textField.font = UIFont.systemFont(ofSize: 18, weight: .medium)
             
-            // Устанавливаем ограничение высоты для текстового поля (делаем его выше)
             textField.heightAnchor.constraint(equalToConstant: 40).isActive = true
             
-            // Создаем пользовательский пикер времени для этого отрезка
             let lapTimePicker = UIPickerView()
             lapTimePicker.delegate = self
             lapTimePicker.dataSource = self
             textField.inputView = lapTimePicker
             
-            // Добавляем этот пикер в наш массив
             lapTimePickers.append(lapTimePicker)
             
-            // Настраиваем обработчики фокуса/размытия
             textField.addTarget(self, action: #selector(lapTimeFieldFocused(_:)), for: .editingDidBegin)
             
             let toolbar = UIToolbar()
@@ -727,7 +701,6 @@ final class DiaryCreateStartViewController: UIViewController {
     }
     
     @objc private func lapTimeFieldFocused(_ textField: UITextField) {
-        // Находим, какой пикер соответствует этому текстовому полю
         if let index = lapTextFields.firstIndex(of: textField), index < lapTimePickers.count {
             setupTimePickerForTextField(textField, picker: lapTimePickers[index])
         }
@@ -751,12 +724,10 @@ extension DiaryCreateStartViewController: DiaryCreateStartDisplayLogic {
     
     func displayCollectedData(viewModel: DiaryCreateStartModels.CollectData.ViewModel) {
         if viewModel.success {
-            // Если валидация успешна, создаем старт
             if let request = viewModel.createRequest {
                 interactor?.createStart(request: request)
             }
         } else if let errorMessage = viewModel.errorMessage {
-            // Показываем сообщение об ошибке
             showAlert(message: errorMessage)
         }
     }
@@ -768,7 +739,6 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
         if pickerView == metersPicker {
             return 1
         } else {
-            // Пикер времени (минуты, секунды, миллисекунды)
             return 3
         }
     }
@@ -777,11 +747,10 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
         if pickerView == metersPicker {
             return currentMetersOptions.count
         } else {
-            // Пикер времени
             switch component {
-            case 0: return minutesRange.count // Минуты
-            case 1: return secondsRange.count // Секунды
-            case 2: return millisecondsRange.count // Миллисекунды
+            case 0: return minutesRange.count
+            case 1: return secondsRange.count
+            case 2: return millisecondsRange.count
             default: return 0
             }
         }
@@ -794,7 +763,6 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
             }
             return nil
         } else {
-            // Пикер времени
             switch component {
             case 0:
                 if minutesRange.indices.contains(row) {
@@ -824,7 +792,6 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
     
     func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
         if pickerView == metersPicker {
-            // Пикер метража - просто используем стандартный вид
             let label = UILabel()
             if currentMetersOptions.indices.contains(row) {
                 label.text = "\(currentMetersOptions[row]) м"
@@ -834,12 +801,10 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
             label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
             return label
         } else {
-            // Пикер времени - пользовательские обозначенные представления для каждого компонента
             let label = UILabel()
             label.textAlignment = .center
             label.textColor = Constants.titleColor
             
-            // Используем более крупный шрифт для пикеров времени отрезков
             if lapTimePickers.contains(pickerView) {
                 label.font = UIFont.systemFont(ofSize: 24, weight: .medium)
             } else {
@@ -871,16 +836,15 @@ extension DiaryCreateStartViewController: UIPickerViewDelegate, UIPickerViewData
         if pickerView == metersPicker {
             return pickerView.frame.width
         } else {
-            // Пикер времени - одинаковая ширина для всех компонентов
             return pickerView.frame.width / 3
         }
     }
     
     func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
         if lapTimePickers.contains(pickerView) {
-            return 50 // Еще большая высота строки для пикеров времени отрезков
+            return 50
         } else {
-            return 40 // Стандартная увеличенная высота строки для других пикеров
+            return 40
         }
     }
 }
