@@ -8,7 +8,7 @@
 import XCTest
 @testable import Smart_Swim
 
-class WorkoutEditionInteractorTests: XCTestCase {
+final class WorkoutEditionInteractorTests: XCTestCase {
     // MARK: - Properties
     var sut: WorkoutEditionInteractor!
     var mockPresenter: MockWorkoutEditionPresenter!
