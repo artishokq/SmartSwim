@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import CoreData
 
 protocol WorkoutEditionBusinessLogic {
     func loadWorkout(request: WorkoutEditionModels.LoadWorkout.Request)
@@ -19,6 +20,22 @@ protocol WorkoutEditionDataStore {
     var workoutIndex: Int? { get set }
     var workouts: [WorkoutEntity]? { get set }
     var exercises: [Exercise] { get set }
+}
+
+protocol WorkoutEditionCoreDataManagerProtocol {
+    func fetchAllWorkouts() -> [WorkoutEntity]
+    func deleteExercise(_ exercise: ExerciseEntity)
+    func createExercise(for workout: WorkoutEntity,
+                         description: String?,
+                         style: Int16,
+                         type: Int16,
+                         hasInterval: Bool,
+                         intervalMinutes: Int16,
+                         intervalSeconds: Int16,
+                         meters: Int16,
+                         orderIndex: Int16,
+                         repetitions: Int16) -> ExerciseEntity?
+    func saveContext() -> Bool
 }
 
 final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditionDataStore {
@@ -40,6 +57,12 @@ final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditio
     var workoutIndex: Int?
     var workouts: [WorkoutEntity]?
     var exercises: [Exercise] = []
+    var coreDataManager: WorkoutEditionCoreDataManagerProtocol
+    
+    // MARK: - Initialization
+    init(coreDataManager: WorkoutEditionCoreDataManagerProtocol = CoreDataManager.shared) {
+        self.coreDataManager = coreDataManager
+    }
     
     // MARK: - Load Workout
     func loadWorkout(request: WorkoutEditionModels.LoadWorkout.Request) {
@@ -47,7 +70,7 @@ final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditio
         
         // Загружаем тренировки, если они еще не загружены
         if workouts == nil {
-            workouts = CoreDataManager.shared.fetchAllWorkouts()
+            workouts = coreDataManager.fetchAllWorkouts()
         }
         
         guard let workouts = workouts,
@@ -195,14 +218,14 @@ final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditio
         if let existingExercises = workoutEntity.exercises {
             for exercise in existingExercises {
                 if let exerciseEntity = exercise as? ExerciseEntity {
-                    CoreDataManager.shared.deleteExercise(exerciseEntity)
+                    coreDataManager.deleteExercise(exerciseEntity)
                 }
             }
         }
         
         // Добавляем новые упражнения
         for (index, exercise) in request.exercises.enumerated() {
-            _ = CoreDataManager.shared.createExercise(
+            _ = coreDataManager.createExercise(
                 for: workoutEntity,
                 description: exercise.description,
                 style: exercise.style.rawValue,
@@ -217,7 +240,7 @@ final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditio
         }
         
         // Сохраняем изменения
-        let success = CoreDataManager.shared.saveContext()
+        let success = coreDataManager.saveContext()
         let response = WorkoutEditionModels.UpdateWorkout.Response(
             success: success,
             errorMessage: success ? nil : Constants.workoutSavingErrorMessage
@@ -250,3 +273,5 @@ final class WorkoutEditionInteractor: WorkoutEditionBusinessLogic, WorkoutEditio
         presenter?.presentUpdateExercise(response: response)
     }
 }
+
+extension CoreDataManager: WorkoutEditionCoreDataManagerProtocol {}

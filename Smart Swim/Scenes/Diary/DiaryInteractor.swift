@@ -23,14 +23,29 @@ protocol DiaryDataStore {
     var workoutSessions: [WorkoutSessionEntity]? { get set }
 }
 
+protocol DiaryCoreDataManagerProtocol {
+    func fetchAllStarts() -> [StartEntity]
+    func fetchStart(byID: NSManagedObjectID) -> StartEntity?
+    func deleteStart(_ start: StartEntity)
+    func fetchAllWorkoutSessions() -> [WorkoutSessionEntity]
+    func fetchWorkoutSession(byID: UUID) -> WorkoutSessionEntity?
+    func deleteWorkoutSession(_ session: WorkoutSessionEntity)
+    func fetchExerciseSessions(for session: WorkoutSessionEntity) -> [ExerciseSessionEntity]
+}
+
 final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
     var workoutSessions: [WorkoutSessionEntity]?
     var presenter: DiaryPresentationLogic?
     var starts: [StartEntity]?
+    var coreDataManager: DiaryCoreDataManagerProtocol
+    
+    init(coreDataManager: DiaryCoreDataManagerProtocol = CoreDataManager.shared) {
+        self.coreDataManager = coreDataManager
+    }
     
     // MARK: - Fetch Starts
     func fetchStarts(request: DiaryModels.FetchStarts.Request) {
-        let startEntities = CoreDataManager.shared.fetchAllStarts()
+        let startEntities = coreDataManager.fetchAllStarts()
         self.starts = startEntities
         
         let startData = startEntities.map { entity -> DiaryModels.FetchStarts.Response.StartData in
@@ -49,8 +64,8 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
     
     // MARK: - Delete Start
     func deleteStart(request: DiaryModels.DeleteStart.Request) {
-        if let start = CoreDataManager.shared.fetchStart(byID: request.id) {
-            CoreDataManager.shared.deleteStart(start)
+        if let start = coreDataManager.fetchStart(byID: request.id) {
+            coreDataManager.deleteStart(start)
             
             // Удаляем из локального массива
             if let index = starts?.firstIndex(where: { $0.objectID == request.id }) {
@@ -76,12 +91,12 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
     
     // MARK: - Fetch Workout Sessions
     func fetchWorkoutSessions(request: DiaryModels.FetchWorkoutSessions.Request) {
-        let workoutSessionEntities = CoreDataManager.shared.fetchAllWorkoutSessions()
+        let workoutSessionEntities = coreDataManager.fetchAllWorkoutSessions()
         self.workoutSessions = workoutSessionEntities
         
         let sessionData = workoutSessionEntities.map { entity -> DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData in
-
-            let exerciseEntities = CoreDataManager.shared.fetchExerciseSessions(for: entity)
+            
+            let exerciseEntities = coreDataManager.fetchExerciseSessions(for: entity)
             
             let exercises = exerciseEntities.sorted(by: { $0.orderIndex < $1.orderIndex }).map { exercise -> DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData.ExerciseData in
                 return DiaryModels.FetchWorkoutSessions.Response.WorkoutSessionData.ExerciseData(
@@ -114,8 +129,8 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
     
     // MARK: - Delete Workout Session
     func deleteWorkoutSession(request: DiaryModels.DeleteWorkoutSession.Request) {
-        if let session = CoreDataManager.shared.fetchWorkoutSession(byID: request.id) {
-            CoreDataManager.shared.deleteWorkoutSession(session)
+        if let session = coreDataManager.fetchWorkoutSession(byID: request.id) {
+            coreDataManager.deleteWorkoutSession(session)
             
             // Удаляем из локального массива
             if let index = workoutSessions?.firstIndex(where: { $0.id == request.id }) {
@@ -134,7 +149,7 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
     }
     
     // MARK: - Helper Methods
-    private func getSwimStyleDescription(_ styleRawValue: Int16) -> String {
+    func getSwimStyleDescription(_ styleRawValue: Int16) -> String {
         let style = SwimStyle(rawValue: styleRawValue) ?? .freestyle
         switch style {
         case .freestyle: return "вольный стиль"
@@ -146,7 +161,7 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
         }
     }
     
-    private func calculateTotalMeters(_ session: WorkoutSessionEntity) -> Int {
+    func calculateTotalMeters(_ session: WorkoutSessionEntity) -> Int {
         guard let exercises = session.exerciseSessions?.allObjects as? [ExerciseSessionEntity] else {
             return 0
         }
@@ -156,3 +171,5 @@ final class DiaryInteractor: DiaryBusinessLogic, DiaryDataStore {
         }
     }
 }
+
+extension CoreDataManager: DiaryCoreDataManagerProtocol {}
