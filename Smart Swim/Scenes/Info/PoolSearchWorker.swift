@@ -8,6 +8,10 @@
 import Foundation
 import YandexMapsMobile
 
+protocol PoolSearchWorkerProtocol {
+    func searchPools(near location: Location, in region: YMKVisibleRegion, completion: @escaping (Result<[PoolLocation], Error>) -> Void)
+}
+
 final class PoolSearchWorker {
     // MARK: - Properties
     private var searchManager: YMKSearchManager

@@ -14,8 +14,14 @@ protocol InfoBusinessLogic {
 
 final class InfoInteractor: InfoBusinessLogic {
     var presenter: InfoPresentationLogic?
-    private let poolSearchWorker = PoolSearchWorker()
-    private let locationWorker = LocationWorker()
+    private let poolSearchWorker: PoolSearchWorkerProtocol
+    private let locationWorker: LocationWorkerProtocol
+    
+    init(poolSearchWorker: PoolSearchWorkerProtocol = PoolSearchWorker(),
+         locationWorker: LocationWorkerProtocol = LocationWorker()) {
+        self.poolSearchWorker = poolSearchWorker
+        self.locationWorker = locationWorker
+    }
     
     func getPools(request: InfoModels.GetPools.Request) {
         // Получаем текущее местоположение пользователя
@@ -102,3 +108,6 @@ final class InfoInteractor: InfoBusinessLogic {
         )
     }
 }
+
+extension LocationWorker: LocationWorkerProtocol {}
+extension PoolSearchWorker: PoolSearchWorkerProtocol {}

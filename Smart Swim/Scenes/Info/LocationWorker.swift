@@ -30,6 +30,11 @@ struct Location {
     let longitude: Double
 }
 
+protocol LocationWorkerProtocol {
+    func getCurrentLocation(completion: @escaping (Result<Location, LocationError>) -> Void)
+    func getDefaultLocation() -> Location
+}
+
 final class LocationWorker: NSObject {
     private var locationManager: CLLocationManager?
     private var completion: ((Result<Location, LocationError>) -> Void)?
