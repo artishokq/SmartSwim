@@ -17,7 +17,6 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
     
     // MARK: - Present Session Details
     func presentSessionDetails(response: WorkoutSessionDetailModels.FetchSessionDetails.Response) {
-        // Форматируем данные для карточек
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd.MM.yyyy HH:mm"
         let dateString = dateFormatter.string(from: response.headerData.date)
@@ -33,74 +32,65 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
             poolSizeString: "Бассейн \(response.headerData.poolSize)м"
         )
         
-        // Форматируем данные для упражнений
         var exerciseDetails: [WorkoutSessionDetailModels.FetchSessionDetails.ViewModel.ExerciseDetail] = []
-        
         for exerciseData in response.exercises.sorted(by: { $0.orderIndex < $1.orderIndex }) {
-            // Данные для анализа пульса
-            let heartRates = exerciseData.laps.map { $0.heartRate }
-            let avgPulse = heartRates.isEmpty ? 0 : heartRates.reduce(0, +) / Double(heartRates.count)
-            let maxPulse = heartRates.max() ?? 0
-            let minPulse = heartRates.min() ?? 0
+            let heartRates = exerciseData.heartRateReadings.map { $0.value }.filter { $0 > 0 }
+            
+            var avgPulse: Double = 0
+            var maxPulse: Double = 0
+            var minPulse: Double = 0
+            
+            if !heartRates.isEmpty {
+                avgPulse = heartRates.reduce(0, +) / Double(heartRates.count)
+                maxPulse = heartRates.max() ?? 0
+                minPulse = heartRates.filter { $0 > 0 }.min() ?? 0
+            }
+            
             let pulseZone = determinePulseZone(averagePulse: avgPulse)
             
             let pulseAnalysis = WorkoutSessionDetailModels.FetchSessionDetails.ViewModel.ExerciseDetail.PulseAnalysis(
                 averagePulse: "\(Int(avgPulse)) уд/мин",
-                maxPulse: "\(Int(maxPulse)) уд/мин",
-                minPulse: "\(Int(minPulse)) уд/мин",
+                maxPulse: maxPulse > 0 ? "\(Int(maxPulse)) уд/мин" : "-",
+                minPulse: minPulse > 0 ? "\(Int(minPulse)) уд/мин" : "-",
                 pulseZone: pulseZone
             )
             
-            // Данные для анализа гребков с учетом длины бассейна
-            // Получаем размер бассейна как делитель (50м бассейн должен делиться на 50, 25м на 25)
             let poolSize = Int(response.headerData.poolSize)
-            let distanceDivisor = poolSize > 0 ? poolSize : 50 // По умолчанию 50, если размер бассейна недействителен
+            let distanceDivisor = poolSize > 0 ? poolSize : 50
             
-            // Рассчитываем гребки на длину бассейна
             var avgStrokesPerPoolLength: Double = 0
             var maxStrokesPerPoolLength: Int16 = 0
             var minStrokesPerPoolLength: Int16 = Int16.max
+            var hasValidStrokeData = false
             
             if !exerciseData.laps.isEmpty {
-                // Подготовим массив валидированных гребков
                 let normalizedLaps = exerciseData.laps.map { lap ->
                     (strokes: Int16, distance: Int16) in
                     let normalizedStrokes = normalizeStrokeData(lap.strokes, forDistance: lap.distance)
                     return (normalizedStrokes, lap.distance)
-                }
+                }.filter { $0.strokes > 0 && $0.distance > 0 }
                 
-                // Считаем общие гребки и дистанцию для среднего значения
-                let totalNormalizedStrokes = normalizedLaps.reduce(0) { $0 + Int($1.strokes) }
-                let totalDistance = normalizedLaps.reduce(0) { $0 + Int($1.distance) }
+                hasValidStrokeData = !normalizedLaps.isEmpty
                 
-                if totalDistance > 0 {
+                if hasValidStrokeData {
+                    let totalNormalizedStrokes = normalizedLaps.reduce(0) { $0 + Int($1.strokes) }
+                    let totalDistance = normalizedLaps.reduce(0) { $0 + Int($1.distance) }
+                    
                     avgStrokesPerPoolLength = Double(totalNormalizedStrokes) / Double(totalDistance) * Double(distanceDivisor)
-                }
-                
-                // Для max/min рассчитываем на длину бассейна для каждого отрезка
-                if normalizedLaps.count == 1 {
-                    // Если только один отрезок, max и min одинаковые
-                    let lap = normalizedLaps[0]
-                    if lap.distance > 0 {
-                        let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
-                        maxStrokesPerPoolLength = Int16(strokesPerPoolLength.rounded())
-                        minStrokesPerPoolLength = maxStrokesPerPoolLength
-                    }
-                } else {
-                    // Несколько отрезков - считаем для каждого
+                    
                     for lap in normalizedLaps {
-                        if lap.distance > 0 && lap.strokes > 0 {
-                            let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
-                            let roundedStrokes = Int16(strokesPerPoolLength.rounded())
-                            
-                            if roundedStrokes > maxStrokesPerPoolLength {
-                                maxStrokesPerPoolLength = roundedStrokes
-                            }
-                            if roundedStrokes < minStrokesPerPoolLength && roundedStrokes > 0 {
-                                minStrokesPerPoolLength = roundedStrokes
-                            }
+                        let strokesPerPoolLength = Double(lap.strokes) / Double(lap.distance) * Double(distanceDivisor)
+                        let roundedStrokes = Int16(strokesPerPoolLength.rounded())
+                        
+                        if roundedStrokes > maxStrokesPerPoolLength {
+                            maxStrokesPerPoolLength = roundedStrokes
+                        }
+                        if roundedStrokes < minStrokesPerPoolLength {
+                            minStrokesPerPoolLength = roundedStrokes
                         }
                     }
+                } else {
+                    minStrokesPerPoolLength = 0
                 }
             } else {
                 minStrokesPerPoolLength = 0
@@ -108,22 +98,25 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
             
             let strokeAnalysis = WorkoutSessionDetailModels.FetchSessionDetails.ViewModel.ExerciseDetail.StrokeAnalysis(
                 averageStrokes: "\(Int(avgStrokesPerPoolLength.rounded()))",
-                maxStrokes: "\(maxStrokesPerPoolLength)",
-                minStrokes: "\(minStrokesPerPoolLength)",
+                maxStrokes: hasValidStrokeData ? "\(maxStrokesPerPoolLength)" : "-",
+                minStrokes: hasValidStrokeData && minStrokesPerPoolLength < Int16.max ? "\(minStrokesPerPoolLength)" : "-",
                 totalStrokes: ""
             )
             
-            // Форматирование данных об упражнении
             let styleString = getSwimStyleDescription(exerciseData.style)
             let typeString = getExerciseTypeDescription(exerciseData.type)
             
             let hasInterval = exerciseData.hasInterval
             let intervalString = hasInterval ? "\(exerciseData.intervalMinutes):\(String(format: "%02d", exerciseData.intervalSeconds))" : "нет"
             
+            let heartRateData = exerciseData.heartRateReadings.map {
+                (timestamp: $0.timestamp, value: $0.value)
+            }.sorted { $0.timestamp < $1.timestamp }
+            
             let exerciseDetail = WorkoutSessionDetailModels.FetchSessionDetails.ViewModel.ExerciseDetail(
                 id: exerciseData.id,
                 orderIndex: exerciseData.orderIndex,
-                description: exerciseData.description ?? "Упражнение",
+                description: exerciseData.description,
                 styleString: styleString,
                 typeString: typeString,
                 timeString: formatTime(exerciseData.totalTime),
@@ -133,13 +126,13 @@ final class WorkoutSessionDetailPresenter: WorkoutSessionDetailPresentationLogic
                 repetitionsString: "\(exerciseData.repetitions)x\(exerciseData.meters)м",
                 poolSize: response.headerData.poolSize,
                 pulseAnalysis: pulseAnalysis,
-                strokeAnalysis: strokeAnalysis
+                strokeAnalysis: strokeAnalysis,
+                heartRateData: heartRateData
             )
             
             exerciseDetails.append(exerciseDetail)
         }
         
-        // Создаем и отправляем ViewModel
         let viewModel = WorkoutSessionDetailModels.FetchSessionDetails.ViewModel(
             summaryData: summaryData,
             exercises: exerciseDetails

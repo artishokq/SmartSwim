@@ -60,20 +60,14 @@ class AIStartService {
             return
         }
         
-        // Сортируем отрезки по номеру
         let sortedLaps = lapEntities.sorted { $0.lapNumber < $1.lapNumber }
-        
-        // Формируем информацию о старте и отрезках
         let prompt = generatePrompt(for: start, with: sortedLaps)
-        
-        // Отправляем запрос к API
         sendDeepSeekRequest(with: prompt, completion: completion)
     }
     
     // MARK: - Private Methods
     private func generatePrompt(for start: StartEntity, with laps: [LapEntity]) -> String {
         let styleDescription = getSwimStyleDescription(start.swimmingStyle)
-        // Формируем промпт
         var prompt = """
         Проанализируй данные о заплыве пловца и дай конкретные рекомендации по улучшению результатов.
         
@@ -86,7 +80,6 @@ class AIStartService {
         Данные по отрезкам:
         """
         
-        // Добавляем информацию по каждому отрезку
         for lap in laps {
             prompt += """
             
@@ -97,8 +90,8 @@ class AIStartService {
             """
         }
         
-        // Добавляем дополнительные инструкции для анализа
         prompt += """
+        Отрезок равен длинне бассейна. Если дан один отрезок, значит пловец плыл дистанцию 50м.
         
         Если значения пульса или количества гребков равны 0 или отсутствуют, игнорируй их и анализируй данные, исходя только из общего времени и времени отрезков.
         
@@ -136,7 +129,6 @@ class AIStartService {
             "max_tokens": 1000
         ]
         
-        // Преобразование тела запроса в JSON
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
             completion(.failure(.invalidResponse))
             return
@@ -151,16 +143,13 @@ class AIStartService {
         
         // Выполнение запроса
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            // Обработка ошибок сети
             if let error = error {
                 completion(.failure(.networkError(error)))
                 return
             }
             
-            // Проверка HTTP статуса
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode != 200 {
-                    // Получаем информацию об ошибке из ответа, если возможно
                     if let data = data, let jsonError = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let errorInfo = jsonError["error"] as? [String: Any],
                        let message = errorInfo["message"] as? String {
@@ -172,30 +161,25 @@ class AIStartService {
                 }
             }
             
-            // Проверка данных ответа
             guard let data = data else {
                 completion(.failure(.invalidResponse))
                 return
             }
             
-            // Для отладки: вывести JSON-ответ
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("DeepSeek API Response: \(jsonString)")
             }
             
-            // Обработка JSON-ответа
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
                    let firstChoice = choices.first,
                    let message = firstChoice["message"] as? [String: Any],
                    let content = message["content"] as? String {
-                    // Удаляем все символы "*" из ответа перед отправкой
                     let cleanedContent = content.replacingOccurrences(of: "*", with: "")
                     
                     completion(.success(cleanedContent))
                 } else {
-                    // Если не удалось распарсить ответ по ожидаемой структуре
                     if let jsonString = String(data: data, encoding: .utf8) {
                         completion(.failure(.apiError("Unexpected response format: \(jsonString)")))
                     } else {

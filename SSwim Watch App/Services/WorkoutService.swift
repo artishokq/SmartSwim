@@ -18,7 +18,6 @@ final class WorkoutService: ObservableObject {
     private let workoutKit: WorkoutKit
     private let communicationService: WatchCommunicationService
     private var cancellables = Set<AnyCancellable>()
-    private var initialLoadAttempted = false
     
     // MARK: - Initialization
     init(workoutKit: WorkoutKit, communicationService: WatchCommunicationService) {

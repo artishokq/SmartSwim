@@ -135,12 +135,10 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
                                                                          nextButtonColor: nextColor)
                 self.presenter?.presentMainButtonAction(response: response)
                 
-                // Создаём первый активный отрезок (модельное представление)
                 let lapResponse = StopwatchModels.LapRecording.Response(lapNumber: self.currentLapNumber, lapTime: 0)
                 self.laps.append(lapResponse)
                 self.presenter?.presentLapRecording(response: lapResponse)
                 
-                // Команда для часов о старте тренировки
                 WatchSessionManager.shared.sendCommandToWatch("start")
             }
             
@@ -170,7 +168,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
                                                                          nextButtonColor: nextColor)
                 presenter?.presentMainButtonAction(response: response)
                 
-                // Создаём новый активный отрезок (модельное представление)
                 let newLapResponse = StopwatchModels.LapRecording.Response(lapNumber: currentLapNumber, lapTime: 0)
                 laps.append(newLapResponse)
                 presenter?.presentLapRecording(response: newLapResponse)
@@ -199,7 +196,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         if request.status == "stopped" || request.status == "workoutStopped" {
             if isWaitingForWatchConfirmation {
                 isWaitingForWatchConfirmation = false
-                // Запрашиваем данные из HealthKit
                 fetchHealthKitDataAndSave()
             }
         }
@@ -252,7 +248,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
             return
         }
         
-        // Запас к временному диапазону
         let extendedStartTime = startTime.addingTimeInterval(-5.0)
         let extendedStopTime = stopTime.addingTimeInterval(5.0)
         
@@ -270,7 +265,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
         let query = HKSampleQuery(sampleType: heartRateType,
                                   predicate: predicate,
-                                  limit: 200,
+                                  limit: 500,
                                   sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
             
             guard let self = self else { return }
@@ -314,7 +309,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         let totalDuration = stopTime.timeIntervalSince(startTime)
         let lapDuration = totalDuration / Double(totalLengths)
         
-        // Группируем значения пульса по отрезкам
         for lapNumber in 1...totalLengths {
             let lapStartOffset = lapDuration * Double(lapNumber - 1)
             let lapEndOffset = lapDuration * Double(lapNumber)
@@ -368,7 +362,7 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         // Создаем запрос для получения последних записей о гребках
         let query = HKSampleQuery(sampleType: strokeType,
                                   predicate: predicate,
-                                  limit: max(50, totalLengths * 2),
+                                  limit: max(500, totalLengths * 2),
                                   sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
             
             guard let self = self else { return }
@@ -510,7 +504,6 @@ final class StopwatchInteractor: StopwatchBusinessLogic, StopwatchDataStore, Wat
         print("DEBUG: Финальные данные о пульсе по отрезкам: \(lapPulseData)")
         print("DEBUG: Финальные данные о гребках по отрезкам: \(lapStrokesData)")
         
-        // Собираем данные о каждом отрезке в массив LapData
         var lapDatas: [LapData] = []
         for lapNumber in 1...totalLengths {
             let pulse = Int16(lapPulseData[lapNumber] ?? 0)

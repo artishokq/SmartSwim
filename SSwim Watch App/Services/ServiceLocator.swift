@@ -50,18 +50,98 @@ final class ServiceLocator {
     // MARK: - Initialization
     private init() {}
     
+    // MARK: - Private Methods
+    func checkAndSyncPendingWorkouts() {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        
+        let fileURL = documentsDirectory.appendingPathComponent("pending_workouts.json")
+        
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            return
+        }
+        
+        do {
+            let savedData = try Data(contentsOf: fileURL)
+            guard let savedWorkouts = try JSONSerialization.jsonObject(with: savedData) as? [[String: Any]], !savedWorkouts.isEmpty else {
+                return
+            }
+            
+            print("При запуске приложения найдено \(savedWorkouts.count) ожидающих отправки тренировок")
+            
+            if communicationService.isReachable {
+                for workoutData in savedWorkouts {
+                    if let metadata = workoutData["workoutMetadata"] as? [String: Any],
+                       let sendId = workoutData["sendId"] as? String {
+                        
+                        communicationService.sendMessageWithReply(
+                            type: .command,
+                            data: [
+                                "workoutCompleted": true,
+                                "workoutMetadata": metadata,
+                                "sendId": sendId
+                            ],
+                            timeout: 5.0
+                        ) { response in
+                            if let confirmed = response?["workoutDataReceived"] as? Bool, confirmed {
+                                print("Получено подтверждение от iPhone о получении отложенных данных тренировки")
+                                self.removeLocalWorkoutData(sendId: sendId)
+                            }
+                        }
+                    }
+                }
+            } else {
+                print("iPhone недоступен при запуске, синхронизация отложена")
+            }
+        } catch {
+            print("Ошибка при проверке ожидающих тренировок: \(error)")
+        }
+    }
+    
+    private func removeLocalWorkoutData(sendId: String) {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return
+            }
+            
+            let fileURL = documentsDirectory.appendingPathComponent("pending_workouts.json")
+            
+            guard fileManager.fileExists(atPath: fileURL.path) else {
+                return
+            }
+            
+            let savedData = try Data(contentsOf: fileURL)
+            guard var savedWorkouts = try JSONSerialization.jsonObject(with: savedData) as? [[String: Any]] else {
+                return
+            }
+            
+            savedWorkouts.removeAll { workout in
+                return (workout["sendId"] as? String) == sendId
+            }
+            
+            let updatedData = try JSONSerialization.data(withJSONObject: savedWorkouts)
+            try updatedData.write(to: fileURL)
+            print("Локально сохраненные данные удалены после успешной отправки")
+        } catch {
+            print("Ошибка при удалении данных тренировки: \(error)")
+        }
+    }
+    
     // MARK: - Public Methods
     func initializeServices() {
-        // Просто обращаемся к lazy свойствам для их инициализации
         _ = communicationService
         _ = workoutKitManager
         _ = startKit
         _ = workoutKit
         _ = startService
         _ = workoutService
+        
+        checkAndSyncPendingWorkouts()
     }
     
-    // Запрашиваем разрешения при запуске
     func requestWorkoutPermissions() {
         workoutKitManager.requestAuthorization { success, error in
             if !success {

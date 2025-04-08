@@ -340,10 +340,19 @@ extension CoreDataManager {
         
         // Создаём и добавляем упражнения
         for exerciseData in exercisesData {
-            createExerciseSession(
+            let exerciseSession = createExerciseSession(
                 for: workoutSession,
                 exerciseData: exerciseData
             )
+            
+            // Добавляем данные о пульсе, если они есть
+            if let exerciseSession = exerciseSession,
+               !exerciseData.heartRateReadings.isEmpty {
+                addHeartRateReadings(
+                    readings: exerciseData.heartRateReadings,
+                    exerciseSession: exerciseSession
+                )
+            }
         }
         
         if saveContext() {
@@ -493,5 +502,63 @@ extension CoreDataManager {
     
     func workoutSessionHasRecommendation(_ workoutSession: WorkoutSessionEntity) -> Bool {
         return workoutSession.recommendation != nil && !workoutSession.recommendation!.isEmpty
+    }
+}
+
+// MARK: - HeartRate CRUD
+extension CoreDataManager {
+    @discardableResult
+    func createHeartRateReading(
+        value: Double,
+        timestamp: Date,
+        exerciseSession: ExerciseSessionEntity
+    ) -> HeartRateEntity {
+        let heartRate = HeartRateEntity(context: context)
+        heartRate.id = UUID()
+        heartRate.value = value
+        heartRate.timestamp = timestamp
+        heartRate.exerciseSession = exerciseSession
+        exerciseSession.addToHeartRateReadings(heartRate)
+        
+        saveContext()
+        return heartRate
+    }
+    
+    func addHeartRateReadings(
+        readings: [(value: Double, timestamp: Date)],
+        exerciseSession: ExerciseSessionEntity
+    ) {
+        for reading in readings {
+            createHeartRateReading(
+                value: reading.value,
+                timestamp: reading.timestamp,
+                exerciseSession: exerciseSession
+            )
+        }
+    }
+    
+    func fetchHeartRateReadings(for exerciseSession: ExerciseSessionEntity) -> [HeartRateEntity] {
+        let request: NSFetchRequest<HeartRateEntity> = HeartRateEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "exerciseSession == %@", exerciseSession)
+        request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Failed to fetch heart rate readings: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    func deleteHeartRateReadings(for exerciseSession: ExerciseSessionEntity) {
+        guard let heartRates = exerciseSession.heartRateReadings as? Set<HeartRateEntity> else {
+            return
+        }
+        
+        for heartRate in heartRates {
+            context.delete(heartRate)
+        }
+        
+        saveContext()
     }
 }

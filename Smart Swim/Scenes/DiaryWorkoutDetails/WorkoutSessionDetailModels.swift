@@ -25,10 +25,25 @@ enum WorkoutSessionDetailModels {
                 let workoutName: String
             }
             
+            struct LapData {
+                let id: UUID
+                let lapNumber: Int16
+                let distance: Int16
+                let lapTime: Double
+                let heartRate: Double
+                let strokes: Int16
+                let timestamp: Date
+            }
+            
+            struct HeartRateData {
+                let value: Double
+                let timestamp: Date
+            }
+            
             struct ExerciseData {
                 let id: UUID
                 let orderIndex: Int16
-                let description: String?
+                let description: String
                 let style: Int16
                 let type: Int16
                 let startTime: Date
@@ -39,19 +54,10 @@ enum WorkoutSessionDetailModels {
                 let meters: Int16
                 let repetitions: Int16
                 let laps: [LapData]
+                let heartRateReadings: [HeartRateData]
                 let totalTime: Double
                 let averageHeartRate: Double
                 let totalStrokes: Int
-            }
-            
-            struct LapData {
-                let id: UUID
-                let lapNumber: Int16
-                let distance: Int16
-                let lapTime: Double
-                let heartRate: Double
-                let strokes: Int16
-                let timestamp: Date
             }
             
             let headerData: HeaderData
@@ -68,20 +74,7 @@ enum WorkoutSessionDetailModels {
                 let poolSizeString: String
             }
             
-            
             struct ExerciseDetail {
-                let id: UUID
-                let orderIndex: Int16
-                let description: String
-                let styleString: String
-                let typeString: String
-                let timeString: String
-                let hasInterval: Bool
-                let intervalString: String
-                let metersString: String
-                let repetitionsString: String
-                let poolSize: Int16
-                
                 struct PulseAnalysis {
                     let averagePulse: String
                     let maxPulse: String
@@ -96,8 +89,20 @@ enum WorkoutSessionDetailModels {
                     let totalStrokes: String
                 }
                 
+                let id: UUID
+                let orderIndex: Int16
+                let description: String
+                let styleString: String
+                let typeString: String
+                let timeString: String
+                let hasInterval: Bool
+                let intervalString: String
+                let metersString: String
+                let repetitionsString: String
+                let poolSize: Int16
                 let pulseAnalysis: PulseAnalysis
                 let strokeAnalysis: StrokeAnalysis
+                let heartRateData: [(timestamp: Date, value: Double)]
             }
             
             let summaryData: SummaryData

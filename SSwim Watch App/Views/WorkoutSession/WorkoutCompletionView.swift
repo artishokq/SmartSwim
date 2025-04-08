@@ -13,23 +13,28 @@ struct WorkoutCompletionView: View {
         static let congratsText: String = "Отлично!"
         static let completionText: String = "Тренировка закончена!"
         static let buttonText: String = "Завершить"
+        static let autoCloseText: String = "Автозакрытие:"
         
-        static let congratsFontSize: CGFloat = 36
-        static let completionFontSize: CGFloat = 20
-        static let buttonFontSize: CGFloat = 18
+        static let congratsFontSize: CGFloat = 28
+        static let completionFontSize: CGFloat = 16
+        static let buttonFontSize: CGFloat = 16
+        static let autoCloseFontSize: CGFloat = 12
         
-        static let stackSpacing: CGFloat = 24
+        static let stackSpacing: CGFloat = 12
         static let buttonCornerRadius: CGFloat = 8
-        static let buttonMaxWidth: CGFloat = 140
-        static let buttonMinHeight: CGFloat = 44
+        static let buttonMaxWidth: CGFloat = 120
+        static let buttonMinHeight: CGFloat = 36
         
         static let congratsColor: Color = Color.yellow
         static let buttonBackgroundColor: Color = Color.green
         static let buttonTextColor: Color = Color.black
         static let backgroundColor: Color = Color.black
+        static let autoCloseColor: Color = Color.gray
     }
     
     let onComplete: () -> Void
+    @State private var isButtonDisabled: Bool = false
+    @State private var autoCloseCounter: Int = 11
     
     var body: some View {
         VStack(spacing: Constants.stackSpacing) {
@@ -41,10 +46,15 @@ struct WorkoutCompletionView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .lineLimit(nil)
-                .font(.system(size: Constants.completionFontSize, weight: .bold))
+                .font(.system(size: Constants.completionFontSize, weight: .medium))
                 .fixedSize(horizontal: false, vertical: true)
             
-            Button(action: onComplete) {
+            Button(action: {
+                if !isButtonDisabled {
+                    isButtonDisabled = true
+                    onComplete()
+                }
+            }) {
                 Text(Constants.buttonText)
                     .font(.system(size: Constants.buttonFontSize, weight: .medium))
                     .frame(maxWidth: Constants.buttonMaxWidth, minHeight: Constants.buttonMinHeight)
@@ -53,8 +63,31 @@ struct WorkoutCompletionView: View {
                     .cornerRadius(Constants.buttonCornerRadius)
             }
             .buttonStyle(PlainButtonStyle())
+            .disabled(isButtonDisabled)
+            
+            Text("\(Constants.autoCloseText) \(autoCloseCounter)")
+                .font(.system(size: Constants.autoCloseFontSize))
+                .foregroundColor(Constants.autoCloseColor)
         }
-        .padding()
+        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
         .background(Constants.backgroundColor)
+        .onAppear {
+            startAutoCloseTimer()
+        }
+    }
+    
+    private func startAutoCloseTimer() {
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            if autoCloseCounter > 0 {
+                autoCloseCounter -= 1
+            } else {
+                timer.invalidate()
+                if !isButtonDisabled {
+                    isButtonDisabled = true
+                    onComplete()
+                }
+            }
+        }
     }
 }
