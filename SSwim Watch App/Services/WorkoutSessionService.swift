@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final class WorkoutSessionService: ObservableObject {
+class WorkoutSessionService: ObservableObject {
     // MARK: - Published Properties
     @Published var sessionState: SwimWorkoutModels.WorkoutSessionState = .notStarted
     @Published var currentExercise: SwimWorkoutModels.ActiveExerciseData?
@@ -28,7 +28,7 @@ final class WorkoutSessionService: ObservableObject {
     let workout: SwimWorkoutModels.SwimWorkout
     
     // MARK: - Private Properties
-    private let workoutKitManager: WorkoutKitManager
+    let workoutKitManager: WorkoutKitManager
     private let communicationService: WatchCommunicationService
     
     private var exercises: [SwimWorkoutModels.SwimExercise] = []
@@ -307,7 +307,7 @@ final class WorkoutSessionService: ObservableObject {
         intervalTimer = nil
     }
     
-    private func stopAllTimers() {
+    func stopAllTimers() {
         sessionTimer?.invalidate()
         sessionTimer = nil
         stopExerciseTimer()

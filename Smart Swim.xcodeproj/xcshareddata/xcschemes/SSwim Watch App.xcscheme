@@ -41,8 +41,13 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <TestPlans>
+         <TestPlanReference
+            reference = "container:SSwim Watch App.xctestplan"
+            default = "YES">
+         </TestPlanReference>
+      </TestPlans>
       <Testables>
          <TestableReference
             skipped = "NO"
@@ -52,6 +57,17 @@
                BlueprintIdentifier = "167424B22D9E86EE0037AEFD"
                BuildableName = "Smart Swim Tests.xctest"
                BlueprintName = "Smart Swim Tests"
+               ReferencedContainer = "container:Smart Swim.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "167B21172DA95EE3009470E5"
+               BuildableName = "SSwim Watch App Tests.xctest"
+               BlueprintName = "SSwim Watch App Tests"
                ReferencedContainer = "container:Smart Swim.xcodeproj">
             </BuildableReference>
          </TestableReference>

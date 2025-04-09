@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "E735DC42-2879-494D-BF7A-0F2E28B00ACA",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Smart Swim.xcodeproj",
+      "identifier" : "167B21172DA95EE3009470E5",
+      "name" : "SSwim Watch App Tests"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Smart Swim.xcodeproj",
+        "identifier" : "167424B22D9E86EE0037AEFD",
+        "name" : "Smart Swim Tests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Smart Swim.xcodeproj",
+        "identifier" : "167B21172DA95EE3009470E5",
+        "name" : "SSwim Watch App Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

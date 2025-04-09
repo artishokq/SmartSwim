@@ -27,6 +27,13 @@
 			remoteGlobalIDString = 16A823712D3006480084DADF;
 			remoteInfo = "Smart Swim";
 		};
+		167B211C2DA95EE3009470E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 16A8236A2D3006480084DADF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 166B96F22D65310700D91CF0;
+			remoteInfo = "SSwim Watch App";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,6 +53,7 @@
 /* Begin PBXFileReference section */
 		166B96F32D65310700D91CF0 /* SSwim Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SSwim Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		167424B32D9E86EE0037AEFD /* Smart Swim Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Smart Swim Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		167B21182DA95EE3009470E5 /* SSwim Watch App Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "SSwim Watch App Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		16A823722D3006480084DADF /* Smart Swim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Smart Swim.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DB7B55B8A470F951A35C5A2 /* Pods_SSwim_Watch_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SSwim_Watch_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C8115512970CBC3265EF717 /* Pods-SSwim Watch App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SSwim Watch App.debug.xcconfig"; path = "Target Support Files/Pods-SSwim Watch App/Pods-SSwim Watch App.debug.xcconfig"; sourceTree = "<group>"; };
@@ -84,6 +92,11 @@
 			path = "Smart Swim Tests";
 			sourceTree = "<group>";
 		};
+		167B21192DA95EE3009470E5 /* SSwim Watch App Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SSwim Watch App Tests";
+			sourceTree = "<group>";
+		};
 		16A823742D3006480084DADF /* Smart Swim */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -111,6 +124,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		167B21152DA95EE3009470E5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16A8236F2D3006480084DADF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +148,7 @@
 				16A823742D3006480084DADF /* Smart Swim */,
 				166B96F42D65310700D91CF0 /* SSwim Watch App */,
 				167424B42D9E86EE0037AEFD /* Smart Swim Tests */,
+				167B21192DA95EE3009470E5 /* SSwim Watch App Tests */,
 				16A823732D3006480084DADF /* Products */,
 				E17AE512F3C0218E7BF8BD2F /* Pods */,
 				D67F60CF570E8B2A2C03335C /* Frameworks */,
@@ -140,6 +161,7 @@
 				16A823722D3006480084DADF /* Smart Swim.app */,
 				166B96F32D65310700D91CF0 /* SSwim Watch App.app */,
 				167424B32D9E86EE0037AEFD /* Smart Swim Tests.xctest */,
+				167B21182DA95EE3009470E5 /* SSwim Watch App Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -211,6 +233,29 @@
 			productReference = 167424B32D9E86EE0037AEFD /* Smart Swim Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		167B21172DA95EE3009470E5 /* SSwim Watch App Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 167B211E2DA95EE3009470E5 /* Build configuration list for PBXNativeTarget "SSwim Watch App Tests" */;
+			buildPhases = (
+				167B21142DA95EE3009470E5 /* Sources */,
+				167B21152DA95EE3009470E5 /* Frameworks */,
+				167B21162DA95EE3009470E5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				167B211D2DA95EE3009470E5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				167B21192DA95EE3009470E5 /* SSwim Watch App Tests */,
+			);
+			name = "SSwim Watch App Tests";
+			packageProductDependencies = (
+			);
+			productName = "SSwim Watch App Tests";
+			productReference = 167B21182DA95EE3009470E5 /* SSwim Watch App Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		16A823712D3006480084DADF /* Smart Swim */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 16A823852D3006490084DADF /* Build configuration list for PBXNativeTarget "Smart Swim" */;
@@ -252,6 +297,11 @@
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = 16A823712D3006480084DADF;
 					};
+					167B21172DA95EE3009470E5 = {
+						CreatedOnToolsVersion = 16.0;
+						LastSwiftMigration = 1600;
+						TestTargetID = 166B96F22D65310700D91CF0;
+					};
 					16A823712D3006480084DADF = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -274,6 +324,7 @@
 				16A823712D3006480084DADF /* Smart Swim */,
 				166B96F22D65310700D91CF0 /* SSwim Watch App */,
 				167424B22D9E86EE0037AEFD /* Smart Swim Tests */,
+				167B21172DA95EE3009470E5 /* SSwim Watch App Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -287,6 +338,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		167424B12D9E86EE0037AEFD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		167B21162DA95EE3009470E5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -381,6 +439,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		167B21142DA95EE3009470E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16A8236E2D3006480084DADF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -400,6 +465,11 @@
 			isa = PBXTargetDependency;
 			target = 16A823712D3006480084DADF /* Smart Swim */;
 			targetProxy = 167424B72D9E86EE0037AEFD /* PBXContainerItemProxy */;
+		};
+		167B211D2DA95EE3009470E5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 166B96F22D65310700D91CF0 /* SSwim Watch App */;
+			targetProxy = 167B211C2DA95EE3009470E5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -517,6 +587,49 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Smart Swim.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Smart Swim";
+			};
+			name = Release;
+		};
+		167B211F2DA95EE3009470E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tkachuk.SSwim-Watch-App-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSwim Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSwim Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		167B21202DA95EE3009470E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X5P4ZAH8RB;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tkachuk.SSwim-Watch-App-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSwim Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSwim Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -738,6 +851,15 @@
 			buildConfigurations = (
 				167424B92D9E86EE0037AEFD /* Debug */,
 				167424BA2D9E86EE0037AEFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		167B211E2DA95EE3009470E5 /* Build configuration list for PBXNativeTarget "SSwim Watch App Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				167B211F2DA95EE3009470E5 /* Debug */,
+				167B21202DA95EE3009470E5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

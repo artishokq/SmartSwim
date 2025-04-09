@@ -9,7 +9,7 @@ import Foundation
 import HealthKit
 import Combine
 
-final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     // MARK: - Singleton
     static let shared = WorkoutKitManager()
     
@@ -29,7 +29,7 @@ final class WorkoutKitManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkout
     private var lapCounter: Int = 0
     
     // MARK: - Initialization
-    private override init() {
+    override init() {
         super.init()
     }
     

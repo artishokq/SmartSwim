@@ -24,7 +24,7 @@ class AIWorkoutService {
     private let model = "deepseek-reasoner" // Модель DeepSeek
     
     // MARK: - Инициализация
-    private init() {}
+    internal init() {}
     
     // MARK: - Public Methods
     func generateRecommendation(

@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-final class ActiveSwimmingViewModel: ObservableObject {
+class ActiveSwimmingViewModel: ObservableObject {
     // MARK: - Constants
     private enum Constants {
         static let startStatus = "started"

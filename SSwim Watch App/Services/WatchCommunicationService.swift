@@ -63,7 +63,7 @@ class WatchCommunicationService: NSObject, WCSessionDelegate {
     }
     
     // MARK: - Initialization
-    private override init() {
+    override init() {
         super.init()
         startSession()
     }

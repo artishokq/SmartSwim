@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-final class WorkoutSessionViewModel: ObservableObject {
+class WorkoutSessionViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var sessionState: SwimWorkoutModels.WorkoutSessionState = .notStarted
     @Published var showingExercisePreview = false
